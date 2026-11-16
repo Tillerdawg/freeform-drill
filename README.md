@@ -73,6 +73,7 @@ A note on where the ideas came from: FreeFORM is modeled on Pyware and the Ultim
 - **Help → Get a show back**: what happened (a mistake, an earlier version, a missing show, a new computer, or something else, where a phone link brings it back) and the button that fixes it.
 - Shape handles you can move with the keyboard: Tab steps through them, arrows move them.
 - Import Pyware 3D (`.3dj`) shows, tested with files from 2008 to 2010.
+- Import OpenMarch (`.dots`) shows: pages, counts, measures, sections, drill numbers and names, curved paths, and the recording.
 - **Help → Send feedback**: a short form that comes straight to me, with no account needed. Help also has **Support FreeFORM** (a tip jar on Ko-fi), **About FreeFORM Drill** (the front page), **See the code on GitHub**, and **Open-source credits** (every library FreeFORM ships, with its license).
 
 It runs on a current Chrome, Edge, Firefox, or Safari, and on iPadOS/iOS 16.4 or later. Write drill on a computer or an iPad (hide the timeline and sidebar for more field). Phones get only the performer view.
@@ -109,7 +110,7 @@ node scripts/screenshots.mjs ftl print    # or just these
 
 | Path | What's there |
 |---|---|
-| `src/engine/` | The drill logic, with no UI: coordinates and readouts, the show model, shapes, markup, undo, which versions to keep, music timing, share links and locked files, QR codes, the Pyware reader, and the whole-show Review. Unit-tested. |
+| `src/engine/` | The drill logic, with no UI: coordinates and readouts, the show model, shapes, markup, undo, which versions to keep, music timing, share links and locked files, QR codes, the Pyware and OpenMarch readers (with a small SQLite reader), and the whole-show Review. Unit-tested. |
 | `src/field/` | Drawing the field, performers, shapes, and markup, plus dot-label placement and the rotate/stretch frame |
 | `src/ui/` | The toolbar, sidebar, the New show box and the field menu it shares (`FieldPicker.tsx`), timeline, Review list, music menu (with the rehearsal track's worker, `rehearsalWorker.ts`), show list, color palette, the keyboard handling every dialog shares (`useDialog`), where the sidebar and timeline sit (`layout.ts`), and browser storage (`audioStore.ts`, `showStore.ts`: recordings, pictures, the show library, and versions in IndexedDB) |
 | `src/print/` | Dot sheets and drill charts |
