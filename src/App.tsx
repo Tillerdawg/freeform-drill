@@ -49,10 +49,13 @@ import { practiceShow, sampleShow } from './engine/sample';
 
 import { AUTOSAVE } from './ui/showStore';
 import { IconFit, IconZoomIn, IconZoomOut } from './ui/icons';
+import { useSettled } from './ui/useSettled';
 import { backupDue, DAY, readTime, UNEXPORTED, unexportedKey, writeTime } from './ui/backupReminder';
 export { AUTOSAVE };
 const GUIDE = '../guide/'; // made from docs/HOW-TO.md when the site is built
 const fileSavedKey = (id?: string) => `freeform:file-saved:${id}`, SNOOZE = 'freeform:backup-later';
+// Made once: building a date format is slow, and the save status asks for one on every render.
+const CLOCK = new Intl.DateTimeFormat([], { hour: 'numeric', minute: '2-digit' }), SHORT_DATE = new Intl.DateTimeFormat([], { month: 'short', day: 'numeric' });
 const LOOK = 'freeform:section-view'; // which sections are dimmed or hidden in the editor
 
 function loadAutosave(): Show {
@@ -192,7 +195,11 @@ export function App() {
   // Two tabs: when another tab saves this same show, say so and let the director choose, instead of the last write winning.
   const [otherTab, setOtherTab] = useState<Show | null>(null);
   const otherRef = useRef(otherTab); otherRef.current = otherTab;
-  useEffect(() => { if (!otherRef.current) persist(show); }, [show]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The settled show (src/ui/useSettled.ts): each edit at once, but a drag only when it ends. The autosave, Review, and
+  // the close-call checks use it, so a big band's drag doesn't rewrite storage and recheck the show on every step.
+  const checked = useSettled(show);
+  const checkedRef = useRef(checked); checkedRef.current = checked; // behind the open show only in the moment after a drag
+  useEffect(() => { if (!otherRef.current) persist(checked); }, [checked]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const f = (e: StorageEvent) => {
       if (e.key !== AUTOSAVE || !e.newValue || e.newValue === JSON.stringify(showRef.current)) return;
@@ -305,6 +312,12 @@ export function App() {
   usePlayback(playing, setPlaying, t, setT, bpm, span, range.loop, showLength(show), clock, clickOn && !clock ? starts : null); // with the recording, the music is the click
 
   const showRef = useRef(show); showRef.current = show; // for the resize observer, which outlives renders
+  // The autosave follows the settled show, which trails a drag by a moment: leaving the page in that moment writes the latest.
+  useEffect(() => {
+    const leave = (e: Event) => { if ((e.type === 'pagehide' || document.visibilityState === 'hidden') && checkedRef.current !== showRef.current && !otherRef.current) persist(showRef.current); };
+    window.addEventListener('pagehide', leave); document.addEventListener('visibilitychange', leave);
+    return () => { window.removeEventListener('pagehide', leave); document.removeEventListener('visibilitychange', leave); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const fieldKey = JSON.stringify(fieldOf(show));
   useEffect(() => { const c = canvasRef.current; if (c?.width) setView(fitView(c.width, c.height, fieldOf(showRef.current))); }, [fieldKey]); // a new surface: fit it
   useEffect(() => {
@@ -339,8 +352,8 @@ export function App() {
   const pathSet = onSet >= 0 ? onSet : t < starts.at(-1)! ? locate(show, t).to : -1;
   const paths: Path[] = useMemo(() => (pathSet < 1 ? [] : moveSegments(show, pathSet, (id) => !faded.has(id))), [show, pathSet, faded]);
   const warn = useMemo(() => new Set(pathSet < 1 ? [] : overLimit(show, pathSet)), [show, pathSet]); // ringed: over the step limit in this move
-  const allIssues = useMemo(() => reviewShow(show), [show]);
-  const { open: issues, dismissed } = useMemo(() => splitDismissed(show, allIssues), [show, allIssues]);
+  const allIssues = useMemo(() => reviewShow(checked), [checked]);
+  const { open: issues, dismissed } = useMemo(() => splitDismissed(checked, allIssues), [checked, allIssues]);
   // The getting-started checklist: turned on for a show with Getting started, step by step (on a blank field's Start note,
   // or Help), and off with its Close (Jason: it's chosen, not pushed). Per show, what the show can't tell by itself
   // (pressed Play, opened Review, opened Share) is kept in this browser, with the checklist being on.
@@ -407,7 +420,7 @@ export function App() {
     </span>
   </>;
   const today = (ms: number) => new Date(ms).toDateString() === new Date().toDateString();
-  const whenLabel = (ms: number) => (today(ms) ? new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : new Date(ms).toLocaleDateString([], { month: 'short', day: 'numeric' }));
+  const whenLabel = (ms: number) => (today(ms) ? CLOCK : SHORT_DATE).format(ms);
   const saved = saveStatus({
     browserOk: saveFailed === 'no', unexported, fileSavedAt, revision: show.revision, changedSincePublish: revisionLabel(show).endsWith('+ changes'),
     when: whenLabel,
@@ -1182,7 +1195,7 @@ export function App() {
             doneText={<>Your band has the show. Each time you change the drill, publish again: the save status at the bottom of the sidebar says when phones are behind. <strong>Close</strong> puts this list away.</>} />
           : gsSteps && show.performers.length > 0 && <GettingStarted steps={gsSteps} onHide={hideGs}
             doneText={<>All five done: you've written your first move and checked it. When you're ready for your band to learn it: <button onClick={() => { hideGs(); startSb(); }}>Send it to your band</button></>} />)}
-        {reviewing && <ReviewPanel show={show} setShow={setShow} issues={issues} all={allIssues} dismissed={dismissed} onGo={goToIssue} onClose={() => setReviewing(false)} />}
+        {reviewing && <ReviewPanel show={checked} setShow={setShow} issues={issues} all={allIssues} dismissed={dismissed} onGo={goToIssue} onClose={() => setReviewing(false)} />}
         {/* Floats over the field so its changing length can't move the layout. */}
         {(notice?.t === t || hover) && (
           <div role={notice?.t === t ? 'status' : undefined} style={{ position: 'absolute', left: 8, bottom: 8, maxWidth: 'calc(100% - 16px)', padding: '4px 8px', borderRadius: 4,
@@ -1191,7 +1204,7 @@ export function App() {
         </div>
         {/* Hidden, not unmounted, like the sidebar: its zoom and menus survive. */}
         <section aria-label="Timeline" style={timelineOpen ? { [timelineTop ? 'borderBottom' : 'borderTop']: '1px solid var(--line)' } : { display: 'none' }}>
-        <Timeline click={{ on: clickOn, set: (on) => { setClickOn(on); setClickWanted(on); if (on) wakeClick(); } }} wave={wave && show.music && show.music.taps.length >= 2 ? { peaks: wave, taps: show.music.taps } : undefined} show={show} setShow={setShow} t={t} setT={(x) => { setPlaying(false); setT(x); }} playing={playing} setPlaying={setPlaying} bpm={bpm} setBpm={setBpm}
+        <Timeline click={{ on: clickOn, set: (on) => { setClickOn(on); setClickWanted(on); if (on) wakeClick(); } }} wave={wave && show.music && show.music.taps.length >= 2 ? { peaks: wave, taps: show.music.taps } : undefined} show={show} checked={checked} setShow={setShow} t={t} setT={(x) => { setPlaying(false); setT(x); }} playing={playing} setPlaying={setPlaying} bpm={bpm} setBpm={setBpm}
           range={range} setRange={setRange} span={span} onCloseCall={showCloseCall} onOverLimit={showOverLimit}
           music={<MusicMenu key={show.id} show={show} setShow={setShow} audio={audio} onAudio={() => setAudioTick((n) => n + 1)} useMusic={useMusic} setUseMusic={setUseMusic} />} />
         </section>

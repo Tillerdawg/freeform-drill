@@ -896,8 +896,20 @@ export function chainOrder(show: Show, i: number, leader: string, ids: string[])
   return order;
 }
 
-/** Step size per performer for the move into set i (i >= 1). */
+// Step sizes per move, kept until the move's two sets or the step limit change: the timeline asks for every move's
+// biggest step on each render (each step of a drag, each frame of playback), and Review asks again.
+const stepMemo = new WeakMap<DrillSet, { prev: DrillSet; limit?: number; steps: Record<string, { per5: number; tier: StepTier }> }>();
+
+/** Step size per performer for the move into set i (i >= 1): the arc for a turn, the leader's route for follow-the-leader. */
 export function moveSteps(show: Show, i: number): Record<string, { per5: number; tier: StepTier }> {
+  const set = show.sets[i], prev = show.sets[i - 1], hit = stepMemo.get(set);
+  if (hit && hit.prev === prev && hit.limit === show.stepLimit) return hit.steps;
+  const steps = stepsOf(show, i);
+  stepMemo.set(set, { prev, limit: show.stepLimit, steps });
+  return steps;
+}
+
+function stepsOf(show: Show, i: number): Record<string, { per5: number; tier: StepTier }> {
   const set = show.sets[i], a = show.sets[i - 1].pos, b = set.pos;
   const dist: Record<string, number> = Object.fromEntries(Object.keys(b).map((id) => [id, distance(a[id] ?? b[id], b[id])]));
   const counts: Record<string, number> = Object.fromEntries(Object.keys(b).map((id) => [id, timingOf(set, id).move])); // a delayed step-off covers it in fewer counts
@@ -1160,7 +1172,34 @@ export function mirrorSides(show: Show, i: number, ids: string[], from: 1 | 2): 
     const order = g.order.map((id) => partner[id]);
     out = setFtlTurns(setFtl(out, i, order), i, order[0], (g.turns ?? []).map((p) => ({ x: -p.x, y: p.y })));
   }
-  return out;
+  return i > 0 ? copyMoveStyle(out, i, partner, from) : out;
+}
+
+/**
+ * The rest of how the copied side moves into set i, for Copy Side 1 → 2: each partner takes its twin's delayed
+ * step-off (or none), its imported route mirrored (only where it fits the partner's own two spots), and turning
+ * groups wholly on the copied side turn again as their partners. A turning group wholly on the other side is the old
+ * copy, so its selected members leave it; a group across the 50 is left alone.
+ */
+function copyMoveStyle(show: Show, i: number, partner: Record<string, string>, from: 1 | 2): Show {
+  const s = show.sets[i], a = show.sets[i - 1].pos, b = s.pos;
+  const twins = Object.entries(partner), dst = new Set(Object.values(partner)), src = new Set(Object.keys(partner));
+  const onFrom = (id: string) => (from === 1 ? b[id]?.x < 0 : b[id]?.x > 0);
+  const timing = { ...s.timing }, paths = { ...s.paths };
+  for (const [id, twin] of twins) {
+    if (s.timing?.[id]) timing[twin] = { ...s.timing[id] }; else delete timing[twin];
+    const path = s.paths?.[id]?.map((p) => ({ x: -p.x, y: p.y }));
+    if (path && pathFits(path, a[twin] ?? b[twin], b[twin], s.counts)) paths[twin] = path; else delete paths[twin];
+  }
+  const groups = s.turning ?? [];
+  const copied = groups.filter((g) => g.every((id) => src.has(id))).map((g) => g.map((id) => partner[id]));
+  const inCopy = new Set(copied.flat()); // a performer turns in one group at most
+  const kept = groups
+    .map((g) => (g.every((id) => !onFrom(id)) ? g.filter((id) => !dst.has(id)) : g).filter((id) => !inCopy.has(id)))
+    .filter((g) => g.length > 1);
+  const turning = [...kept, ...copied];
+  const some = <T extends object>(o: T) => (Object.keys(o).length ? o : undefined);
+  return mapSet(show, i, (x) => ({ ...x, timing: some(timing), paths: some(paths), turning: turning.length ? turning : undefined }));
 }
 
 /**
