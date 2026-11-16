@@ -1,15 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { secondsAt, type Midi } from '../engine/midi';
 import { parseScore } from '../engine/musicxml';
 import { synced } from '../engine/music';
 import { newId, showLength, type Show } from '../engine/show';
 import type { RehearsalSource } from '../engine/scoreMidi';
-import { deleteAudio, putAudio } from './audioStore';
+import { deleteAudio, getAudio, putAudio } from './audioStore';
 import { makeRehearsalTrack } from './rehearsalTrack';
 import { Menu } from './Toolbar';
 import { NumberField } from './NumberField';
 import { useDialog } from './useDialog';
 import { MusicSyncPreview } from './MusicSyncPreview';
+import { LineUpDialog } from './LineUp';
+import type { Downbeat } from '../engine/lineup';
 
 interface Props {
   show: Show;
@@ -21,7 +24,7 @@ interface Props {
 }
 
 type Score = { name: string; map: Midi };
-type PendingSync = { score: Score; audioName: string; warning?: string } & ({ blob: Blob } | { audioId: string });
+type PendingSync = { score: Score; audioName: string; warning?: string; downbeats?: Downbeat[] } & ({ blob: Blob } | { audioId: string });
 
 /** The score and recording can be loaded in either order. Pairing them opens a preview before syncing. */
 export function MusicMenu({ show, setShow, audio, onAudio, useMusic, setUseMusic }: Props) {
@@ -33,6 +36,11 @@ export function MusicMenu({ show, setShow, audio, onAudio, useMusic, setUseMusic
   const [preview, setPreview] = useState<PendingSync | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // Lining up a real recording: the bars tapped so far (this visit only), and the tap screen while it's open.
+  const [lining, setLining] = useState<{ pending: PendingSync; blob: Blob } | null>(null);
+  const [tapped, setTapped] = useState<{ key: string; downbeats: Downbeat[] } | null>(null); // kept so the next visit adds to them
+  const pairKey = (scoreName: string, audioName: string) => `${scoreName}\u0000${audioName}`;
+  const earlierFor = (scoreName: string, audioName: string) => (tapped?.key === pairKey(scoreName, audioName) ? tapped.downbeats : undefined);
   const currentShow = useRef<Show | null>(show);
   useEffect(() => {
     currentShow.current = show;
@@ -126,6 +134,13 @@ export function MusicMenu({ show, setShow, audio, onAudio, useMusic, setUseMusic
       setSaving(false);
     }
   };
+  /** Open the tap screen for this pairing: the recording from the preview, or the show's own stored one. */
+  const lineUp = async (pending: PendingSync) => {
+    const blob = 'blob' in pending ? pending.blob : await getAudio(pending.audioId);
+    if (!blob) { setNote("The recording isn't in this browser. Add it again to line it up."); return; }
+    setPreview(null);
+    setLining({ pending, blob });
+  };
   const rehearsal = !!m && isRehearsal(m.name);
   const label = !m ? 'Music' : synced(m) && useMusic && audio ? '♪ Music' : 'Music';
   const done = (ok: boolean) => (ok ? '✓ ' : '');
@@ -143,7 +158,9 @@ export function MusicMenu({ show, setShow, audio, onAudio, useMusic, setUseMusic
           {score?.source && <button disabled={!!working} onClick={makeTrack} title="FreeFORM plays the score with General MIDI instruments. The counts follow the same repeats, endings, and tempos.">
             {done(rehearsal && !!audio)}{rehearsal ? 'Make the rehearsal track again' : m ? 'Use a rehearsal track instead' : 'Make a rehearsal track'}</button>}
           {working && <p role="status" aria-live="polite" style={{ margin: 0, fontSize: 12 }}>{working}</p>}
-          {m && audio && score && <button disabled={!!working} onClick={() => startPreview({ score, audioName: m.name, audioId: m.audioId, warning: pairWarning(audio.duration, score.map) })}>Preview music sync…</button>}
+          {m && audio && score && <button disabled={!!working} onClick={() => { const downbeats = earlierFor(score.name, m.name); startPreview({ score, audioName: m.name, audioId: m.audioId, downbeats, warning: downbeats ? undefined : pairWarning(audio.duration, score.map) }); }}>Preview music sync…</button>}
+          {m && audio && score && !rehearsal && <button disabled={!!working} onClick={() => { close(); lineUp({ score, audioName: m.name, audioId: m.audioId, downbeats: earlierFor(score.name, m.name) }); }}
+            title="For a band or studio recording that wasn't made from the score: tap beat 1 of each bar, and FreeFORM places the rest from the score">Line up the downbeats…</button>}
           {m && <button disabled={!audio || !!working} onClick={() => { setTapping(true); close(); }}>Tap counts…</button>}
           {m && synced(m) && <label style={{ fontSize: 13 }}><input type="checkbox" checked={useMusic} onChange={(e) => setUseMusic(e.target.checked)} /> Play with music (off: use Tempo)</label>}
           {m && <button disabled={!!working} className="danger" onClick={() => { deleteAudio(m.audioId); setShow((s) => { const { music: _, ...rest } = s; return rest; }); setNote(''); }}>Remove music</button>}
@@ -153,7 +170,16 @@ export function MusicMenu({ show, setShow, audio, onAudio, useMusic, setUseMusic
       <input ref={file} type="file" accept="audio/*,.mp3,.m4a,.wav,.aac" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) load(f); e.target.value = ''; }} />
       <input ref={scoreFile} type="file" accept=".mscz,.mscx,.mid,.midi,audio/midi,.musicxml,.xml,.mxl,application/vnd.recordare.musicxml+xml,application/vnd.recordare.musicxml" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) addScore(f); e.target.value = ''; }} />
       {preview && <MusicSyncPreview show={show} map={preview.score.map} scoreName={preview.score.name} audioName={preview.audioName} warning={preview.warning}
+        downbeats={preview.downbeats} onLineUp={isRehearsal(preview.audioName) ? undefined : () => lineUp(preview)}
         saving={saving} error={error} onApply={apply} onCancel={() => setPreview(null)} />}
+      {lining && <LineUpDialog blob={lining.blob} map={lining.pending.score.map} earlier={lining.pending.downbeats ?? []} onDone={(r) => {
+        const { pending } = lining;
+        setLining(null);
+        if (!r) { startPreview(pending); return; } // back to the preview as it was
+        setNote(`Lined up at ${r.downbeats.length} ${r.downbeats.length === 1 ? 'bar' : 'bars'}${r.tapped ? `; ${r.snapped} of ${r.tapped} new taps moved onto the recording's beat` : ''}.`);
+        setTapped({ key: pairKey(pending.score.name, pending.audioName), downbeats: r.downbeats });
+        startPreview({ ...pending, warning: undefined, downbeats: r.downbeats });
+      }} />}
       {tapping && audio && m && <TapDialog audio={audio} total={total} kept={m.taps} onDone={(taps) => { setTapping(false); if (taps) setShow((s) => (s.music ? { ...s, music: { ...s.music, taps } } : s)); }} />}
     </>
   );
@@ -188,7 +214,7 @@ function TapDialog({ audio, total, kept, onDone }: { audio: HTMLAudioElement; to
   useEffect(() => () => audio.pause(), [audio]);
   const dialog = useDialog(() => { audio.pause(); onDone(null); });
   const n = all.length;
-  return (
+  return createPortal( // above the field: the Music menu sits inside the timeline's own layer, which would hide it
     <div ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Tap counts" style={{ position: 'fixed', inset: 0, background: 'var(--backdrop)', display: 'grid', placeItems: 'center', zIndex: 30, whiteSpace: 'normal' }}>
       <div style={{ background: 'var(--bg)', border: '1px solid var(--line-strong)', borderRadius: 10, padding: 20, width: 440, maxWidth: 'calc(100vw - 32px)' }}>
         <h2 style={{ margin: '0 0 6px', fontSize: 18 }}>Tap the counts</h2>
@@ -220,7 +246,7 @@ function TapDialog({ audio, total, kept, onDone }: { audio: HTMLAudioElement; to
           <button className="primary" disabled={n < 2 || !taps.length} onClick={() => { audio.pause(); onDone(allRef.current); }}>Done</button>
         </div>
       </div>
-    </div>
+    </div>, document.body,
   );
 }
 
@@ -246,6 +272,6 @@ const storageError = "This browser wouldn't store the music (it may be out of sp
 function pairWarning(length: number | null, map: Midi): string | undefined {
   const scoreLength = secondsAt(map, map.end);
   if (length !== null && Number.isFinite(length) && (length < scoreLength - 2 || length > scoreLength + 20)) {
-    return `Check that these go together. The recording is ${fmt(length)} and the score plays for ${fmt(scoreLength)}.`;
+    return `Check that these go together. The recording is ${fmt(length)} and the score plays for ${fmt(scoreLength)}. If it's a band or studio recording, not one made from this score, choose Line up the downbeats.`;
   }
 }

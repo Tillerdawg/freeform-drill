@@ -409,6 +409,25 @@ shot('music-sync', async () => {
   await preview.getByRole('checkbox', { name: /^Add hold 1A/ }).check();
   await save(page, 'music-sync', await around(preview.locator(':scope > div'), 16));
 });
+shot('music-lineup', async () => {
+  // A band recording paired with its score: the tap screen for beat 1 of each bar, partway through.
+  const page = await editor();
+  await menu(page, 'Music');
+  const measure = '<measure><note><rest/><duration>4</duration></note></measure>';
+  await page.locator('input[accept*=".musicxml"]').setInputFiles({ name: 'Opener.musicxml', mimeType: 'application/xml', buffer: Buffer.from(`<score-partwise><part id="P1">${measure.repeat(16)}</part></score-partwise>`) });
+  const length = 40 * 8000, wav = Buffer.alloc(44 + length * 2);
+  wav.write('RIFF'); wav.writeUInt32LE(wav.length - 8, 4); wav.write('WAVEfmt ', 8);
+  wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22); wav.writeUInt32LE(8000, 24);
+  wav.writeUInt32LE(16000, 28); wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34);
+  wav.write('data', 36); wav.writeUInt32LE(length * 2, 40);
+  await page.locator('input[accept^="audio/*"]').setInputFiles({ name: 'Opener (band).wav', mimeType: 'audio/wav', buffer: wav });
+  await page.getByRole('dialog', { name: 'Preview music sync' }).getByRole('button', { name: 'Line up the downbeats…' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Line up the recording with the score' });
+  await dialog.getByRole('button', { name: /^Start at bar/ }).click();
+  for (let k = 0; k < 3; k++) { await page.waitForTimeout(250); await page.keyboard.press('Space'); }
+  await dialog.getByRole('button', { name: 'Pause' }).click();
+  await save(page, 'music-lineup', await around(dialog.locator(':scope > div'), 16));
+});
 shot('movements', async () => {
   const page = await editor();
   await menu(page, 'Movements');
