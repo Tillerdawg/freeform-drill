@@ -968,3 +968,26 @@ describe('snapping to the grid', () => {
     expect(snapPoint(p, 0)).toEqual(p);
   });
 });
+
+describe('parseShow with built-in object names as ids', () => {
+  const plain = () => JSON.parse(JSON.stringify(newShow()));
+  it('turns away a performer whose id is __proto__ or another built-in name', () => {
+    const s = plain();
+    s.performers = [{ id: '__proto__', section: s.sections[0].id, number: 1 }];
+    s.sets[0].pos = JSON.parse('{"__proto__":{"x":1,"y":2}}');
+    expect(() => parseShow(JSON.stringify(s))).toThrow(/performer/);
+    s.performers[0].id = 'constructor';
+    s.sets[0].pos = { constructor: { x: 1, y: 2 } };
+    expect(() => parseShow(JSON.stringify(s))).toThrow(/performer/);
+  });
+  it('turns away cues and paths for performers who are only built-in names, not in the set', () => {
+    const s = plain();
+    s.sets[0].cues = { constructor: 'hi' };
+    expect(() => parseShow(JSON.stringify(s))).toThrow(/cues/);
+  });
+  it('turns away a hash preset that is a built-in name', () => {
+    const s = plain();
+    s.hash = 'toString';
+    expect(() => parseShow(JSON.stringify(s))).toThrow(/hash/);
+  });
+});

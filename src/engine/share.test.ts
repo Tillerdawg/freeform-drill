@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decodeShow, encodeShow, fetchHosted, fetchShow, hostedLink, linkHash, lockShow, newKey, parseHosted } from './share';
+import { decodeShow, encodeShow, fetchHosted, fetchShow, hostedLink, linkHash, pipe, lockShow, newKey, parseHosted } from './share';
 import { qrSvg } from './qr';
 import { addPerformer, addSetAfter, newShow, placeInSet, setCue, setNames } from './show';
 
@@ -187,5 +187,23 @@ describe('the FreeFORM logo in the middle of a QR code', async () => {
   it('draws the logo in the SVG only when asked', () => {
     expect(qrSvg(link(), { tile: 'T', dot: 'D', accent: 'A' })).toContain('fill="A"');
     expect(qrSvg(link())).not.toContain('<circle');
+  });
+});
+
+describe('size limits on what comes from outside', () => {
+  it('stops unpacking past the limit, so a tiny link cannot unpack into gigabytes', async () => {
+    const zeros = new Uint8Array(2_000_000);
+    const packed = await pipe(zeros, new CompressionStream('deflate-raw'));
+    expect(packed.length).toBeLessThan(10_000); // squeezes to almost nothing
+    await expect(pipe(packed, new DecompressionStream('deflate-raw'), 1_000_000)).rejects.toThrow(/too big/);
+    expect((await pipe(packed, new DecompressionStream('deflate-raw'))).length).toBe(2_000_000);
+  });
+
+  it('turns away a hosted file the server says is too big, without downloading it', async () => {
+    const link = '#load=' + encodeURIComponent('https://example.com/show.json') + '&key=' + newKey();
+    // A body that never ends: reading it would never finish, so the test only passes if it's turned away unread.
+    const body = new ReadableStream({ pull(c) { c.enqueue(new Uint8Array(1_000_000)); } });
+    const huge = (async () => new Response(body, { headers: { 'Content-Length': '50000000' } })) as unknown as typeof fetch;
+    await expect(fetchHosted(link, huge)).rejects.toThrow(/too big/);
   });
 });

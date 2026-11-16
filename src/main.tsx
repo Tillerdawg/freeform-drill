@@ -1,7 +1,7 @@
 import { Component, lazy, Suspense, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './ui/palette'; // light or dark before either view loads, so the page doesn't flash
-import { AUTOSAVE } from './ui/showStore';
+import { AUTOSAVE, AUTOSAVE_ID } from './ui/showStore';
 import { isPhone } from './perform/device';
 
 /** If the app crashes, show the error and keep the autosaved show recoverable (a bad save would otherwise crash every reload). */
@@ -20,7 +20,7 @@ class Crash extends Component<{ children: ReactNode }, { error?: Error }> {
     };
     const reset = () => {
       if (!confirm('Clear the autosaved show and start fresh? Download it first if you want to keep it.')) return;
-      try { localStorage.removeItem(AUTOSAVE); } catch { /* nothing to clear */ }
+      try { localStorage.removeItem(AUTOSAVE); localStorage.removeItem(AUTOSAVE_ID); } catch { /* nothing to clear */ } // the show stays in the library (Shows…)
       location.reload();
     };
     return (

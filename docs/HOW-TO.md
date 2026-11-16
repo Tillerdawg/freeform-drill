@@ -482,7 +482,7 @@ Click **Share…** in the sidebar. The dialog has two choices at the top, and ea
 
 **Your show is encrypted before it leaves your computer.** FreeFORM locks the show in your browser with a secret key, and the key is only in your link: in the part after the #, which browsers never send to any server. The file that goes online is unreadable without that key. No one can open your show, not even FreeFORM or me, unless they have your link. That makes **the link the password, so share it only with your band.** Your browser remembers the link, but keep a copy too (your band's group chat is fine): without the link, no one can recover the key.
 
-FreeFORM's service keeps published shows for free. A show nobody has opened or updated for a year is deleted automatically. **Stop sharing** takes a show off right away.
+FreeFORM's service keeps published shows for free. A show nobody has opened or updated for six months is deleted automatically, so a season fits with room to spare. **Stop sharing** takes a show off right away.
 
 **A new computer or iPad mid-season.** Only the browser that published a show can update it: the link alone can't, or any student could change the drill. To keep updating the same link from a new device, bring the show's publishing with you, either way:
 

@@ -23,7 +23,7 @@ import { NewShowDialog } from './ui/NewShow';
 import { FieldSelect, FieldDetails } from './ui/FieldPicker';
 import { MusicMenu } from './ui/Music';
 import { getAudio, putAudio } from './ui/audioStore';
-import { addVersion, forgetShow, keepShow, listShows, loadShow } from './ui/showStore';
+import { addVersion, forgetShow, keepShow, listShows, loadShow, readAutosave, writeAutosave } from './ui/showStore';
 import { ShowsDialog, type ShowActions } from './ui/Shows';
 import { peaks } from './engine/music';
 import { confirmDelete, Menu, SHAPES, Toolbar } from './ui/Toolbar';
@@ -60,10 +60,14 @@ const fileSavedKey = (id?: string) => `freeform:file-saved:${id}`, SNOOZE = 'fre
 const CLOCK = new Intl.DateTimeFormat([], { hour: 'numeric', minute: '2-digit' }), SHORT_DATE = new Intl.DateTimeFormat([], { month: 'short', day: 'numeric' });
 const LOOK = 'freeform:section-view'; // which sections are dimmed or hidden in the editor
 
+/** Set by loadAutosave when the open show was too big for localStorage: its library id, opened once the editor is up. */
+let restoreFromLibrary: string | null = null;
+
 function loadAutosave(): Show {
-  let raw: string | null = null;
+  const saved = readAutosave();
+  if (saved && 'id' in saved) restoreFromLibrary = saved.id; // too big for localStorage: the library has it (opened after mount)
+  const raw = saved && 'raw' in saved ? saved.raw : null;
   try {
-    raw = localStorage.getItem(AUTOSAVE);
     if (raw) {
       // An older autosave gets its id now (the autosave then puts it in the library). From before the library, the one
       // backup-reminder date belongs to this show.
@@ -176,15 +180,19 @@ export function App() {
   useEffect(() => { if (t > total) setT(total); }, [t, total]);
 
   // Autosave: the open show into localStorage at once (what a reload opens), and into the show library a moment later
-  // (IndexedDB, which also keeps its versions). If the browser refuses either (storage full, private mode), say so:
+  // (IndexedDB, which also keeps its versions). If the browser refuses the library (storage full, private mode), say so:
   // the work exists only in this tab until it's saved to a file.
   const [saveFailed, setSaveFailed] = useState<'no' | 'yes' | 'seen'>('no');
   const keepTimer = useRef(0);
+  // A show too big for localStorage reopens from the library: until that's done, nothing is saved over it.
+  const restoring = useRef(restoreFromLibrary !== null);
   const persist = (s: Show) => {
-    let ok = true;
-    try { localStorage.setItem(AUTOSAVE, JSON.stringify(s)); } catch { ok = false; }
+    if (restoring.current) return;
+    // Too big for localStorage (about 5 MB): the old copy is taken out there, and the library copy is what a reload opens,
+    // so it's kept at once instead of a moment later. Only the library failing means the work isn't safe.
+    const fits = writeAutosave(s);
     clearTimeout(keepTimer.current);
-    keepTimer.current = window.setTimeout(async () => { ok = (await keepShow(s)) && ok; setSaveFailed((f) => (ok ? 'no' : f === 'seen' ? f : 'yes')); }, 800);
+    keepTimer.current = window.setTimeout(async () => { const ok = await keepShow(s); setSaveFailed((f) => (ok ? 'no' : f === 'seen' ? f : 'yes')); }, fits ? 800 : 0);
   };
   /** The open show into the library now (before another one opens, or the library is listed). */
   const flush = async () => {
@@ -234,6 +242,14 @@ export function App() {
     firstShow.current = s; setUnexported(readTime(unexportedKey(s.id))); setFileSavedAt(readTime(fileSavedKey(s.id))); fileHandle.current = null; // a different show: ⌘S mustn't write over the last one's file
   };
   const fileHandle = useRef<FileSystemFileHandle | null>(null); // where Save last put this show (Chrome, Edge), for ⌘S
+  // The show was too big for localStorage last time: open the library copy (the blank field shows only for a moment).
+  useEffect(() => {
+    const id = restoreFromLibrary;
+    if (!id) return;
+    restoreFromLibrary = null;
+    loadShow(id).then((s) => { if (showRef.current === firstShow.current) openShow(s); }).catch(() => { /* not in the library: start blank */ })
+      .finally(() => { restoring.current = false; });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A short message over the field about what just happened (a jump to a close call, an edit refused mid-move). It goes away when the playhead moves.
   const [notice, setNotice] = useState<{ text: string; t: number } | null>(null);

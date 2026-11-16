@@ -190,7 +190,7 @@ export function ShareDialog({ show, onClose, published }: { show: Show; onClose:
           {!audio && synced(show.music) && <p style={{ ...small, margin: '0 0 6px' }}>To include the music, load {show.music!.name} in Music ▾ first.</p>}
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <button className="primary" disabled={busy === 'Publishing…'} onClick={publishFF}>{onService ? 'Publish update' : 'Publish to phones'}</button>
-            <span style={{ fontSize: 12, opacity: 0.8 }}>Free, with no account. Shows nobody opens for a year are deleted.</span>
+            <span style={{ fontSize: 12, opacity: 0.8 }}>Free, with no account. Shows nobody opens for six months are deleted.</span>
           </div>
           {busy && <p role="status" style={{ fontSize: 12, margin: '6px 0 0' }}>{busy}</p>}
           {hosted && <>

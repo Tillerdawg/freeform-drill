@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkLocked, day, hashToken, ID_RE, KEEP_DAYS, MAX_BYTES, newId, newToken, sameHash, stale } from './src/shows';
+import { checkLocked, day, hashToken, ID_RE, KEEP_DAYS, MAX_BYTES, newId, newToken, sameHash, seenDue, stale } from './src/shows';
 
 const locked = (extra: Record<string, unknown> = {}) => JSON.stringify({ format: 'freeform-locked', version: 1, iv: 'abc_-1', data: 'QUJD', ...extra });
 
@@ -21,11 +21,20 @@ describe('the upload service', () => {
     expect(sameHash(await hashToken(newToken()), h)).toBe(false);
     expect(sameHash('abc', 'abcd')).toBe(false);
   });
-  it('cleans up a show only after a year with no opens or updates', () => {
-    const now = Date.UTC(2027, 10, 10), year = KEEP_DAYS * 86_400_000;
-    expect(stale(now, now - year - 1)).toBe(true);
-    expect(stale(now, now - year - 1, now - 5 * 86_400_000)).toBe(false); // opened last week
+  it('cleans up a show only after six months with no opens or updates', () => {
+    const now = Date.UTC(2027, 10, 10), keep = KEEP_DAYS * 86_400_000;
+    expect(KEEP_DAYS).toBeGreaterThanOrEqual(182); // a marching season fits
+    expect(stale(now, now - keep - 1)).toBe(true);
+    expect(stale(now, now - keep - 1, now - 5 * 86_400_000)).toBe(false); // opened last week
     expect(stale(now, now - 1000)).toBe(false);
     expect(day(Date.UTC(2026, 10, 10, 23))).toBe('2026-11-10');
+  });
+  it('notes "last opened" at most once a week, to save KV writes', () => {
+    const now = Date.UTC(2026, 10, 16, 12);
+    expect(seenDue(now, null)).toBe(true);
+    expect(seenDue(now, '2026-11-16')).toBe(false);
+    expect(seenDue(now, '2026-11-10')).toBe(false); // 6.5 days ago
+    expect(seenDue(now, '2026-11-09')).toBe(true); // 7.5 days ago
+    expect(seenDue(now, 'garbage')).toBe(true);
   });
 });

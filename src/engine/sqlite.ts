@@ -36,6 +36,7 @@ export function openDatabase(data: ArrayBuffer | Uint8Array): Database {
   const payload = (o: number, size: number): Uint8Array => {
     const X = usable - 35;
     if (size <= X) { if (o + size > b.length) fail(); return b.subarray(o, o + size); }
+    if (size > pages * usable) fail(); // claims more than the whole file holds: damaged (and don't try to set aside that much memory)
     const M = Math.floor(((usable - 12) * 32) / 255) - 23, K = M + ((size - M) % (usable - 4));
     const local = K <= X ? K : M;
     const out = new Uint8Array(size);
