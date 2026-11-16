@@ -3,7 +3,7 @@
 A Cloudflare Worker with two jobs:
 
 - **Feedback** (`POST /feedback`): the form in the editor's **Help** menu and on the front page posts here, and the message is emailed to Jason. Nothing is stored.
-- **Published shows** (`/shows`): **Publish to phones** in the Share dialog. The director's browser uploads a show file it has already encrypted (the key is only in the link it gives performers, after the #), and phones download it with `GET /shows/<id>`. The service can't read the files. `POST /shows` publishes and returns an id and an edit token (only its hash is kept); `PUT` and `DELETE /shows/<id>` with that token update or remove it. Files live in Workers KV (free: 1 GB in all, 25 MB a file); a daily job deletes shows nobody has opened or updated for a year.
+- **Published shows** (`/shows`): **Publish to phones** in the Share dialog. The director's browser uploads a show file it has already encrypted (the key is only in the link it gives performers, after the #), and phones download it with `GET /shows/<id>`. The service can't read the files. `POST /shows` publishes and returns an id and an edit token (only its hash is kept); `PUT` and `DELETE /shows/<id>` with that token update or remove it. Files live in Workers KV (free: 1 GB in all, 25 MB a file); a daily job deletes shows nobody has opened or updated for six months.
 
 Guardrails: only freeformdrill.org may post (CORS and the Origin header); feedback has a hidden field that catches bots, a 5,000-character cap, and 3 messages a minute per visitor, and the email is plain text, so nothing a sender types is ever treated as HTML; publishing takes only locked show files (checked by shape), up to 24 MB, 6 publishes a minute per visitor, and changes only with the show's edit token.
 

@@ -2,7 +2,8 @@
 // edit tokens, and which shows are old enough to clean up.
 
 export const MAX_BYTES = 24 * 1024 * 1024; // under Workers KV's 25 MiB per value: a show and a long recording fit
-export const KEEP_DAYS = 365; // a show nobody has opened or updated for a year is deleted
+export const KEEP_DAYS = 183; // a show nobody has opened or updated for six months is deleted (Jason, 2026-11-16: a season fits, and old shows free up the 1 GB)
+export const SEEN_EVERY_DAYS = 7; // "last opened" is noted at most weekly: plenty for a six-month cleanup, and KV allows only so many writes a day
 const B64URL = /^[A-Za-z0-9_-]+$/;
 const AUDIO_TYPE = /^audio\/[\w.+-]{1,40}$/;
 
@@ -46,5 +47,8 @@ export function sameHash(a: string, b: string): boolean {
 /** Whether a show last updated at `updated` and last opened at `seen` (ms, or undefined) has gone unused long enough to delete. */
 export const stale = (now: number, updated: number, seen?: number) => now - Math.max(updated, seen ?? 0) > KEEP_DAYS * 86_400_000;
 
-/** "2026-11-10": the day a show was opened, kept at most once a day (KV allows only so many writes). */
+/** Whether to note today as a show's "last opened" day: never noted, or noted SEEN_EVERY_DAYS or more ago. */
+export const seenDue = (now: number, seen: string | null) => !seen || !(now - Date.parse(seen) < SEEN_EVERY_DAYS * 86_400_000);
+
+/** "2026-11-10": the day a show was opened, kept at most once a week (seenDue). */
 export const day = (ms: number) => new Date(ms).toISOString().slice(0, 10);

@@ -3,10 +3,10 @@
 //  - /shows: Publish to phones. A director's browser uploads a show file it has already encrypted (the key is only in the
 //    link it gives performers), and phones download it. The service stores only the encrypted file: it can't read it.
 // Guardrails: only the site may send (CORS and Origin), per-visitor limits a minute, size caps, only locked show files,
-// an edit token (hashed) to update or remove a show, and a daily cleanup of shows unused for a year.
+// an edit token (hashed) to update or remove a show, and a daily cleanup of shows unused for six months.
 import { EmailMessage } from 'cloudflare:email';
 import { checkFeedback, feedbackEmail, mimeMessage, ORIGINS } from './feedback';
-import { checkLocked, day, hashToken, ID_RE, MAX_BYTES, newId, newToken, sameHash, stale } from './shows';
+import { checkLocked, day, hashToken, ID_RE, MAX_BYTES, newId, newToken, sameHash, seenDue, stale } from './shows';
 
 interface Limiter { limit(o: { key: string }): Promise<{ success: boolean }> }
 interface KV {
@@ -42,9 +42,9 @@ export default {
       const { value, metadata } = await env.SHOWS.getWithMetadata<Meta>(`show:${id}`);
       if (value === null || !metadata) return new Response('This show isn’t online anymore.', { status: 404, headers: open });
       const etag = `"${metadata.updated}-${metadata.size}"`;
-      // When it was last opened, at most once a day, so the cleanup knows it's still in use.
-      const today = day(Date.now());
-      if ((await env.SHOWS.get(`seen:${id}`, { cacheTtl: 3600 })) !== today) await env.SHOWS.put(`seen:${id}`, today).catch(() => {});
+      // When it was last opened, at most once a week, so the cleanup knows it's still in use.
+      const now = Date.now();
+      if (seenDue(now, await env.SHOWS.get(`seen:${id}`, { cacheTtl: 3600 }))) await env.SHOWS.put(`seen:${id}`, day(now)).catch(() => {});
       if (req.headers.get('If-None-Match') === etag) return new Response(null, { status: 304, headers: { ...open, ETag: etag } });
       return new Response(value, { headers: { ...open, ETag: etag, 'Content-Type': 'application/json' } });
     }
@@ -77,7 +77,7 @@ export default {
     return json({ ok: true }, 200, cors);
   },
 
-  // Daily: delete shows nobody has opened or updated for a year (and their "last opened" notes).
+  // Daily: delete shows nobody has opened or updated for six months (and their "last opened" notes).
   async scheduled(_: unknown, env: Env): Promise<void> {
     const now = Date.now();
     let cursor: string | undefined;
@@ -127,7 +127,7 @@ async function shows(req: Request, env: Env, id: string | undefined, ip: string,
     await env.SHOWS.put(`show:${showId}`, text, { metadata: { hash, updated: Date.now(), size: text.length } satisfies Meta });
   } catch (e) {
     console.error('store failed', (e as Error).message);
-    return json({ error: 'The show couldn’t be stored right now (the service may be full for today). Please try again later.' }, 503, cors);
+    return json({ error: 'FreeFORM’s service couldn’t store the show. It may be out of room, or past the number of saves it allows in a day. Try again tomorrow, or share it with a link or a file for now.' }, 503, cors);
   }
   return json({ id: showId, url: showUrl(req, showId!), ...(token ? { token } : {}) }, req.method === 'POST' ? 201 : 200, cors);
 }

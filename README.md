@@ -110,18 +110,18 @@ node scripts/screenshots.mjs ftl print    # or just these
 
 | Path | What's there |
 |---|---|
-| `src/engine/` | The drill logic, with no UI: coordinates and readouts, the show model, shapes, markup, undo, which versions to keep, music timing, share links and locked files, QR codes, the Pyware and OpenMarch readers (with a small SQLite reader), and the whole-show Review. Unit-tested. |
+| `src/engine/` | The drill logic, with no UI: coordinates and readouts, the show model and the checks every show file goes through (`showFile.ts`), shapes, markup, undo, which versions to keep, music timing, share links and locked files, QR codes, the Pyware and OpenMarch readers (with a small SQLite reader), and the whole-show Review. Unit-tested. |
 | `src/field/` | Drawing the field, performers, shapes, and markup, plus dot-label placement and the rotate/stretch frame |
-| `src/ui/` | The toolbar, sidebar, the New show box and the field menu it shares (`FieldPicker.tsx`), timeline, Review list, music menu (with the rehearsal track's worker, `rehearsalWorker.ts`), show list, color palette, the keyboard handling every dialog shares (`useDialog`), where the sidebar and timeline sit (`layout.ts`), and browser storage (`audioStore.ts`, `showStore.ts`: recordings, pictures, the show library, and versions in IndexedDB) |
+| `src/ui/` | The toolbar, sidebar, the New show box and the field menu it shares (`FieldPicker.tsx`), timeline, Review list, music menu (with the rehearsal track's worker, `rehearsalWorker.ts`), show list, color palette, the keyboard handling every dialog shares (`useDialog`), where the sidebar and timeline sit (`layout.ts`), and browser storage (`audioStore.ts`, `showStore.ts`: recordings, pictures, the show library, and versions in IndexedDB, plus the autosave in localStorage) |
 | `src/print/` | Dot sheets and drill charts |
 | `src/perform/` | The performer view, the Share dialog (with saving its QR code as a picture), and the QR scanner |
 | `index.html`, `app/index.html` | The front page (freeformdrill.org) and the app (freeformdrill.org/app/), which old links (`/#show=…`) are forwarded to |
 | `es/` | The front page in Spanish (freeformdrill.org/es/) |
 | `src/i18n/` | The Spanish for the phone's performer view: `tr('English text')` looks it up in `es.ts`, and a test fails if one is missing |
 | `src/guide/` | Turns `docs/HOW-TO.md` into the guide page on the site (`/guide/`) when the site is built |
-| `services/api/` | FreeFORM's small web service on Cloudflare (api.freeformdrill.org): the feedback form (emailed to Jason) and published shows (encrypted files only, in Workers KV, cleaned up after a year unused). Deploy steps in its README |
+| `services/api/` | FreeFORM's small web service on Cloudflare (api.freeformdrill.org): the feedback form (emailed to Jason) and published shows (encrypted files only, in Workers KV, cleaned up after six months unused). Deploy steps in its README |
 | `public/` | App icons, logos, the link-preview image, the manifest, the offline service worker (it keeps what the build lists in `precache.json`), and the rehearsal track's instrument sounds (`sounds/`, fetched only when someone makes a track) |
-| `docs/` | The How-to guide and its screenshots (the only copy: the site's guide page is made from it), and the student guide in English and Spanish (`STUDENTS.md`, `STUDENTS.es.md`, the site's /students/ pages) |
+| `docs/` | The How-to guide and its screenshots (the only copy: the site's guide page is made from it), and the student guide in English and Spanish (`STUDENTS.md`, `STUDENTS.es.md`, the site's /students/ pages), and older months of the decisions log (`docs/decisions/`) |
 | `scripts/` | The screenshot script |
 | `brand/` | Logo files, colors, and rules ([brand/README.md](brand/README.md)) |
 
@@ -129,7 +129,7 @@ Positions are stored in 8-to-5 steps (one step is 22.5 inches), measured from wh
 
 ## How decisions get made
 
-Every design decision is logged in [DECISIONS.md](DECISIONS.md): when, who made it, what else was considered, and why. If you wonder why something works the way it does, look there first. [IDEA.md](IDEA.md) is the original brief.
+Every design decision is logged in [DECISIONS.md](DECISIONS.md): when, who made it, what else was considered, and why (older months are in [docs/decisions/](docs/decisions/)). If you wonder why something works the way it does, look there first. [IDEA.md](IDEA.md) is the original brief.
 
 ### Clean room
 

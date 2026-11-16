@@ -25,7 +25,7 @@ import { statusParts, type Check } from './status';
 import { lang, setLang, tr } from '../i18n';
 import { NumberField } from '../ui/NumberField';
 import { useDialog } from '../ui/useDialog';
-import { AUTOSAVE } from '../ui/showStore';
+import { loadShow, readAutosave } from '../ui/showStore';
 import { addShow, readLibrary, removeShow, STAFF, type Library, type Saved } from './library';
 
 /** "3:42 PM" today, "Nov 5" before that. */
@@ -44,17 +44,25 @@ const canStore = () => { try { localStorage.setItem(`${STORE}:probe`, '1'); loca
 
 /** The editor's Performer view: "#perform-editor=<performer id>" shows the editor's own show from that performer, kept off this device's saved show. */
 export const PREVIEW = '#perform-editor';
+const previewOf = (show: Show): Saved => {
+  const id = decodeURIComponent(location.hash.slice(PREVIEW.length + 1));
+  return { show, me: show.performers.some((p) => p.id === id) ? id : STAFF, facingFront: false, follow: true };
+};
 function loadPreview(): Saved | null {
   if (!location.hash.startsWith(PREVIEW)) return null;
-  try {
-    const show = parseShow(localStorage.getItem(AUTOSAVE) ?? ''), id = decodeURIComponent(location.hash.slice(PREVIEW.length + 1));
-    return { show, me: show.performers.some((p) => p.id === id) ? id : STAFF, facingFront: false, follow: true };
-  } catch { return null; } // no readable show in the editor: the saved-show screen, as before
+  const saved = readAutosave();
+  try { return saved && 'raw' in saved ? previewOf(parseShow(saved.raw)) : null; } catch { return null; } // no readable show in the editor: the saved-show screen, as before
 }
 
 export function Perform() {
   const [previewState, setPreviewState] = useState<Saved | null>(loadPreview); // the editor's show: never saved over this device's shows
   const preview = !!previewState;
+  // A show too big for localStorage: the editor keeps it only in its library, so the preview reads it from there.
+  useEffect(() => {
+    if (previewState || !location.hash.startsWith(PREVIEW)) return;
+    const saved = readAutosave();
+    if (saved && 'id' in saved) loadShow(saved.id).then((s) => setPreviewState(previewOf(s))).catch(() => { /* not readable: the saved-show screen */ });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [lib, setLibState] = useState<Library>(loadLib);
   const libRef = useRef(lib); libRef.current = lib; // for downloads that finish later
   // Storage refused: say so (as the editor does) and stop claiming the show works offline. 'seen': the notice was closed.

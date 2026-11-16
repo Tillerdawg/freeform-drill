@@ -100,4 +100,4 @@ node brand/render_icons.cjs
 
 After changing any icon, bump `CACHE` in `public/sw.js`: the offline helper keeps files without a hash in their name forever, so phones would otherwise keep the old icon.
 
-Why the logo looks the way it does, and what else was considered, is in [DECISIONS.md](../DECISIONS.md) (2026-11-03).
+Why the logo looks the way it does, and what else was considered, is in the decisions log for [November 2026](../docs/decisions/2026-11.md) (2026-11-03).

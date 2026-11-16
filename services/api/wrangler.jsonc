@@ -13,7 +13,7 @@
   ],
   // The published (encrypted) show files. Workers KV: no card needed; 1 GB and 25 MB a file on the free plan.
   "kv_namespaces": [{ "binding": "SHOWS", "id": "7035088db3864fa39f30d46e03cd3f07" }], // made by the first deploy (2026-11-10)
-  // Every day at 07:17 UTC: delete shows nobody has opened or updated for a year.
+  // Every day at 07:17 UTC: delete shows nobody has opened or updated for six months.
   "triggers": { "crons": ["17 7 * * *"] },
   "observability": { "enabled": true }
 }

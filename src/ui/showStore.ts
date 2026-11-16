@@ -6,6 +6,33 @@ import { deleteAudio, run } from './audioStore';
 
 /** The open show, in localStorage. Here, not in App, so the phone's performer view can read it without loading the editor. */
 export const AUTOSAVE = 'freeform:autosave';
+/** The open show's id, so a reload can find it in the library when it was too big for localStorage. */
+export const AUTOSAVE_ID = 'freeform:autosave-id';
+
+/**
+ * Write the open show to localStorage, what a reload opens. Browsers give localStorage about 5 MB; a big show (a large
+ * band with many curved moves) can pass that. Then the old copy comes out, so a reload can't open a stale show, and
+ * AUTOSAVE_ID points the reload at the library copy instead. True when the whole show was written.
+ */
+export function writeAutosave(show: Show, store: Pick<Storage, 'setItem' | 'removeItem'> = localStorage): boolean {
+  let ok = true;
+  try { store.setItem(AUTOSAVE, JSON.stringify(show)); } catch {
+    ok = false;
+    try { store.removeItem(AUTOSAVE); } catch { /* storage blocked */ }
+  }
+  try { if (show.id) store.setItem(AUTOSAVE_ID, show.id); } catch { /* storage blocked: the full copy, if written, is enough */ }
+  return ok;
+}
+
+/** What a reload opens: the autosaved text, or the id of the library copy to open (the show was too big), or nothing. */
+export function readAutosave(store: Pick<Storage, 'getItem'> = localStorage): { raw: string } | { id: string } | null {
+  try {
+    const raw = store.getItem(AUTOSAVE);
+    if (raw) return { raw };
+    const id = store.getItem(AUTOSAVE_ID);
+    return id ? { id } : null;
+  } catch { return null; }
+}
 
 /** A kept show or version: the show as text, and enough to list it without reading it. */
 export interface Entry { json: string; title: string; at: number; performers: number; sets: number }
@@ -69,14 +96,26 @@ export async function listVersions(id: string): Promise<Entry[]> {
   return vals.sort((a, b) => b.at - a.at);
 }
 
+/**
+ * The recording and picture ids a kept show's text points at, read without checking the rest of the show: a show that
+ * no longer opens must still count, or forgetting another show could delete a recording it uses. Null if the text
+ * isn't JSON at all (then nothing is safe to delete).
+ */
+export function filesUsed(json: string): string[] | null {
+  try {
+    const s = JSON.parse(json);
+    return [s?.music?.audioId, s?.trace?.id].filter((x): x is string => typeof x === 'string');
+  } catch { return null; }
+}
+
 /** Take a show and its versions out of the library, and its recording and picture unless another kept show uses them. */
 export async function forgetShow(id: string): Promise<void> {
-  const gone = await loadShow(id).catch(() => null);
+  const gone = await run<Entry | undefined>('shows', 'readonly', (s) => s.get(id));
   await run('shows', 'readwrite', (s) => s.delete(id));
   await run('versions', 'readwrite', (s) => s.delete(range(id)));
-  if (!gone) return;
-  const others = await Promise.all((await listShows()).map((x) => loadShow(x.id).catch(() => null)));
-  for (const blob of [gone.music?.audioId, gone.trace?.id]) {
-    if (blob && !others.some((o) => o?.music?.audioId === blob || o?.trace?.id === blob)) await deleteAudio(blob);
-  }
+  const mine = gone ? filesUsed(gone.json) : null;
+  if (!mine?.length) return;
+  const others = (await run<Entry[]>('shows', 'readonly', (s) => s.getAll())).map((e) => filesUsed(e.json));
+  if (others.includes(null)) return; // a kept show we can't read at all: keep every file rather than guess
+  for (const blob of mine) if (!others.some((o) => o!.includes(blob))) await deleteAudio(blob);
 }

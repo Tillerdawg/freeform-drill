@@ -2,12 +2,29 @@
 import { parseShow, withoutNames, type Show } from './show';
 
 export const SHARE_PREFIX = '#show=';
+const MAX_BYTES = 40_000_000; // a show with its recording (a 4-minute mp3 is ~6 MB, ~8 MB as text)
 
 const tidy = (_k: string, v: unknown) => (typeof v === 'number' && !Number.isInteger(v) ? Math.round(v * 1000) / 1000 : v);
 
-async function pipe(bytes: Uint8Array<ArrayBuffer>, stream: CompressionStream | DecompressionStream): Promise<Uint8Array<ArrayBuffer>> {
-  const out = new Response(new Blob([bytes]).stream().pipeThrough(stream));
-  return new Uint8Array(await out.arrayBuffer());
+/**
+ * Run bytes through a compression stream. Unpacking stops past `limit` bytes: a tiny link or file can unpack into
+ * gigabytes (a "zip bomb"), and the phone's tab would run out of memory before parseShow ever saw it.
+ */
+export async function pipe(bytes: Uint8Array<ArrayBuffer>, stream: CompressionStream | DecompressionStream, limit = MAX_BYTES): Promise<Uint8Array<ArrayBuffer>> {
+  const reader = new Blob([bytes]).stream().pipeThrough(stream).getReader();
+  const parts: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.length;
+    if (total > limit) { await reader.cancel(); throw new Error('That file is too big to be a show.'); }
+    parts.push(value);
+  }
+  const out = new Uint8Array(total);
+  let at = 0;
+  for (const p of parts) { out.set(p, at); at += p.length; }
+  return out;
 }
 
 const toB64url = (b: Uint8Array) => {
@@ -37,7 +54,6 @@ export async function decodeShow(payload: string): Promise<Show> {
 // ---- Hosted links: for shows too big for a link or a QR code, the link points at a show file stored online.
 
 export const LOAD_PREFIX = '#load=';
-const MAX_BYTES = 40_000_000; // a show with its recording (a 4-minute mp3 is ~6 MB, ~8 MB as text)
 const MAX_AUDIO = 25_000_000;
 
 // Locked files: the show is encrypted in the browser (AES-GCM) before it's uploaded, and the key travels only in the
@@ -121,6 +137,7 @@ export async function fetchHosted(hash: string, fetcher: typeof fetch = fetch): 
   }
   if (res.status === 404) throw new Error("This show isn't online anymore. Ask your director for a new link.");
   if (!res.ok) throw new Error(`Couldn't download the show (the server said ${res.status}).`);
+  if (Number(res.headers.get('Content-Length') ?? 0) > MAX_BYTES) throw new Error('That file is too big to be a show.'); // don't download it first
   const text = await res.text();
   if (text.length > MAX_BYTES) throw new Error('That file is too big to be a show.');
   return unlockShow(text, h.key);
