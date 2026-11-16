@@ -1,17 +1,22 @@
 import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { countsFromMidi, insertHolds, suggestHolds, type Midi } from '../engine/midi';
+import { scoreToRecording, warpTaps, type Downbeat } from '../engine/lineup';
 import { setStarts, totalCounts, type Show } from '../engine/show';
 import { useDialog } from './useDialog';
 
 type SyncResult = { sets: Show['sets']; taps: number[] };
 
-export function MusicSyncPreview({ show, map, scoreName, audioName, warning, saving, error, onApply, onCancel }: {
+export function MusicSyncPreview({ show, map, scoreName, audioName, warning, downbeats, onLineUp, saving, error, onApply, onCancel }: {
   show: Show;
   map: Midi;
   scoreName: string;
   audioName: string;
   warning?: string;
+  /** Bars tapped in a real recording (Line up the downbeats): counts are carried into the recording through them. */
+  downbeats?: Downbeat[];
+  /** Open the tap screen (a band or studio recording, not one made from the score). */
+  onLineUp?: () => void;
   saving: boolean;
   error: string;
   onApply: (result: SyncResult) => void;
@@ -23,6 +28,8 @@ export function MusicSyncPreview({ show, map, scoreName, audioName, warning, sav
   const selected = holds.filter((hold) => chosen.includes(hold.beforeId));
   const sets = insertHolds(show.sets, selected);
   const sync = countsFromMidi(map, sets);
+  const lined = !!downbeats?.length;
+  const taps = lined ? warpTaps(sync.taps, scoreToRecording(map, downbeats!)) : sync.taps;
   const addedCounts = selected.reduce((sum, hold) => sum + hold.set.counts, 0);
   const skipped = new Set(holds.filter((hold) => !chosen.includes(hold.beforeId)).map((hold) => hold.beforeId));
   const added = new Set(selected.map((hold) => hold.set.id));
@@ -40,6 +47,10 @@ export function MusicSyncPreview({ show, map, scoreName, audioName, warning, sav
         <div style={{ overflowY: 'auto', fontSize: 13 }}>
           <p style={{ marginTop: 0 }}><strong>{scoreName}</strong> with {audioName}</p>
           <p>FreeFORM keeps your movement lengths, set numbers, counts, and measure labels. Choose any holds you want to add, then review where the counts land.</p>
+          {onLineUp && <p style={{ border: '1px solid var(--line)', borderRadius: 6, padding: '8px 10px' }}>{lined
+            ? <>Lined up with the recording at {downbeats!.length} {downbeats!.length === 1 ? 'bar' : 'bars'} you tapped. Counts between them follow the score. </>
+            : <>Was this recording made from the score (a MuseScore, Finale, or Sibelius export)? Then the counts already match. A band or studio recording keeps its own tempo: tap beat 1 of its bars so the counts follow it. </>}
+            <button disabled={saving} onClick={onLineUp}>{lined ? 'Tap more bars…' : 'Line up the downbeats…'}</button></p>}
           {[warning, ...(map.warnings ?? []), ...sync.scoreNotes].filter(Boolean).map((message) => <p key={message} style={{ color: 'var(--warn)' }}>{message}</p>)}
           {!!holds.length && <fieldset style={{ border: '1px solid var(--line-strong)', margin: 0 }}>
             <legend>Suggested holds</legend>
@@ -72,7 +83,7 @@ export function MusicSyncPreview({ show, map, scoreName, audioName, warning, sav
         {error && <p role="alert" style={{ margin: 0, color: 'var(--warn)' }}>{error}</p>}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
           <button onClick={onCancel} disabled={saving}>Cancel</button>
-          <button className="primary" disabled={saving} onClick={() => onApply({ sets, taps: sync.taps })}>{saving ? 'Applying…' : 'Apply music sync'}</button>
+          <button className="primary" disabled={saving} onClick={() => onApply({ sets, taps })}>{saving ? 'Applying…' : 'Apply music sync'}</button>
         </div>
       </div>
     </div>, document.body,
