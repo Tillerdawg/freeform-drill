@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parse3dj } from './pyware';
+import { LOCKED_MESSAGE, looksScrambled, parse3dj } from './pyware';
 import { moveSteps, positionsAt, setStarts } from './show';
 
 // A tiny synthetic .3dj built from the layout parse3dj documents (no real show files in the repo).
@@ -101,6 +101,32 @@ describe('Pyware .3dj import', () => {
   it('explains files it cannot use', () => {
     expect(() => parse3dj(new TextEncoder().encode('{"format":"freeform-show"}').buffer)).toThrow(/isn't a Pyware 3D/);
     expect(() => parse3dj(file([page(at(0, 0)), page(at(1, 0))]))).toThrow(/no saved sets/);
+  });
+});
+
+describe('Locked or encrypted Pyware files', () => {
+  // Bytes that look like encrypted data: a fixed pseudo-random stream, so the test is the same every run.
+  const noise = (n: number) => { let x = 12345; return Array.from({ length: n }, () => ((x = (x * 1103515245 + 12345) >>> 0) >>> 16) & 255); };
+  const buf = (bytes: number[]) => new Uint8Array(bytes).buffer;
+
+  it('says a scrambled file is locked or encrypted, not damaged or "not Pyware"', () => {
+    expect(() => parse3dj(buf(noise(8192)))).toThrow(LOCKED_MESSAGE); // the whole file scrambled
+    expect(() => parse3dj(buf([...enc.encode('3DJV'), ...noise(8192)]))).toThrow(LOCKED_MESSAGE); // a plain header over a scrambled body
+    expect(() => parse3dj(buf([0x50, 0x4b, 3, 4, ...noise(100)]))).toThrow(LOCKED_MESSAGE); // a zip
+  });
+  it('keeps the plain answers for files that are just something else', () => {
+    expect(() => parse3dj(enc.encode('{"format":"freeform-show"} '.repeat(200)).buffer)).toThrow(/isn't a Pyware 3D/);
+    expect(() => parse3dj(buf(noise(500)))).toThrow(/isn't a Pyware 3D/); // too little to judge
+  });
+  it("never calls a readable Pyware file scrambled", () => {
+    const f = file([page(at(0, 0)), prop('Set 1'), ...Array.from({ length: 40 }, (_, i) => page(at(i / 10, 0))), prop('Set 2')]);
+    expect(looksScrambled(new Uint8Array(f))).toBe(false);
+    expect(parse3dj(f).sets).toHaveLength(2);
+  });
+  it('says so in plain words: no unlocking, and what to do instead', () => {
+    expect(LOCKED_MESSAGE).toMatch(/doesn't unlock or decrypt/);
+    expect(LOCKED_MESSAGE).toMatch(/unlocked copy/);
+    expect(LOCKED_MESSAGE).not.toMatch(/\u2014/); // no em dashes (house style)
   });
 });
 

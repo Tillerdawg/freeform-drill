@@ -13,6 +13,8 @@
 //         each other; hiddenFtl (below) rebuilds those.
 //         Byte 25 starts a u16 length and the set's note text.
 // Files keep 300+ PAGEs; the ones after the last PROP are unused.
+// Locked or encrypted files: FreeFORM never unlocks or decrypts drill (DECISIONS.md, 2026-11-16). A file whose bytes look
+// like noise (encrypted or compressed) gets LOCKED_MESSAGE instead of "damaged" or "not a Pyware file".
 import { FIELD_WIDTH, ftlPositions } from './coords';
 import type { HashPreset } from './coords';
 import { MAX_NAME, evenPath, newId, parseShow, scoreOrder, type DrillSet, type LabelSide, type Performer, type Section, type Show } from './show';
@@ -35,20 +37,41 @@ const PY_SIDES: LabelSide[] = ['below', 'below-right', 'right', 'above-right', '
 
 const fail = (msg: string): never => { throw new Error(msg); };
 
+/** What a director sees when a .3dj is locked, encrypted, or saved in a scrambled newer format. */
+export const LOCKED_MESSAGE = "FreeFORM can't open this Pyware file because it looks locked or encrypted. Either the drill writer locked it, or a newer version of Pyware saved it in a form FreeFORM can't read. FreeFORM doesn't unlock or decrypt drill. If you bought this show, ask the drill writer for an unlocked copy. If it's your own show, please tell me which version of Pyware saved it (Help → Send feedback).";
+
+/**
+ * True when a file's bytes look like noise: encrypted or compressed data, not Pyware's plain blocks. Real .3dj files
+ * are full of zeros and repeats (about 5 to 6 bits per byte in their first 64 KB); encrypted or compressed data is
+ * close to 8. A zip (PK) header counts too. Too little data to judge (under 1 KB) is never called scrambled.
+ */
+export function looksScrambled(b: Uint8Array): boolean {
+  if (b.length >= 4 && b[0] === 0x50 && b[1] === 0x4b && b[2] === 3 && b[3] === 4) return true; // a zip
+  const n = Math.min(b.length, 65536);
+  if (n < 1024) return false;
+  const counts = new Uint32Array(256);
+  for (let i = 0; i < n; i++) counts[b[i]]++;
+  let bits = 0;
+  for (const c of counts) if (c) bits -= (c / n) * Math.log2(c / n);
+  return bits > 7.5;
+}
+
 /** Read a .3dj file into a FreeFORM show. Throws a readable error for anything it can't use. */
 export function parse3dj(data: ArrayBuffer, title = 'Imported show'): Show {
   if (data.byteLength > MAX_BYTES) fail('That file is too big to be a Pyware show.');
   const b = new Uint8Array(data);
   const v = new DataView(data);
+  // Can't read it: say "locked" when the bytes look encrypted, so a locked show isn't called damaged or not Pyware.
+  const cant = (msg: string): never => fail(looksScrambled(b) ? LOCKED_MESSAGE : msg);
   const tagAt = (o: number) => (o + 8 <= b.length ? String.fromCharCode(b[o], b[o + 1], b[o + 2], b[o + 3]) : '');
-  if (tagAt(0) !== '3DJV') fail("That isn't a Pyware 3D (.3dj) drill file.");
+  if (tagAt(0) !== '3DJV') cant("That isn't a Pyware 3D (.3dj) drill file.");
 
   // Walk the blocks. A few blocks store a wrong length, so when the chain breaks, look ahead for the next real block.
   const blocks: { tag: string; at: number; len: number }[] = [];
   const known = /^(PREF|PRF2|GRID|CAST|CST2|CST3|COLR|PLST|PTAB|PTB2|PTB5|FACE|PAGE|PROP|SYNC|END\.)$/;
   const validAt = (o: number) => known.test(tagAt(o)) && o + 8 + v.getUint32(o + 4) <= b.length;
   let o = indexOf(b, 'PREF', 0);
-  if (o < 0) fail("That Pyware file looks damaged (no settings block found).");
+  if (o < 0) cant("That Pyware file looks damaged (no settings block found).");
   while (o >= 0 && o + 8 <= b.length) {
     const tag = tagAt(o), len = v.getUint32(o + 4);
     blocks.push({ tag, at: o + 8, len });
@@ -59,7 +82,7 @@ export function parse3dj(data: ArrayBuffer, title = 'Imported show'): Show {
   }
 
   const first = (tag: string) => blocks.find((x) => x.tag === tag);
-  const cast = first('CAST') ?? fail('That Pyware file has no performers.');
+  const cast = first('CAST') ?? cant('That Pyware file has no performers.');
 
   // Performers: label numbers from CAST, figure names from CST2 (when present).
   const labels = new Map<number, string>(), people = new Map<number, string>();
@@ -91,7 +114,7 @@ export function parse3dj(data: ArrayBuffer, title = 'Imported show'): Show {
       pages = [];
     }
   }
-  if (!runs.length) fail('That Pyware file has no saved sets (it may be a backup or draft copy). Try another version of the show.');
+  if (!runs.length) cant('That Pyware file has no saved sets (it may be a backup or draft copy). Try another version of the show.');
 
   // Sections: one per dot symbol, named after the figure most of its performers use.
   const firstSeen = new Map<number, Rec>();
