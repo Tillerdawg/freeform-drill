@@ -19,6 +19,8 @@ const HOLD_MS = 400; // touch: hold a set button this long to pick it up; a swip
 
 interface Props {
   show: Show;
+  /** The show as Review last checked it (held back during a drag): the close-call warnings come from this. */
+  checked?: Show;
   setShow: (f: (s: Show) => Show) => void;
   t: number;
   setT: (t: number) => void;
@@ -38,11 +40,12 @@ interface Props {
 
 /** One segment per move, width proportional to its counts; click or drag to scrub by whole counts. */
 
-export function Timeline({ show, setShow, t, setT, playing, setPlaying, bpm, setBpm, range, setRange, span, music, wave, click, onCloseCall, onOverLimit }: Props) {
+export function Timeline({ show, checked = show, setShow, t, setT, playing, setPlaying, bpm, setBpm, range, setRange, span, music, wave, click, onCloseCall, onOverLimit }: Props) {
   const total = showLength(show); // the timeline runs through any part not written yet (count-first)
   const written = totalCounts(show);
   const starts = setStarts(show);
-  const close = useMemo(() => show.sets.map((_, i) => (i ? closeCallsMemo(show, i).length : 0)), [show]); // pairs under a step apart, per move; only moves whose sets changed are checked again
+  // Pairs under a step apart, per move, from the settled show (so not on every step of a drag); only moves whose sets changed are checked again.
+  const close = useMemo(() => checked.sets.map((_, i) => (i ? closeCallsMemo(checked, i).length : 0)), [checked]);
   const { to, count } = locate(show, t);
   const onSet = setAt(show, t);
   // A move's close-call warning: click it to go to the closest pair (it sits on the scrub strip, so it keeps the press to itself).

@@ -4,13 +4,14 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 're
 import { addBezierSegment, addCurvePoint, cleanText, coilGap, placeInner, type Shape, type ShapeKind } from '../engine/shapes';
 import { distance } from '../engine/coords';
 import {
-  addProp, addSetHere, newPropSpot, MAX_PROPS, removeProp, removeSet, setMarks, setStarts, chainOrder, clearFtl, closeCalls, setFtlSmooth, newId, counterMarch, flip, groupTurn, setFtlTurns, setTiming, setTurning, timingOf, label, mirrorSides, placeInSet, removePerformers, rotateScale, setFtl, setLabelSide, snapSelection,
+  addProp, addSetHere, newPropSpot, MAX_PROPS, removeProp, removeSet, setMarks, setStarts, chainOrder, clearFtl, closeCallsMemo, setFtlSmooth, newId, counterMarch, flip, groupTurn, setFtlTurns, setTiming, setTurning, timingOf, label, mirrorSides, placeInSet, removePerformers, rotateScale, setFtl, setLabelSide, snapSelection,
   type LabelSide, type Show,
 } from '../engine/show';
 import { curveSides } from '../field/labels';
 import { LabelCompass } from './LabelCompass';
 import type { Snap, Tool } from './Sidebar';
 import { NumberField } from './NumberField';
+import { useSettled } from './useSettled';
 import { SetControls } from './Timeline';
 
 export interface ToolbarProps {
@@ -455,7 +456,9 @@ function MovePanel({ show, setShow, onSet, ids, setSelected }: ToolbarProps & { 
   const group = set.turning?.find((g) => g.length === ids.length && g.every((id) => ids.includes(id)));
   const fit = ids.length > 1 ? groupTurn(show, onSet, ids) : null;
   const [turnNote, setTurnNote] = useState('');
-  const calls = closeCalls(show, onSet);
+  const checked = useSettled(show); // the close-call check waits for the end of a drag
+  const here = new Set(show.performers.map((x) => x.id));
+  const calls = (onSet > 0 && checked.sets[onSet] ? closeCallsMemo(checked, onSet) : []).filter((c) => here.has(c.a) && here.has(c.b));
   const w = Math.min(Math.max(0, wait), n - 1), m = Math.min(Math.max(1, move), n - w);
   return (
     <>

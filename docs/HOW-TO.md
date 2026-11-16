@@ -241,7 +241,7 @@ Two menus do the same jobs with exact numbers.
 **Mirror** flips the selection or copies one side onto the other:
 
 - **Flip across the 50** swaps Side 1 and Side 2, and **Flip front ↔ back** swaps front and back.
-- **Copy Side 1 → 2** (or 2 → 1) gives the other side the mirror image. FreeFORM pairs each performer with the one in the mirror-opposite spot.
+- **Copy Side 1 → 2** (or 2 → 1) gives the other side the mirror image. FreeFORM pairs each performer with the one in the mirror-opposite spot. The other side moves the same way, too: a delayed step-off, a turning move, or a follow-the-leader group on the side you copy comes along, so each partner holds, turns, or follows just like its twin.
 
 **Rotate & Scale** turns the selection by a typed number of degrees (**↺** counterclockwise, **↻** clockwise), and **Expand** and **Contract** scale it evenly by a typed percent. **Around** picks what it turns around: the center, or one of the selected performers. Pick the performer on the end of a line for a gate turn. It needs 2 or more performers selected.
 
@@ -333,7 +333,7 @@ The warnings on the timeline cover one move at a time. **Review**, in the top ba
 - **No spot**: performers missing a spot in a set (this can happen with an imported show).
 - **Not written**: counts in your **Movements** that don't have sets yet.
 
-Click an item to go there: the playhead moves to that set or count, the performers are selected, and a note at the bottom of the field says what's wrong. The list stays open while you fix things and updates as you go, and it says "Nothing to fix" when none of those problems are left. That covers only the checks above (and leaves out anything you dismissed), so still watch the show through before you send it. **Close** puts it away.
+Click an item to go there: the playhead moves to that set or count, the performers are selected, and a note at the bottom of the field says what's wrong. The list stays open while you fix things and updates as you go (while you drag, it waits until you let go, so a big band drags smoothly), and it says "Nothing to fix" when none of those problems are left. That covers only the checks above (and leaves out anything you dismissed), so still watch the show through before you send it. **Close** puts it away.
 
 **Practice first.** **Help**, then **Try the practice show**, opens the sample show with three problems left in: two trumpets who cut through the line and pass too close in the move to set 3, a move into set 4 that's too fast for its 8 counts, and counts in the Opener with no sets yet. Each set's notes say what's wrong and how to fix it. Open **Review**, fix all three, and watch it say "Nothing to fix." It opens as a show of its own, so yours stays under **Shows…**. (The plain sample show is finished, so Review has nothing to say about it.)
 

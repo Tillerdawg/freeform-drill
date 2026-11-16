@@ -1748,3 +1748,17 @@ Each entry: timestamp, who decided, context, options considered, decision.
 - Jason asked for a **Backup due** label on each qualifying show, including closed shows. The label placement is Codex's choice, subject to Jason's review.
 - The editor already tracks when each show first changed after its last file save. The library uses that timestamp and the editor's one-week rule. We considered using the library's most recent edit date, which would keep pushing the reminder back as a show is edited.
 - **Later** still snoozes the field reminder for a day. The library label reports which shows need a file copy and clears on a file save. A new duplicate or a rename made while a show is closed starts tracking changes for that show.
+
+## 2026-11-16 10:15 EST: Copy Side 1 → 2 copies step-offs and turning moves
+
+- **Who:** Jason asked for the fix; the rules below are Claude's choices, *Jason can veto*.
+- **Context:** Copy Side 1 → 2 copied spots, label sides, and follow-the-leader groups, but not delayed step-offs or turning moves (a PLAN follow-up since 2026-11-05). Side 2 marched straight with no warning, so a writer would only find out at rehearsal.
+- **Options:** copy only what the copied side has and leave the other side's old settings; make the other side a true copy (its old step-offs and turns go); ask each time.
+- **Decision:** A true copy, like the spots. Each partner takes its twin's step-off, or none if the twin has none. A turning group wholly on the copied side turns again as its partners, and the other side's old turning group for those performers goes. A turning group that crosses the 50 is left alone. An imported Pyware route is mirrored too, but only where it fits the partner's own two spots, so a partner who starts somewhere else marches straight instead of showing up in Review as a broken route.
+
+## 2026-11-16 10:15 EST: Big shows drag smoothly (checks wait for the end of a drag)
+
+- **Who:** Jason approved the work; the approach is Claude's, *Jason can veto*.
+- **Context:** In a 250-performer, 40-set show, each step of a drag took about 160 ms from the mouse moving to the screen updating, with the CPU slowed 4× to stand in for a school Chromebook (about 6 frames a second). A profile showed the time going to work that didn't need to happen on every step: the timeline working out every move's biggest step, the autosave writing the whole show to storage, and Review and the close-call checks.
+- **Options:** run the checks in a background worker; make each check faster; skip the checks during a drag and run them when it ends.
+- **Decision:** Step sizes are kept per move until that move's two sets or the step limit change (like the close-call check already was). Review, the timeline's too-close warnings, **Move**'s too-close list, and the browser autosave use the "settled" show: a single edit comes through at once, but in a quick burst (a drag, a held arrow key) only the last one, 250 ms after things settle. Leaving the page in that moment saves the latest show. The same drag now takes about 40 ms a step (about 25 frames a second). A worker stays an option if bigger shows still need it.

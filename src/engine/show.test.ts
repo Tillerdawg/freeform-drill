@@ -4,7 +4,7 @@ import {
   nextRevision, revisionLabel,
   addPerformer, addSetAfter, advance, biggestStep, chainOrder, clearFtl, ftlTrail, moveSteps, normalizeFtl, flip, mirrorSides, moveSetTo, remapHash, rotateScale, setFtl, newShowId, parseShowFile, snapSelection, playRange, playPlan, label, locate, newShow, parseShow, placeInSet, positionsAt,
   removePerformers, renumberSets, scoreOrder, DEFAULT_SECTIONS, removeSet, setAt, setCounts, setStarts, totalCounts, xFrom, yFrom, insertSetAt, showLength, movementAt, movementOfSet, setFtlTurns,
-  addSetHere, setCue, newPropSpot, setFtlSmooth, routeTurns, leaderDistance, setTiming, timingOf, fitTurn, setTurning, turnRoute, counterMarch, closeCalls, addProp, placeProp, propsAt, hitProp, removeProp, fieldOf, moveSegments, withShowId, withField, validField,
+  addSetHere, setCue, newPropSpot, setFtlSmooth, routeTurns, leaderDistance, setTiming, timingOf, fitTurn, setTurning, turnRoute, groupTurn, counterMarch, closeCalls, addProp, placeProp, propsAt, hitProp, removeProp, fieldOf, moveSegments, withShowId, withField, validField,
 } from './show';
 
 function twoSetShow() {
@@ -181,6 +181,48 @@ describe('mirroring', () => {
   it('refuses uneven sides with a clear message', () => {
     const { show, ids } = build([[-16, 10], [-8, 40], [20, 38]]);
     expect(() => mirrorSides(show, 1, ids, 1)).toThrow(/Side 1: 2, Side 2: 1/);
+  });
+  it('copies delayed step-offs to the partners, and clears a partner whose twin has none', () => {
+    // Twins start mirror-opposite, so each pairs with its twin.
+    let { show, ids } = build([[-16, 10], [-8, 10], [16, 10], [8, 10]]);
+    show = placeInSet(show, 1, { [ids[0]]: { x: -16, y: 20 }, [ids[1]]: { x: -8, y: 20 } });
+    show = setTiming(show, 1, [ids[0]], 4, 8);
+    show = setTiming(show, 1, [ids[3]], 2, 4); // the old copy had a step-off its twin no longer has
+    const m = mirrorSides(show, 1, ids, 1);
+    expect(m.sets[1].timing?.[ids[2]]).toEqual({ wait: 4, move: 8 });
+    expect(m.sets[1].timing?.[ids[3]]).toBeUndefined();
+    expect(m.sets[1].timing?.[ids[0]]).toEqual({ wait: 4, move: 8 }); // the source keeps its own
+  });
+  it('copies a turning group as its partners, replacing the old copy', () => {
+    let { show, ids } = build([[-20, 10], [-16, 10], [-12, 10], [20, 10], [16, 10], [12, 10]]);
+    // Side 1 gate-turns 90° around its end performer.
+    show = placeInSet(show, 1, { [ids[1]]: { x: -20, y: 14 }, [ids[2]]: { x: -20, y: 18 } });
+    show = setTurning(show, 1, ids.slice(0, 3), true);
+    show = setTurning(show, 1, ids.slice(4, 6), true); // a stale group on Side 2
+    const m = mirrorSides(show, 1, ids, 1);
+    const groups = m.sets[1].turning ?? [];
+    expect(groups).toHaveLength(2);
+    expect(groups).toContainEqual(ids.slice(0, 3));
+    expect([...groups.find((g) => g.includes(ids[3]))!].sort()).toEqual(ids.slice(3, 6).sort());
+    const t = groupTurn(m, 1, ids.slice(3, 6))!, src = groupTurn(m, 1, ids.slice(0, 3))!;
+    expect(t.angle).toBeCloseTo(-src.angle); // the mirror image turns the other way
+    expect(t.center.x).toBeCloseTo(-src.center.x);
+  });
+  it('leaves a turning group that crosses the 50 alone', () => {
+    let { show, ids } = build([[-8, 10], [-4, 10], [8, 10], [4, 10]]);
+    show = placeInSet(show, 1, { [ids[0]]: { x: -8, y: 14 } });
+    show = setTurning(show, 1, [ids[1], ids[3]], true); // across the 50
+    const m = mirrorSides(show, 1, ids, 1);
+    expect(m.sets[1].turning).toEqual([[ids[1], ids[3]]]);
+  });
+  it('mirrors an imported route only where it fits the partner', () => {
+    let { show, ids } = build([[-16, 10], [16, 10], [-8, 10], [10, 4]]);
+    show = placeInSet(show, 1, { [ids[0]]: { x: -16, y: 18 }, [ids[2]]: { x: -8, y: 18 } });
+    const route = (x: number) => [{ x, y: 10 }, { x: x - 2, y: 12 }, { x: x - 2, y: 16 }, { x, y: 18 }];
+    show = { ...show, sets: show.sets.map((s, j) => (j === 1 ? { ...s, counts: 3, paths: { [ids[0]]: route(-16), [ids[2]]: route(-8) } } : s)) };
+    const m = mirrorSides(show, 1, ids, 1);
+    expect(m.sets[1].paths?.[ids[1]]).toEqual(route(-16).map((p) => ({ x: -p.x, y: p.y }))); // starts mirror-opposite: fits
+    expect(m.sets[1].paths?.[ids[3]]).toBeUndefined(); // starts elsewhere: a straight move, not a broken route
   });
 });
 
