@@ -89,7 +89,7 @@ export function Sidebar(p: Props) {
       <div style={row}>
         <button onClick={p.onShows} title="The shows kept in this browser: open, rename, duplicate, or delete one, and earlier versions of this one">Shows…</button>
         <button onClick={p.onNew} title="Start a new show (this one stays under Shows…)">New</button>
-        <button onClick={p.onOpen} title="Open a .freeform show file (or an older .freeform.json) or a Pyware 3D .3dj drill as a new show (this one stays under Shows…)">Import…</button>
+        <button onClick={p.onOpen} title="Open a .freeform show file (or an older .freeform.json), a Pyware 3D .3dj drill, or an OpenMarch .dots show as a new show (this one stays under Shows…)">Import…</button>
         <button onClick={p.onSave} title="Save this show as a .freeform file (⌘S): the first time you choose where, then it saves to that same file">Save</button>
         <button onClick={p.onSaveAs} title="Save a copy as a new .freeform file, choosing the folder and name">Save As…</button>
         <button onClick={p.onFullBackup} disabled={!show.music && !show.trace && !getPublishing(show.id ?? show.title, show.title)} title="Save a .freeform file that also holds the recording, the tracing picture, and the show's publishing (so a new computer keeps updating the same phone link), to move the show to another computer complete">Full backup…</button>

@@ -599,8 +599,15 @@ When something isn't saved somewhere it could be, the box also gets a dashed out
 - **If the autosave fails.** If the browser refuses to save (its storage is full, or it's a private window), a note over the field says so, with **Save now**. Until it's fixed, your work is only in that open tab and any file you save.
 - **Import…** opens a `.freeform` file (older `.freeform.json` files too) as a new show; the one you had open stays under **Shows…**. A file of a show that's already in this browser comes in as a copy beside it, never over it. A file from before November 7, 2026 with facings or guard equipment set opens with them as performer notes on the same set ("Face Side 2," "Flag").
 - **Pyware 3D files (`.3dj`)**: Import… also opens these. You get the sets with their counts and names, measures and notes, sections from Pyware's symbols, label positions, and the roster names. Moves that aren't straight in Pyware (follow-the-leader, rotations, delayed step-offs) come in count by count, with even steps. If a follow-the-leader was only described in the set's note, Pyware saved it as straight lines that run through each other; FreeFORM rebuilds it as a follow-the-leader group when the two sets fit one exactly, and you can change its leader or turns with **Path**. Check which end leads: when the file could have turned at either end, FreeFORM picks the leader nearest the front. Drawn markup and the 3D figures don't come over.
+- **OpenMarch files (`.dots`)**: **Import…** opens these too. You get the pages as sets, with OpenMarch's names (0, 1, 1A, 2, and so on), their counts, measures, and notes; a section for each of OpenMarch's sections, with each marcher's drill number (T12 stays T12) and name; and the field, a football field with the nearest of FreeFORM's hashes, or a floor the same size. A curved path comes in count by count, with even steps. If the show file has its music in it, the recording comes along, timed to OpenMarch's beats, so playback follows the music right away. Midsets, shapes, tags, colors, and the field picture don't come over. If a show doesn't come in right, please tell me with **Send feedback**.
 
 ## Keyboard shortcuts
+
+Press **?** in the editor (or open **Help**, then **Keyboard shortcuts**) to see this list without leaving your show.
+
+![The keyboard shortcuts list, opened with ?](img/shortcuts.png)
+
+### Tools
 
 | Do this | Press |
 |---|---|
@@ -608,28 +615,54 @@ When something isn't saved somewhere it could be, the box also gets a dashed out
 | Add performer tool | A |
 | Text note tool | T |
 | Shape the selection (2 or more): Line, Arc, cUrve, Bézier, circle (O), Polygon, star (X), Spiral, blocK, Letters (W, for word) | L, R, U, B, O, P, X, S, K, W |
-| Play or pause | Space |
-| Back or forward one count (no one selected) | ← or → |
+| Close a menu; back to Select from any other tool; then clear the selection | Esc |
+
+### Selecting and moving
+
+| Do this | Press |
+|---|---|
+| Select everyone | ⌘A (Ctrl+A on Windows) |
+| Lasso: select everyone inside an outline you draw | Option-drag (Alt-drag) on open field |
 | Move the selection 1 step | ← → ↑ ↓ |
 | Move the selection 4 steps | Shift + arrow |
 | Move the selection half a step | Option (Alt) + arrow |
+| Move the picked prop 1, 4, or half a step | Arrow, Shift + arrow, Option (Alt) + arrow |
+| Copy or paste the selection's spots | ⌘C or ⌘V (Ctrl+C or Ctrl+V) |
+| Delete the selection (asks first) | Delete |
+
+### Shape handles, turns, and path points
+
+| Do this | Press |
+|---|---|
 | With a shape open, or a follow-the-leader group or custom path selected: step through its handles, turns, or points | Tab, or Shift+Tab to go back |
 | Move the handle you're on 1, 4, or half a step | Arrow, Shift + arrow, Option (Alt) + arrow |
 | Keep the handle where it is, or put it back | Enter, or Esc |
-| Move the picked prop 1, 4, or half a step | Arrow, Shift + arrow, Option (Alt) + arrow |
+
+### Playing and the timeline
+
+| Do this | Press |
+|---|---|
+| Play or pause | Space |
+| Back or forward one count (no one selected) | ← or → |
+| Move the playhead by keyboard | Tab to the timeline, then ← or → (Home and End for the start and end) |
+
+### The field
+
+| Do this | Press |
+|---|---|
 | Zoom the field in or out | ⌘+ or ⌘− (Ctrl on Windows), with the mouse over the field |
 | Fit the whole field | F, or ⌘0 (Ctrl+0) with the mouse over the field |
-| Select everyone | ⌘A (Ctrl+A on Windows) |
-| Lasso: select everyone inside an outline you draw | Option-drag (Alt-drag) on open field |
-| Copy or paste the selection's spots | ⌘C or ⌘V (Ctrl+C or Ctrl+V) |
-| Delete the selection (asks first) | Delete |
+| Move around the field | Scroll, or right-drag |
+| Zoom | Pinch, or ⌘/Ctrl + scroll |
+
+### The show
+
+| Do this | Press |
+|---|---|
 | Save | ⌘S (Ctrl+S on Windows) |
 | Undo | ⌘Z (Ctrl+Z on Windows) |
 | Redo | ⇧⌘Z (Ctrl+Y or Ctrl+Shift+Z on Windows) |
-| Close a menu; back to Select from any other tool; then clear the selection | Esc |
-| Move the playhead by keyboard | Tab to the timeline, then ← or → (Home and End for the start and end) |
-| Move around the field | Scroll, or right-drag |
-| Zoom | Pinch, or ⌘/Ctrl + scroll |
+| Show this list of shortcuts | ? |
 
 Arrows move the selection the way it looks on screen: ↑ is toward the back sideline. Shortcuts don't fire while you're typing in a box, except ⌘S. With the mouse anywhere but the field, ⌘+, ⌘−, and ⌘0 zoom the whole page, the way they do on any website, so you can make the buttons and text bigger.
 

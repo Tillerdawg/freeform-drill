@@ -28,6 +28,7 @@ import { ShowsDialog, type ShowActions } from './ui/Shows';
 import { peaks } from './engine/music';
 import { confirmDelete, Menu, SHAPES, Toolbar } from './ui/Toolbar';
 import { parse3dj } from './engine/pyware';
+import { parseDots } from './engine/openmarch';
 import { usePlayback } from './ui/usePlayback';
 import { clickWanted, setClickWanted, wakeClick } from './ui/click';
 import { VideoDialog } from './ui/VideoExport';
@@ -50,6 +51,7 @@ import { practiceShow, sampleShow } from './engine/sample';
 import { AUTOSAVE } from './ui/showStore';
 import { IconFit, IconZoomIn, IconZoomOut } from './ui/icons';
 import { useSettled } from './ui/useSettled';
+import { ShortcutsDialog } from './ui/Shortcuts';
 import { backupDue, DAY, readTime, UNEXPORTED, unexportedKey, writeTime } from './ui/backupReminder';
 export { AUTOSAVE };
 const GUIDE = '../guide/'; // made from docs/HOW-TO.md when the site is built
@@ -635,6 +637,7 @@ export function App() {
       else if (mod && (e.key === 'c' || e.key === 'C') && selected.size && onSet >= 0) { e.preventDefault(); copySpots(); }
       else if (mod && (e.key === 'v' || e.key === 'V') && clip && onSet >= 0) { e.preventDefault(); pasteSpots(); }
       else if (mod) return; // leave other shortcuts to the browser
+      else if (e.key === '?') { e.preventDefault(); setShowKeys(true); }
       else if (e.key === ' ') { e.preventDefault(); if (clickOn) wakeClick(); setPlaying((p) => !p); } // sound starts only inside a key press or tap
       else if (e.key.startsWith('Arrow') && selectedProp && !selected.size && onSet >= 0 && !playing && show.sets[onSet].props?.[selectedProp]) {
         // Nudge the picked prop, like performers: 1 step, Shift 4 steps, Option/Alt half a step. Up is up on the screen.
@@ -971,13 +974,17 @@ export function App() {
   /** Import a file: it joins the library as a show of its own (a full backup's recording and picture go into this browser). */
   const open = async (f: File) => {
     try {
-      const r = /\.3dj$/i.test(f.name) ? { show: parse3dj(await f.arrayBuffer(), f.name.replace(/\.3dj$/i, '')) } : parseShowFile(await f.text());
+      const r = /\.3dj$/i.test(f.name) ? { show: parse3dj(await f.arrayBuffer(), f.name.replace(/\.3dj$/i, '')) }
+        : /\.dots$/i.test(f.name) ? parseDots(await f.arrayBuffer(), f.name.replace(/\.dots$/i, '')) // OpenMarch (its recording comes along as a Blob)
+        : parseShowFile(await f.text());
       let s = r.show;
       await flush();
       // The same show again (a file saved from here) becomes a copy beside it, never written over it.
       const taken = !s.id || (await listShows()).some((x) => x.id === s.id);
       if (taken) s = { ...s, id: newShowId() };
-      if ('audio' in r || 'picture' in r || taken) s = await ownFiles(s, r.audio && fromAttached(r.audio), r.picture && fromAttached(r.picture));
+      const audio = 'audio' in r && r.audio ? (r.audio instanceof Blob ? r.audio : fromAttached(r.audio)) : undefined;
+      const picture = 'picture' in r && r.picture ? fromAttached(r.picture) : undefined;
+      if (audio || picture || taken) s = await ownFiles(s, audio, picture);
       const pub = 'publishing' in r ? readPublishing(r.publishing) : null;
       if (pub && s.id && !getPublishing(s.id)) setPublishing(s.id, pub); // a Full backup from another computer: keep publishing to the same link
       openShow(s, true); setFileError(''); // what's open is the file itself
@@ -986,6 +993,7 @@ export function App() {
     }
   };
 
+  const [showKeys, setShowKeys] = useState(false); // the keyboard cheat sheet (?)
   const [newing, setNewing] = useState(false); // the New show dialog: title and field first
   const fresh = async (title: string, field: FieldSpec) => {
     setNewing(false);
@@ -1094,6 +1102,7 @@ export function App() {
               <button onClick={() => { close(); window.open(GUIDE, '_blank', 'noopener'); }} title="The step-by-step guide, with pictures (opens in a new tab)">How-to guide</button>
               <button onClick={() => { close(); startGs(); }} disabled={!!gsDid} title={gsDid ? 'The checklist is already on for this show' : 'A short checklist from a blank field to your first move, checked in Review'}>Getting started checklist</button>
               <button onClick={() => { close(); hideGs(); startSb(); }} disabled={!!sbDid} title={sbDid ? 'The checklist is already on for this show' : 'A short checklist for getting this show onto your performers\' phones, with a message to send them'}>Send it to your band</button>
+              <button onClick={() => { close(); setShowKeys(true); }} title="Every keyboard shortcut on one page (or press ? anywhere in the editor)">Keyboard shortcuts</button>
               <button onClick={() => { close(); setRecovering(true); }} title="Undo, earlier versions, a missing show, a new computer, or a show you published: what happened, and the button that fixes it">Get a show back</button>
               <span className="menu-head">Examples (each opens as its own show; yours stays under Shows…)</span>
               <button className="menu-two" onClick={() => { close(); trySample(); }}>Try the sample show<span>A finished 47-performer show to look around in</span></button>
@@ -1250,6 +1259,7 @@ export function App() {
       {roster && <RosterImport show={show} setShow={setShow} onClose={() => setRoster(false)} />}
       {newing && <NewShowDialog onStart={fresh} onClose={() => setNewing(false)} />}
       {library && <ShowsDialog show={show} act={act} linkFirst={library === 'link'} versionsFirst={library === 'versions'} onClose={() => setLibrary(false)} />}
+      {showKeys && <ShortcutsDialog onClose={() => setShowKeys(false)} />}
       {recovering && <RecoverDialog title={show.title} fileSaved={fileSavedAt ? `${today(fileSavedAt) ? 'at' : 'on'} ${whenLabel(fileSavedAt)}` : null} onClose={() => setRecovering(false)} act={{
         canUndo: !!hist.past.length, undo: () => step('undo'), versions: () => setLibrary('versions'), shows: () => setLibrary(true),
         importFile: () => fileRef.current?.click(), fromLink: () => setLibrary('link'), feedback: () => setFeedback(true),
@@ -1257,7 +1267,7 @@ export function App() {
       {feedback && <FeedbackDialog onClose={() => setFeedback(false)} />}
       {video && <VideoDialog show={show} bpm={bpm} onClose={() => setVideo(false)} />}
       {printing && <PrintDialog show={show} selected={selected} onClose={() => setPrinting(false)} />}
-      <input ref={fileRef} type="file" accept=".freeform,.json,application/json,.3dj" hidden
+      <input ref={fileRef} type="file" accept=".freeform,.json,application/json,.3dj,.dots" hidden
         onChange={(e) => { const f = e.target.files?.[0]; if (f) open(f); e.target.value = ''; }} />
     </div>
   );

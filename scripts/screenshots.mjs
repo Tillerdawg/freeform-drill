@@ -190,6 +190,13 @@ shot('recover', async () => {
   await page.getByRole('button', { name: 'Get a show back' }).click(); await page.waitForTimeout(300);
   await save(page, 'recover', await around(page.locator('[role=dialog] > div').first()));
 });
+shot('shortcuts', async () => {
+  // The ? cheat sheet: every keyboard shortcut on one page.
+  const page = await editor();
+  await page.mouse.move(700, 400);
+  await page.keyboard.press('Shift+Slash'); await page.waitForTimeout(300);
+  await save(page, 'shortcuts', await around(page.locator('[role=dialog] > div').first()));
+});
 shot('shows', async () => {
   // The show library with three shows, as a director might keep them.
   const page = await editor();
