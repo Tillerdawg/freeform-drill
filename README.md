@@ -72,7 +72,7 @@ A note on where the ideas came from: FreeFORM is modeled on Pyware and the Ultim
 - A getting-started checklist, a click away on a blank field's Start note (or in Help): performers, the next set, a move, play it, and Review, ticking itself off as you go. Then **Help → Send it to your band**: Review, Share, a ready-to-paste message with the link and the student guide, and checking revisions at rehearsal.
 - **Help → Get a show back**: what happened (a mistake, an earlier version, a missing show, a new computer, or something else, where a phone link brings it back) and the button that fixes it.
 - Shape handles you can move with the keyboard: Tab steps through them, arrows move them.
-- Import Pyware 3D (`.3dj`) shows, tested with files from 2008 to 2010. FreeFORM never opens locked or encrypted drill: it says so plainly, so you can ask the drill writer for an unlocked copy.
+- Import Pyware 3D (`.3dj`) shows from Pyware 8 and older, tested with files from 2008 to 2010. Pyware 9 and newer encrypt their files, and FreeFORM doesn't open those or try to decrypt them; it says so plainly instead. FreeFORM never opens locked or encrypted drill: it says so plainly, so you can ask the drill writer for an unlocked copy.
 - Import OpenMarch (`.dots`) shows: pages, counts, measures, sections, drill numbers and names, curved paths, and the recording.
 - **Help → Send feedback**: a short form that comes straight to me, with no account needed. Help also has **Support FreeFORM** (a tip jar on Ko-fi), **About FreeFORM Drill** (the front page), **See the code on GitHub**, and **Open-source credits** (every library FreeFORM ships, with its license).
 

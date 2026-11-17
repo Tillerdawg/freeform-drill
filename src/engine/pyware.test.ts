@@ -126,6 +126,7 @@ describe('Locked or encrypted Pyware files', () => {
   it('says so in plain words: no unlocking, and what to do instead', () => {
     expect(LOCKED_MESSAGE).toMatch(/doesn't unlock or decrypt/);
     expect(LOCKED_MESSAGE).toMatch(/unlocked copy/);
+    expect(LOCKED_MESSAGE).toMatch(/Pyware 9 and newer/); // a director with a current file learns it's the version, not them
     expect(LOCKED_MESSAGE).not.toMatch(/\u2014/); // no em dashes (house style)
   });
 });
