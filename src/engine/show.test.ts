@@ -4,7 +4,7 @@ import {
   nextRevision, revisionLabel,
   addPerformer, addSetAfter, advance, biggestStep, chainOrder, clearFtl, ftlTrail, moveSteps, normalizeFtl, flip, mirrorSides, moveSetTo, remapHash, rotateScale, setFtl, newShowId, parseShowFile, snapSelection, playRange, playPlan, label, locate, newShow, parseShow, placeInSet, positionsAt,
   removePerformers, renumberSets, scoreOrder, DEFAULT_SECTIONS, removeSet, setAt, setCounts, setStarts, totalCounts, xFrom, yFrom, insertSetAt, showLength, movementAt, movementOfSet, setFtlTurns,
-  addSetHere, setCue, newPropSpot, setFtlSmooth, routeTurns, leaderDistance, setTiming, timingOf, fitTurn, setTurning, turnRoute, groupTurn, counterMarch, closeCalls, addProp, placeProp, propsAt, hitProp, removeProp, fieldOf, moveSegments, withShowId, withField, validField,
+  addSetHere, setCue, newPropSpot, setFtlSmooth, routeTurns, leaderDistance, setTiming, timingOf, fitTurn, setTurning, turnRoute, groupTurn, counterMarch, closeCalls, addProp, placeProp, propsAt, hitProp, removeProp, updateProp, propShape, shapePatch, fieldOf, moveSegments, withShowId, withField, validField,
 } from './show';
 
 function twoSetShow() {
@@ -859,6 +859,27 @@ describe('props', () => {
     const gone = removeProp(show, r.id);
     expect(gone.props).toBeUndefined();
     expect(gone.sets.every((s) => !s.props)).toBe(true);
+  });
+});
+
+describe('triangle props', () => {
+  it('point to the back, can be picked only inside, turn, and survive a file', () => {
+    const { show: base } = twoSetShow();
+    const r = addProp(base, 'Ramp', 8, 6, false, { x: 0, y: 60 });
+    let show = updateProp(r.show, r.id, shapePatch('triangle'));
+    expect(propShape(show.props![0])).toBe('triangle');
+    const at = propsAt(show, 0);
+    expect(hitProp(show, at, { x: 3.5, y: 57.2 })).toBe(r.id); // near a front corner: the flat side is 8 wide
+    expect(hitProp(show, at, { x: 0, y: 62.8 })).toBe(r.id); // just under the point
+    expect(hitProp(show, at, { x: 3.5, y: 62.5 })).toBeUndefined(); // a rectangle's back corner, outside the triangle
+    show = placeProp(show, 0, r.id, { x: 0, y: 60, angle: 90 }); // turned counterclockwise: the point goes left
+    expect(hitProp(show, propsAt(show, 0), { x: -2.8, y: 60 })).toBe(r.id);
+    expect(hitProp(show, propsAt(show, 0), { x: -2.8, y: 63.5 })).toBeUndefined();
+    expect(parseShow(JSON.stringify(show)).props).toEqual([{ id: r.id, name: 'Ramp', w: 8, h: 6, triangle: true }]);
+    const both = JSON.parse(JSON.stringify(show)); both.props[0].round = true;
+    expect(() => parseShow(JSON.stringify(both))).toThrow(/props/);
+    const oval = updateProp(show, r.id, shapePatch('oval'));
+    expect(parseShow(JSON.stringify(oval)).props).toEqual([{ id: r.id, name: 'Ramp', w: 8, h: 6, round: true }]); // ovals stay `round` for older copies
   });
 });
 

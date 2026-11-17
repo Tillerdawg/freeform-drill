@@ -11,7 +11,7 @@ import { Menu } from './Toolbar';
 import { HASHES, distance, fieldDepth, readout, type HashPreset } from '../engine/coords';
 import type { Shape, ShapeKind } from '../engine/shapes';
 import {
-  fieldOf, withField, addProp, newPropSpot, MAX_PROPS, placeProp, removeProp, updateProp, MAX_NAME, scoreOrder, setCue, setMarks, setNames, setNote, label, locate, newId, moveToSection, removeSection, duplicateLetters, renumberSection, placeInSet, remapHash, positionsAt, xFrom, yFrom,
+  fieldOf, withField, addProp, newPropSpot, MAX_PROPS, placeProp, removeProp, updateProp, propShape, shapePatch, type PropShape, MAX_NAME, scoreOrder, setCue, setMarks, setNames, setNote, label, locate, newId, moveToSection, removeSection, duplicateLetters, renumberSection, placeInSet, remapHash, positionsAt, xFrom, yFrom,
   type FrontDir, type FrontRef, type Section, type Show, type SideDir,
 } from '../engine/show';
 import { NumberField } from './NumberField';
@@ -506,7 +506,9 @@ function PropsEditor({ show, setShow, onSet, selected, setSelected }: { show: Sh
               <span style={{ fontSize: 12, opacity: 0.75 }}>steps</span>
             </div>
             <div style={row}>
-              <label><input type="checkbox" checked={!!pr.round} onChange={(e) => setShow((s) => updateProp(s, pr.id, { round: e.target.checked || undefined }))} /> Round</label>
+              <label>Shape <select aria-label="Prop shape" value={propShape(pr)} onChange={(e) => setShow((s) => updateProp(s, pr.id, shapePatch(e.target.value as PropShape)))}>
+                <option value="rectangle">Rectangle</option><option value="oval">Oval</option><option value="triangle">Triangle</option>
+              </select></label>
               {spot && <label title="Its turn in this set, in degrees counterclockwise">Turned <NumberField aria-label="Prop turn in degrees" min={-360} max={360} integer value={spot.angle} style={{ width: 52 }}
                 onValue={(n) => setShow((s) => placeProp(s, onSet, pr.id, { ...spot, angle: n }))} />°</label>}
             </div>

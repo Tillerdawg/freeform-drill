@@ -80,7 +80,8 @@ function checkShow(s: any): Show { // eslint-disable-line @typescript-eslint/no-
   for (const x of s.sections) if (!okId(x?.id) || !str(x.name) || !str(x.letter) || (x.color !== undefined && !COLOR_RE.test(x.color))) bad('section');
   for (const x of s.performers) if (!okId(x?.id) || !str(x.section) || !Number.isFinite(x.number) || (x.name !== undefined && (!str(x.name) || x.name.length > MAX_NAME))) bad('performer');
   if (s.props !== undefined && (!Array.isArray(s.props) || s.props.length > MAX_PROPS || !s.props.every((p: Prop) => okId(p?.id) && str(p.name) && p.name.length <= MAX_NAME
-    && Number.isFinite(p.w) && p.w > 0 && p.w <= 200 && Number.isFinite(p.h) && p.h > 0 && p.h <= 200 && (p.round === undefined || typeof p.round === 'boolean')))) bad('props');
+    && Number.isFinite(p.w) && p.w > 0 && p.w <= 200 && Number.isFinite(p.h) && p.h > 0 && p.h <= 200 && (p.round === undefined || typeof p.round === 'boolean')
+    && (p.triangle === undefined || typeof p.triangle === 'boolean') && !(p.round && p.triangle)))) bad('props');
   if (s.trace !== undefined && !(str(s.trace?.id) && Number.isFinite(s.trace.x) && Number.isFinite(s.trace.y) && Number.isFinite(s.trace.w) && s.trace.w > 0
     && Number.isFinite(s.trace.opacity) && s.trace.opacity >= 0 && s.trace.opacity <= 1)) bad('trace');
   if (s.surface !== undefined && (typeof s.surface !== 'object' || !validField(s.surface))) bad('surface');

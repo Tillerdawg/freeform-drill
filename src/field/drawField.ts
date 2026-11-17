@@ -1,6 +1,6 @@
 import { chrome, FIELD as F, LIGHT, PALETTE } from '../ui/palette';
 import { placeLabels, turned } from './labels';
-import type { LabelSide } from '../engine/show';
+import { propShape, type LabelSide } from '../engine/show';
 import { FEET, FIELD_WIDTH, GOAL_LINE_X, HASHES, STEP_IN, type FieldSpec, type Floor, type Point } from '../engine/coords';
 import { TEXT_STEPS, type Mark } from '../engine/marks';
 
@@ -244,7 +244,7 @@ export function drawGlyph(ctx: CanvasRenderingContext2D, at: Point, glyph: strin
 
 /** Props under the performers: a shape with its name in the middle; `print` is black on white. */
 export function drawProps(
-  ctx: CanvasRenderingContext2D, v: View, props: { id: string; name: string; w: number; h: number; round?: boolean }[],
+  ctx: CanvasRenderingContext2D, v: View, props: { id: string; name: string; w: number; h: number; round?: boolean; triangle?: boolean }[],
   spots: Record<string, { x: number; y: number; angle: number }>, selected: string | null, mode: Theme, px: number,
 ) {
   const I = INK[mode === 'print' ? 'white' : mode];
@@ -256,7 +256,10 @@ export function drawProps(
     ctx.translate(c.x, c.y);
     ctx.rotate((-s.angle * Math.PI) / 180); // the screen's y runs down, so counterclockwise on the field is negative here
     ctx.beginPath();
-    if (pr.round) ctx.ellipse(0, 0, w / 2, h / 2, 0, 0, Math.PI * 2); else ctx.rect(-w / 2, -h / 2, w, h);
+    const shape = propShape(pr);
+    if (shape === 'oval') ctx.ellipse(0, 0, w / 2, h / 2, 0, 0, Math.PI * 2);
+    else if (shape === 'triangle') { ctx.moveTo(0, -h / 2); ctx.lineTo(w / 2, h / 2); ctx.lineTo(-w / 2, h / 2); ctx.closePath(); } // point toward the back (up)
+    else ctx.rect(-w / 2, -h / 2, w, h);
     ctx.globalAlpha = mode === 'print' ? 0.85 : 0.7;
     ctx.fillStyle = I.propFill;
     ctx.fill();
@@ -267,7 +270,9 @@ export function drawProps(
     ctx.stroke();
     ctx.restore();
     ctx.save();
-    const m = ctx.getTransform(), at = m.transformPoint(c);
+    // A triangle's name sits a third of the way up from its flat side, where it's widest (its centroid), turned with it.
+    const lift = shape === 'triangle' ? h / 6 : 0, a = (-s.angle * Math.PI) / 180;
+    const m = ctx.getTransform(), at = m.transformPoint({ x: c.x - Math.sin(a) * lift, y: c.y + Math.cos(a) * lift });
     ctx.setTransform(1, 0, 0, 1, 0, 0); // the name reads upright, even on a field turned around
     ctx.font = `700 ${px}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     const maxW = Math.max(w, h) * Math.hypot(m.a, m.b);

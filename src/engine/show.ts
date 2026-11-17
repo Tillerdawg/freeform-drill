@@ -61,8 +61,16 @@ export interface DrillSet {
   props?: Record<string, PropSpot>;
 }
 
-/** A prop on the field (a platform, a backdrop): a rectangle, or an oval when `round`, `w` steps side to side and `h` front to back. */
-export interface Prop { id: string; name: string; w: number; h: number; round?: boolean }
+/**
+ * A prop on the field (a platform, a backdrop): a rectangle, an oval when `round`, or a triangle when `triangle`, `w` steps side to side
+ * and `h` front to back. The triangle's point is toward the back and its flat side toward the front, until it's turned.
+ */
+export interface Prop { id: string; name: string; w: number; h: number; round?: boolean; triangle?: boolean }
+export type PropShape = 'rectangle' | 'oval' | 'triangle';
+export const propShape = (p: Pick<Prop, 'round' | 'triangle'>): PropShape => (p.triangle ? 'triangle' : p.round ? 'oval' : 'rectangle');
+/** The patch that makes a prop this shape (older files only know `round`, so ovals stay `round`). */
+export const shapePatch = (shape: PropShape): Pick<Prop, 'round' | 'triangle'> =>
+  ({ round: shape === 'oval' || undefined, triangle: shape === 'triangle' || undefined });
 /** A prop's center and its turn in degrees (counterclockwise as the director sees it). */
 export interface PropSpot { x: number; y: number; angle: number }
 export const MAX_PROPS = 100;
@@ -776,8 +784,10 @@ export function hitProp(show: Show, spots: Record<string, PropSpot>, p: Point, p
     if (!s) continue;
     const a = (-s.angle * Math.PI) / 180, dx = p.x - s.x, dy = p.y - s.y;
     const u = dx * Math.cos(a) - dy * Math.sin(a), v = dx * Math.sin(a) + dy * Math.cos(a); // in the prop's own frame
-    const hw = pr.w / 2 + pad, hh = pr.h / 2 + pad;
-    if (pr.round ? (u / hw) ** 2 + (v / hh) ** 2 <= 1 : Math.abs(u) <= hw && Math.abs(v) <= hh) return pr.id;
+    const hw = pr.w / 2 + pad, hh = pr.h / 2 + pad, shape = propShape(pr);
+    if (shape === 'oval' ? (u / hw) ** 2 + (v / hh) ** 2 <= 1
+      : shape === 'triangle' ? Math.abs(v) <= hh && Math.abs(u) <= (hw * (hh - v)) / (2 * hh) // full width at the front, a point at the back
+      : Math.abs(u) <= hw && Math.abs(v) <= hh) return pr.id;
   }
 }
 
