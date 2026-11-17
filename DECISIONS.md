@@ -505,3 +505,10 @@ Recent decisions are here. Older ones are in [docs/decisions/](docs/decisions/),
   - Screenshots: **coordinates** and **trace** still showed the old field menu (before **Football field** and **Hashes** were split), and **send-band** still had "FreeFORM" where the message now says "FreeFORM Drill." **Sections** and **roster** also needed retaking, because the Hashes row pushed their headings down and the crop stopped at the save-status panel. The script now scrolls the sidebar before taking those three (the same way it does for Props), and they show more rows than before. The other pictures didn't change apart from dates and rendering, so they were left alone.
   - This morning's prop entries had headings that didn't match when the work was done (one said 10:05 for work committed at 09:32), so the inches entry looked out of order. They now use the commit times from Jason's git history.
   - PLAN.md's first milestone listed performer icons, which were taken out on 2026-11-07.
+
+## 2026-11-17 12:15 EST: Pyware 9 and newer files aren't supported
+
+- **Who:** Jason decided, after the same Reddit commenter said Pyware 9 and newer encrypt their files. The wording is Claude's, *Jason can veto*.
+- **Context:** PLAN.md had "Pyware import for current files" waiting on newer sample files, and the front page said newer files "may not come in cleanly yet," which suggested a fix was coming. If Pyware 9 and newer encrypt every file, reading them would mean decrypting them, which FreeFORM won't do (2026-11-16 entry). This comes secondhand from a Reddit comment; no Pyware 9 file has been tried yet.
+- **Other options:** keep waiting for sample files; leave the docs vague.
+- **Decision:** FreeFORM opens `.3dj` files from Pyware 8 and older, and says so on the front page (English and Spanish), in the guide, the README, and the locked-file message, which now names Pyware 9 and newer so a director with a current file knows it's the version, not something they did. The PLAN item is closed as won't-do. Next step on the plan: see whether Pyware exports anything in the open (a coordinate list, a spreadsheet) that FreeFORM could read instead.

@@ -1,4 +1,4 @@
-// Import Pyware 3D ".3dj" drill files. Clean-room: written from the behavior of Jason's own files (see DECISIONS.md),
+// Import Pyware 3D ".3dj" drill files from Pyware 8 and older (Pyware 9 and newer encrypt their files; see LOCKED_MESSAGE). Clean-room: written from the behavior of Jason's own files (see DECISIONS.md),
 // no Pyware code. A .3dj is a chain of blocks: a 4-letter tag, a 4-byte big-endian length, then the data.
 //   GRID  plain-text field description (yards from the field's center); HZHS lines are the hashes.
 //   CAST  performers: u16 count, then per performer u16 id, a short string (label number), a short string (the
@@ -38,7 +38,7 @@ const PY_SIDES: LabelSide[] = ['below', 'below-right', 'right', 'above-right', '
 const fail = (msg: string): never => { throw new Error(msg); };
 
 /** What a director sees when a .3dj is locked, encrypted, or saved in a scrambled newer format. */
-export const LOCKED_MESSAGE = "FreeFORM can't open this Pyware file because it looks locked or encrypted. Either the drill writer locked it, or a newer version of Pyware saved it in a form FreeFORM can't read. FreeFORM doesn't unlock or decrypt drill. If you bought this show, ask the drill writer for an unlocked copy. If it's your own show, please tell me which version of Pyware saved it (Help → Send feedback).";
+export const LOCKED_MESSAGE = "FreeFORM can't open this Pyware file because it looks locked or encrypted. Pyware 9 and newer encrypt the files they save, and drill writers can lock a show they sell. FreeFORM opens files from Pyware 8 and older, and it doesn't unlock or decrypt drill. If you bought this show, ask the drill writer for an unlocked copy. If it came from Pyware 8 or older and still won't open, please tell me (Help → Send feedback).";
 
 /**
  * True when a file's bytes look like noise: encrypted or compressed data, not Pyware's plain blocks. Real .3dj files
