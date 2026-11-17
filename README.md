@@ -37,13 +37,13 @@ A note on where the ideas came from: FreeFORM is modeled on Pyware and the Ultim
 - Rotate and stretch a group by dragging handles on the field, or turn it around one performer for a gate turn. Flip across the 50 or front to back, or copy one side to the other (step-offs, turns, and follow-the-leader come along).
 - Paths: straight, follow the leader (with turns or a smooth curve, and counter-marches), or a custom path for one performer.
 - Delayed step-offs (hold 4, move 12) and turning moves, where a rotating group marches arcs instead of straight lines.
-- Props (platforms, backdrops) that sit in a different spot each set and move between sets.
+- Props (platforms, backdrops, ramps) that sit in a different spot each set and move between sets: rectangles, ovals, or triangles made from any three side lengths, sized in steps or inches.
 - Dim or hide sections while you write the others.
 - Lasso selection (Option-drag, or the **Lasso** button on a touch screen). Select everyone or a whole section, copy spots from one set and paste them into another, and see how far apart two performers are.
 - Step-size warnings (yellow past a 6-to-5, red past the show's step limit, a 4-to-5 unless you change it), with a red ring on everyone over the limit, and a warning when two performers come within a step of each other at any point in a move. Click a warning to jump to who it's about.
 - **Review**: one list of the problems it checks for across the show (steps over the limit, performers too close, imported Pyware paths that went straight after an edit, missing spots, and counts not written yet). Click one to go there with its performers selected.
 - Text, arrows, and freehand markup on each set, plus ensemble notes and per-performer notes.
-- Undo for every edit.
+- Undo for every edit, and every keyboard shortcut on one page (press **?**).
 - Sidebar on the left or right, and the timeline on the top or bottom (**Layout**, in the top bar).
 - Dark mode or light mode (the sun/moon button), following your computer's own setting until you choose.
 
@@ -72,7 +72,7 @@ A note on where the ideas came from: FreeFORM is modeled on Pyware and the Ultim
 - A getting-started checklist, a click away on a blank field's Start note (or in Help): performers, the next set, a move, play it, and Review, ticking itself off as you go. Then **Help → Send it to your band**: Review, Share, a ready-to-paste message with the link and the student guide, and checking revisions at rehearsal.
 - **Help → Get a show back**: what happened (a mistake, an earlier version, a missing show, a new computer, or something else, where a phone link brings it back) and the button that fixes it.
 - Shape handles you can move with the keyboard: Tab steps through them, arrows move them.
-- Import Pyware 3D (`.3dj`) shows, tested with files from 2008 to 2010.
+- Import Pyware 3D (`.3dj`) shows, tested with files from 2008 to 2010. FreeFORM never opens locked or encrypted drill: it says so plainly, so you can ask the drill writer for an unlocked copy.
 - Import OpenMarch (`.dots`) shows: pages, counts, measures, sections, drill numbers and names, curved paths, and the recording.
 - **Help → Send feedback**: a short form that comes straight to me, with no account needed. Help also has **Support FreeFORM** (a tip jar on Ko-fi), **About FreeFORM Drill** (the front page), **See the code on GitHub**, and **Open-source credits** (every library FreeFORM ships, with its license).
 

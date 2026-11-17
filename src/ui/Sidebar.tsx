@@ -385,7 +385,7 @@ function SectionsEditor({ show, setShow, cur, look, setLook }: { show: Show; set
         {faded > 0 && <> <button onClick={() => setLook({})} style={{ fontSize: 12 }}>Show all</button></>}
       </p>
       <p style={{ margin: '6px 0 0', fontSize: 12, opacity: 0.75 }}>
-        The swatch colors the section's dots. The letter starts each label (A1, X1). To split a section, add one from Add Performer(s) (New section), then select its performers here and change their Section.
+        The swatch colors the section's dots. The letter starts each label (A1, X1). To split a section, make a new one with Add ▾, Create New Section, then select its performers here and change their Section.
       </p>
       {show.sections.map((s, i) => {
         const n = count(s.id), dup = dupes.has(s.letter.trim().toUpperCase()), last = show.sections.length - 1;

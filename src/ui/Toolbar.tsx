@@ -508,7 +508,7 @@ function MovePanel({ show, setShow, onSet, ids, setSelected }: ToolbarProps & { 
   );
 }
 
-/** A new section, made in the Add Performer(s) menu: name and letter, then it's the section being placed. */
+/** A new section, made in the Add menu (Create New Section): name and letter, then it's the section being placed. */
 function NewSection({ show, setShow, setSection, setTool, close }: ToolbarProps & { close: () => void }) {
   const [open, setOpen] = useState(false); // the name and letter boxes only after Create New Section (Jason)
   const [name, setName] = useState(''), [letter, setLetter] = useState('');
