@@ -87,6 +87,7 @@ function checkShow(s: any): Show { // eslint-disable-line @typescript-eslint/no-
     && Number.isFinite(s.trace.opacity) && s.trace.opacity >= 0 && s.trace.opacity <= 1)) bad('trace');
   if (s.surface !== undefined && (typeof s.surface !== 'object' || !validField(s.surface))) bad('surface');
   if (s.dismissed !== undefined && !(Array.isArray(s.dismissed) && s.dismissed.length <= 5000 && s.dismissed.every((k: unknown) => typeof k === 'string' && k.length <= 20_000))) bad('dismissed warnings');
+  if (s.setNaming !== undefined && s.setNaming !== 'manual') bad('set naming');
   if (s.stepLimit !== undefined && !(Number.isFinite(s.stepLimit) && s.stepLimit >= MIN_STEP_LIMIT && s.stepLimit <= MAX_STEP_LIMIT)) bad('step limit');
   const propIds = new Set((s.props ?? []).map((p: Prop) => p.id));
   // Ids are how everything points at everything else, so each must be unique, and every reference must land on something.
