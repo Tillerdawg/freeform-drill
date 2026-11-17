@@ -197,7 +197,8 @@ export function parse3dj(data: ArrayBuffer, title = 'Imported show'): Show {
     sets.push(set); prev = pos;
   });
 
-  const show: Show = { format: 'freeform-show', version: 1, title, hash: hashFrom(b, first('GRID')), sections: scoreOrder(sections), performers, sets };
+  // setNaming 'manual': the writer's set names stay as they are when sets are added or deleted (Jason, 2026-11-17)
+  const show: Show = { format: 'freeform-show', version: 1, title, hash: hashFrom(b, first('GRID')), sections: scoreOrder(sections), performers, sets, setNaming: 'manual' };
   return parseShow(JSON.stringify(show)); // same checks as any imported file
 }
 

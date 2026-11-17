@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { LOCKED_MESSAGE, looksScrambled, parse3dj } from './pyware';
-import { moveSteps, positionsAt, setStarts } from './show';
+import { addSetAfter, moveSteps, positionsAt, setStarts } from './show';
 
 // A tiny synthetic .3dj built from the layout parse3dj documents (no real show files in the repo).
 const enc = new TextEncoder();
@@ -60,6 +60,10 @@ describe('Pyware .3dj import', () => {
     expect(positionsAt(show, 5)[t1.id]).toEqual({ x: 8, y: 32 }); // count 1 of the move: already there
     expect(positionsAt(show, 4.5)[t1.id]).toEqual({ x: 4, y: 24 });
     expect(moveSteps(show, 2)[t1.id].per5).toBeCloseTo(8 / Math.hypot(8, 16), 6); // the jump on count 1, not the 2-count average
+  });
+  it("keeps the writer's set names when a set is added (hand-named, not renumbered)", () => {
+    expect(show.setNaming).toBe('manual');
+    expect(addSetAfter(show, 0).sets.map((s) => s.name)).toEqual(['1', '1A', '2', '3']);
   });
   it('fills the roster from the names Pyware keeps for each dot (blank stays unassigned)', () => {
     const byLabel = Object.fromEntries(show.performers.map((p) => [show.sections.find((s) => s.id === p.section)!.letter + p.number, p.name]));

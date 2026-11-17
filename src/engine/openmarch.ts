@@ -146,7 +146,8 @@ export function parseDots(data: ArrayBuffer | Uint8Array, title = 'Imported show
   }
 
   const show: Show = { format: 'freeform-show', version: 1, title, hash: field.hash, ...(field.surface ? { surface: field.surface } : {}),
-    sections: scoreOrder(sections), performers, sets, ...(music ? { music } : {}) };
+    sections: scoreOrder(sections), performers, sets, ...(music ? { music } : {}),
+    setNaming: 'manual' }; // the writer's set names stay as they are when sets are added or deleted (Jason, 2026-11-17)
   return { show: parseShow(JSON.stringify(show)), audio }; // the same checks as any imported file
 }
 
