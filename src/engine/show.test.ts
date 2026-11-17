@@ -4,7 +4,7 @@ import {
   nextRevision, revisionLabel,
   addPerformer, addSetAfter, advance, biggestStep, chainOrder, clearFtl, ftlTrail, moveSteps, normalizeFtl, flip, mirrorSides, moveSetTo, remapHash, rotateScale, setFtl, newShowId, parseShowFile, snapSelection, playRange, playPlan, label, locate, newShow, parseShow, placeInSet, positionsAt,
   removePerformers, renumberSets, scoreOrder, DEFAULT_SECTIONS, removeSet, setAt, setCounts, setStarts, totalCounts, xFrom, yFrom, insertSetAt, showLength, movementAt, movementOfSet, setFtlTurns,
-  addSetHere, setCue, newPropSpot, setFtlSmooth, routeTurns, leaderDistance, setTiming, timingOf, fitTurn, setTurning, turnRoute, groupTurn, counterMarch, closeCalls, addProp, placeProp, propsAt, hitProp, removeProp, updateProp, propShape, shapePatch, pointOffset, triangleSides, triangleFromSides, fieldOf, moveSegments, withShowId, withField, validField,
+  addSetHere, setCue, newPropSpot, setFtlSmooth, routeTurns, leaderDistance, setTiming, timingOf, fitTurn, setTurning, turnRoute, groupTurn, counterMarch, closeCalls, addProp, placeProp, propsAt, hitProp, removeProp, updateProp, propShape, shapePatch, triangleCorners, triangleSides, triangleFromSides, triangleWidth, fieldOf, moveSegments, withShowId, withField, validField,
 } from './show';
 
 function twoSetShow() {
@@ -884,20 +884,46 @@ describe('triangle props', () => {
 });
 
 describe('lopsided triangle props', () => {
-  it('put the point anywhere along the width, and check it in files', () => {
+  it('lean the far corner anywhere, and check it in files', () => {
     const { show: base } = twoSetShow();
     const r = addProp(base, 'Wedge', 8, 6, false, { x: 0, y: 60 });
     const show = updateProp(r.show, r.id, { ...shapePatch('triangle'), point: 0 }); // a right triangle, its square corner front left
     const at = propsAt(show, 0);
-    expect(pointOffset(show.props![0])).toBe(-4);
+    expect(triangleCorners(show.props![0])).toEqual([{ x: -4, y: -3 }, { x: 4, y: -3 }, { x: -4, y: 3 }]);
     expect(hitProp(show, at, { x: -3.8, y: 62.5 })).toBe(r.id); // up the straight left side
-    expect(hitProp(show, at, { x: 3, y: 57.5 })).toBe(r.id); // the far front corner
+    expect(hitProp(show, at, { x: 3, y: 57.5 })).toBe(r.id); // near the far front corner
     expect(hitProp(show, at, { x: 0, y: 62.5 })).toBeUndefined(); // the middle of the back is outside now
+    expect(hitProp(show, at, { x: 0, y: 62.5 }, 2.5)).toBe(r.id); // ... but within reach of the slanted side (2 steps away)
     expect(parseShow(JSON.stringify(show)).props![0].point).toBe(0);
-    const bad = JSON.parse(JSON.stringify(show)); bad.props[0].point = 1.5;
+    const bad = JSON.parse(JSON.stringify(show)); bad.props[0].point = 40; // 320 steps across
     expect(() => parseShow(JSON.stringify(bad))).toThrow(/props/);
-    expect(updateProp(show, r.id, shapePatch('rectangle')).props![0].point).toBeUndefined(); // only triangles keep a point
-    expect(pointOffset({ w: 8 })).toBe(0); // no point saved: the middle
+    expect(updateProp(show, r.id, shapePatch('rectangle')).props![0].point).toBeUndefined(); // only triangles keep it
+  });
+});
+
+describe('triangle props from side lengths', () => {
+  const tri = (a: number, b: number, c: number) => { const t = triangleFromSides(a, b, c); if (typeof t === 'string') throw new Error(t); return t; };
+  it('builds the triangle from sides 1, 2, and 3 and reads them back', () => {
+    expect(tri(8, 6, 6).point).toBeUndefined(); // two equal sides: the far corner in the middle
+    expect(tri(8, 6, 6).h).toBeCloseTo(Math.sqrt(20));
+    const right = tri(5, 3, 4); // the carpenter's 3-4-5
+    expect(right.h).toBeCloseTo(2.4);
+    expect(triangleSides(right).map((n) => Math.round(n * 1e9) / 1e9)).toEqual([5, 3, 4]);
+  });
+  it('takes any order, even when the triangle leans past an end of side 1', () => {
+    const t = tri(3, 4, 5); // side 1 is a short side now: the far corner is straight back from its left end
+    expect(t.point).toBeCloseTo(0);
+    const lean = tri(4, 7, 4); // side 2 the longest: the corner leans out past side 1's right end
+    expect(lean.point!).toBeGreaterThan(1);
+    expect(triangleSides(lean).map((n) => Math.round(n * 1e9) / 1e9)).toEqual([4, 7, 4]);
+    expect(triangleWidth(lean)).toBeCloseTo(lean.point! * 4); // the box runs from side 1's left end to the corner
+    const c = triangleCorners(lean);
+    expect((Math.min(c[0].x, c[2].x) + Math.max(c[1].x, c[2].x)) / 2).toBeCloseTo(0); // centered on its box
+  });
+  it('explains sides that make no triangle', () => {
+    expect(triangleFromSides(10, 3, 4)).toMatch(/don't make a triangle/);
+    expect(triangleFromSides(5, 0, 4)).toMatch(/needs a length/);
+    expect(triangleFromSides(300, 200, 200)).toMatch(/bigger than a prop/);
   });
 });
 
@@ -1031,20 +1057,3 @@ describe('parseShow with built-in object names as ids', () => {
   });
 });
 
-describe('triangle props from side lengths', () => {
-  it('builds the triangle from its three sides and reads them back', () => {
-    const t = triangleFromSides(8, 6, 6);
-    if (typeof t === 'string') throw new Error(t);
-    expect(t.point).toBeUndefined(); // even: the point in the middle
-    expect(t.h).toBeCloseTo(Math.sqrt(20));
-    const right = triangleFromSides(5, 3, 4); // the carpenter's 3-4-5: square corner where the point drops straight down
-    if (typeof right === 'string') throw new Error(right);
-    expect(right.h).toBeCloseTo(2.4);
-    const back = triangleSides(right);
-    expect([back.flat, back.left, back.right].map((n) => Math.round(n * 1e9) / 1e9)).toEqual([5, 3, 4]);
-    expect(triangleFromSides(10, 3, 4)).toMatch(/don't make a triangle/);
-    expect(triangleFromSides(5, 7, 4)).toMatch(/hang past/);
-    expect(typeof triangleFromSides(5, 5.5, 4)).toBe('object'); // a side a bit longer than the flat one can still fit
-    expect(triangleFromSides(5, 0, 4)).toMatch(/needs a length/);
-  });
-});

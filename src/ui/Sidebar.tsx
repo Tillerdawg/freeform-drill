@@ -11,7 +11,7 @@ import { Menu } from './Toolbar';
 import { FEET, HASHES, distance, fieldDepth, readout, type HashPreset } from '../engine/coords';
 import type { Shape, ShapeKind } from '../engine/shapes';
 import {
-  fieldOf, withField, addProp, newPropSpot, MAX_PROPS, placeProp, removeProp, updateProp, propShape, shapePatch, triangleSides, triangleFromSides, type PropShape, MAX_NAME, scoreOrder, setCue, setMarks, setNames, setNote, label, locate, newId, moveToSection, removeSection, duplicateLetters, renumberSection, placeInSet, remapHash, positionsAt, xFrom, yFrom,
+  fieldOf, withField, addProp, newPropSpot, MAX_PROPS, placeProp, removeProp, updateProp, propShape, shapePatch, triangleSides, triangleFromSides, MAX_PROP_SIZE, type PropShape, MAX_NAME, scoreOrder, setCue, setMarks, setNames, setNote, label, locate, newId, moveToSection, removeSection, duplicateLetters, renumberSection, placeInSet, remapHash, positionsAt, xFrom, yFrom,
   type FrontDir, type FrontRef, type Section, type Show, type SideDir,
 } from '../engine/show';
 import { NumberField } from './NumberField';
@@ -494,7 +494,8 @@ function PropsEditor({ show, setShow, onSet, selected, setSelected }: { show: Sh
   const setFeet = (f: boolean) => { setFeetRaw(f); try { localStorage.setItem(PROP_UNITS, f ? 'feet' : 'steps'); } catch { /* storage blocked */ } };
   const per = feet ? FEET : 1, unit = feet ? 'feet' : 'steps'; // steps in one unit
   const inUnits = (steps: number) => Math.round((steps / per) * 100) / 100;
-  const [sideNote, setSideNote] = useState<{ id: string; text: string } | null>(null);
+  // Side lengths typed that don't make a triangle yet (often halfway through typing three new ones): kept and shown until they do.
+  const [sideDraft, setSideDraft] = useState<{ id: string; sides: number[]; text: string } | null>(null);
   return (
     <details open={open} onToggle={(e) => setOpen(e.currentTarget.open)} style={{ borderTop: '1px solid var(--line)', padding: '10px 0' }}>
       <summary><strong>Props</strong> <span style={{ fontSize: 12, opacity: 0.7 }}>({props.length})</span></summary>
@@ -512,42 +513,38 @@ function PropsEditor({ show, setShow, onSet, selected, setSelected }: { show: Sh
                 onClick={(e) => { e.stopPropagation(); setShow((s) => removeProp(s, pr.id)); if (sel) setSelected(null); }}>×</button>
             </div>
             <div style={row}>
-              <label>Wide <NumberField aria-label={`Prop width in ${unit}`} min={0.5 / per} max={200 / per} step={0.5} value={inUnits(pr.w)} style={{ width: 52 }} onValue={(n) => setShow((s) => updateProp(s, pr.id, { w: n * per }))} /></label>
-              <label>Deep <NumberField aria-label={`Prop depth in ${unit}`} min={0.5 / per} max={200 / per} step={0.5} value={inUnits(pr.h)} style={{ width: 52 }} onValue={(n) => setShow((s) => updateProp(s, pr.id, { h: n * per }))} /></label>
-              <span style={{ fontSize: 12, opacity: 0.75 }}>{unit}</span>
-            </div>
-            <div style={row}>
-              <label>Shape <select aria-label="Prop shape" value={propShape(pr)} onChange={(e) => setShow((s) => updateProp(s, pr.id, shapePatch(e.target.value as PropShape)))}>
+              <label>Shape <select aria-label="Prop shape" value={propShape(pr)} onChange={(e) => { setSideDraft(null); setShow((s) => updateProp(s, pr.id, shapePatch(e.target.value as PropShape))); }}>
                 <option value="rectangle">Rectangle</option><option value="oval">Oval</option><option value="triangle">Triangle</option>
               </select></label>
               {spot && <label title="Its turn in this set, in degrees counterclockwise">Turned <NumberField aria-label="Prop turn in degrees" min={-360} max={360} integer value={spot.angle} style={{ width: 52 }}
                 onValue={(n) => setShow((s) => placeProp(s, onSet, pr.id, { ...spot, angle: n }))} />°</label>}
             </div>
-            {pr.triangle && <div style={row}>
-              <label title="Where the point is, measured along the flat side from its left corner: 0 or the full width makes a right triangle">Point <NumberField aria-label={`Triangle point, ${unit} from the left corner`}
-                min={0} max={inUnits(pr.w)} step={0.5} value={inUnits((pr.point ?? 0.5) * pr.w)} style={{ width: 52 }}
-                onValue={(n) => setShow((s) => updateProp(s, pr.id, { point: Math.abs((n * per) / pr.w - 0.5) < 1e-9 ? undefined : Math.min(1, Math.max(0, (n * per) / pr.w)) }))} /></label>
-              <span style={{ fontSize: 12, opacity: 0.75 }}>{unit} from the left corner</span>
+            {!pr.triangle && <div style={row}>
+              <label>Wide <NumberField aria-label={`Prop width in ${unit}`} min={0.5 / per} max={MAX_PROP_SIZE / per} step={0.5} value={inUnits(pr.w)} style={{ width: 52 }} onValue={(n) => setShow((s) => updateProp(s, pr.id, { w: n * per }))} /></label>
+              <label>Deep <NumberField aria-label={`Prop depth in ${unit}`} min={0.5 / per} max={MAX_PROP_SIZE / per} step={0.5} value={inUnits(pr.h)} style={{ width: 52 }} onValue={(n) => setShow((s) => updateProp(s, pr.id, { h: n * per }))} /></label>
+              <span style={{ fontSize: 12, opacity: 0.75 }}>{unit}</span>
             </div>}
             {pr.triangle && (() => {
-              // The same triangle by its three sides: change one, and the other two stay put.
-              const sides = triangleSides(pr);
-              const setSide = (k: keyof typeof sides, n: number) => {
-                const next = { ...sides, [k]: n * per }, t = triangleFromSides(next.flat, next.left, next.right);
-                if (typeof t === 'string') { setSideNote({ id: pr.id, text: t }); return; }
-                setSideNote(null);
+              // A triangle is its three side lengths: change one, and the other two stay put.
+              const draft = sideDraft?.id === pr.id ? sideDraft : null, sides = draft?.sides ?? triangleSides(pr);
+              const setSide = (k: number, n: number) => {
+                const next = sides.map((x, j) => (j === k ? n * per : x)), t = triangleFromSides(next[0], next[1], next[2]);
+                if (typeof t === 'string') { setSideDraft({ id: pr.id, sides: next, text: t }); return; }
+                setSideDraft(null);
                 setShow((s) => updateProp(s, pr.id, t));
               };
               return (
                 <>
-                  <div style={row} title="Type the length of each side, as measured on the prop. Change one and the other two stay the same.">
-                    <span style={{ width: '100%' }}>Sides <span style={{ fontSize: 12, opacity: 0.75 }}>({unit})</span></span>
-                    {(['flat', 'left', 'right'] as const).map((k) => (
-                      <label key={k} style={{ fontSize: 12 }}>{k === 'flat' ? 'Flat' : k === 'left' ? 'Left' : 'Right'} <NumberField whenDone aria-label={`Triangle ${k} side in ${unit}`}
-                        min={0.01} max={400 / per} step="any" value={inUnits(sides[k])} style={{ width: 48 }} onValue={(n) => setSide(k, n)} /></label>
+                  <div style={row} title="Type each side's length, as measured on the prop. Change one and the other two stay the same.">
+                    <span style={{ width: '100%' }}>Side lengths <span style={{ fontSize: 12, opacity: 0.75 }}>({unit})</span></span>
+                    {sides.map((len, k) => (
+                      <label key={k}>{k + 1} <NumberField whenDone aria-label={`Side ${k + 1} length in ${unit}`}
+                        min={0.01} max={(2 * MAX_PROP_SIZE) / per} step="any" value={inUnits(len)} style={{ width: 56 }} onValue={(n) => setSide(k, n)} /></label>
                     ))}
                   </div>
-                  {sideNote?.id === pr.id && <p role="status" style={{ fontSize: 12, margin: '4px 0 0' }}>{sideNote.text}</p>}
+                  {draft && <p role="status" style={{ fontSize: 12, margin: '4px 0 0' }}>{draft.text} The prop changes once all three fit.{' '}
+                    <button style={{ fontSize: 12 }} onClick={() => setSideDraft(null)}>Put them back</button></p>}
+                  <p style={{ fontSize: 12, opacity: 0.75, margin: '4px 0 0' }}>Side 1 runs along the front until it's turned. The field numbers the sides while the prop is picked.</p>
                 </>
               );
             })()}
