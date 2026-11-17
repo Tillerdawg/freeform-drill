@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { pageNames, parseDots, sampleRoute } from './openmarch';
-import { label, moveSteps } from './show';
+import { addSetAfter, label, moveSteps, removeSet } from './show';
 import { makeDatabase } from './sqliteFixture';
 
 // A show file shaped like OpenMarch's: its tables and columns (written here from the file, not from OpenMarch's code).
@@ -76,6 +76,14 @@ describe('OpenMarch import', () => {
     expect(at('T1', 0)).toEqual({ x: -12, y: 28 }); // 12 steps Side 1 of the 50, on the front hash
     expect(at('R1', 3)).toEqual({ x: 0, y: 44 });
     expect(show.sets[2].paths).toBeUndefined(); // straight moves stay plain
+  });
+
+  it("keeps OpenMarch's set names when sets are added or deleted (set 0 stays 0)", async () => {
+    const { show } = parseDots(await dots(), 'Closer');
+    expect(show.setNaming).toBe('manual');
+    const names = (s: typeof show) => s.sets.map((x) => x.name);
+    expect(names(addSetAfter(show, 3))).toEqual(['0', '1', '1A', '2', '3']);
+    expect(names(removeSet(show, 2))).toEqual(['0', '1', '2']);
   });
 
   it("brings a pathway in as an even, count-by-count route that ends on the performer's spots", async () => {
