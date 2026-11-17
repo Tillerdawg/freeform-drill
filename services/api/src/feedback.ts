@@ -47,8 +47,8 @@ export function ackEmail(lang: string): { subject: string; text: string } {
     ? {
         subject: 'FreeFORM Drill: recibimos tu mensaje',
         text: [
-          'Gracias por escribir a FreeFORM Drill. Tu mensaje llegó bien, y los leo todos.', '',
-          'Si hiciste una pregunta, te contestaré desde feedback@freeformdrill.org. Si quieres agregar algo, responde a este correo.', '',
+          'Gracias por escribir a FreeFORM Drill. Tu mensaje llegó bien, y el desarrollador los lee todos.', '',
+          'Si hiciste una pregunta, el desarrollador te contestará desde feedback@freeformdrill.org. Si quieres agregar algo, responde a este correo.', '',
           'FreeFORM Drill', 'https://freeformdrill.org/es/', '',
           'Recibes este correo porque alguien escribió esta dirección en el formulario de comentarios de freeformdrill.org. Si no fuiste tú, puedes ignorarlo.',
         ].join('\n'),
@@ -56,8 +56,8 @@ export function ackEmail(lang: string): { subject: string; text: string } {
     : {
         subject: 'FreeFORM Drill: we got your message',
         text: [
-          'Thanks for writing to FreeFORM Drill. Your message came through, and I read every one.', '',
-          "If you asked a question, I'll answer from feedback@freeformdrill.org. To add anything, just reply to this email.", '',
+          'Thanks for writing to FreeFORM Drill. Your message came through, and the developer reads every one.', '',
+          'If you asked a question, the developer will answer from feedback@freeformdrill.org. To add anything, just reply to this email.', '',
           'FreeFORM Drill', 'https://freeformdrill.org', '',
           "You're getting this because this address was typed into the feedback form on freeformdrill.org. If that wasn't you, you can ignore it.",
         ].join('\n'),

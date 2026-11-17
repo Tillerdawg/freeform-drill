@@ -41,6 +41,8 @@ describe('the feedback service', () => {
       expect(a.text).toContain('feedback@freeformdrill.org');
     }
     expect(ackEmail('es').text).toContain('puedes ignorarlo');
+    expect(ackEmail('en').text).toContain('the developer reads every one'); // "the developer," like the form (not "I" or "Jason")
+    expect(ackEmail('es').text).toContain('el desarrollador los lee todos');
     expect(ackEmail('fr')).toEqual(ackEmail('en'));
   });
   it('builds a raw email any mail program can read, accents and all', () => {

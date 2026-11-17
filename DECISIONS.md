@@ -545,3 +545,8 @@ Recent decisions are here. Older ones are in [docs/decisions/](docs/decisions/),
 - **Context:** Jason sent feedback from his UGA address and replied to it. Resend delivered the reply, but UGA's Microsoft 365 never put it in his mailbox or his quarantine. A fresh message from feedback@ with no quoted text arrived fine. The likely cause: the reply quoted the footer line "From: Jason <jatiller@uga.edu>", the recipient's own address inside an outside message, which Microsoft treats as impersonation. Many school districts use Microsoft 365, so real replies could vanish the same way.
 - **Other options:** trim the quoted text by hand before every reply.
 - **Decision:** The footer says "From: <name> (Reply goes to them)". The address is only in the Reply-To header, which Gmail shows in the To line when he replies. Messages with no address still say they can't be answered.
+
+## 2026-11-17 16:00 EST: The automatic note says "the developer" too
+- **Who:** Jason.
+- **Context:** The form and front pages now say messages go to "the developer" (bfb843f), but the "we got your message" note still said "I read every one" and "I'll answer."
+- **Decision:** The note says the developer reads every message and will answer from feedback@freeformdrill.org (Spanish: "el desarrollador"). It's still signed "FreeFORM Drill."
