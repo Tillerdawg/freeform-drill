@@ -8,7 +8,7 @@ import { RosterImport } from './RosterImport';
 import { deleteAudio, putAudio } from './audioStore';
 import { IconGrip } from './icons';
 import { Menu } from './Toolbar';
-import { FEET, HASHES, distance, fieldDepth, readout, type HashPreset } from '../engine/coords';
+import { STEP_IN, HASHES, distance, fieldDepth, readout, type HashPreset } from '../engine/coords';
 import type { Shape, ShapeKind } from '../engine/shapes';
 import {
   fieldOf, withField, addProp, newPropSpot, MAX_PROPS, placeProp, removeProp, updateProp, propShape, shapePatch, triangleSides, triangleFromSides, MAX_PROP_SIZE, type PropShape, MAX_NAME, scoreOrder, setCue, setMarks, setNames, setNote, label, locate, newId, moveToSection, removeSection, duplicateLetters, renumberSection, placeInSet, remapHash, positionsAt, xFrom, yFrom,
@@ -489,10 +489,10 @@ function PropsEditor({ show, setShow, onSet, selected, setSelected }: { show: Sh
   const props = show.props ?? [];
   const [open, setOpen] = useState(false);
   useEffect(() => { if (selected) setOpen(true); }, [selected]); // picking a prop on the field opens the list
-  // Sizes in steps or feet (a builder measures in feet): this computer's choice, not the show's. Shows always store steps.
-  const [feet, setFeetRaw] = useState(() => { try { return localStorage.getItem(PROP_UNITS) === 'feet'; } catch { return false; } });
-  const setFeet = (f: boolean) => { setFeetRaw(f); try { localStorage.setItem(PROP_UNITS, f ? 'feet' : 'steps'); } catch { /* storage blocked */ } };
-  const per = feet ? FEET : 1, unit = feet ? 'feet' : 'steps'; // steps in one unit
+  // Sizes in steps or inches (a builder measures in inches): this computer's choice, not the show's. Shows always store steps.
+  const [inches, setInchesRaw] = useState(() => { try { return localStorage.getItem(PROP_UNITS) === 'inches'; } catch { return false; } });
+  const setInches = (on: boolean) => { setInchesRaw(on); try { localStorage.setItem(PROP_UNITS, on ? 'inches' : 'steps'); } catch { /* storage blocked */ } };
+  const per = inches ? 1 / STEP_IN : 1, unit = inches ? 'inches' : 'steps'; // steps in one unit
   const inUnits = (steps: number) => Math.round((steps / per) * 100) / 100;
   // Side lengths typed that don't make a triangle yet (often halfway through typing three new ones): kept and shown until they do.
   const [sideDraft, setSideDraft] = useState<{ id: string; sides: number[]; text: string } | null>(null);
@@ -500,8 +500,8 @@ function PropsEditor({ show, setShow, onSet, selected, setSelected }: { show: Sh
     <details open={open} onToggle={(e) => setOpen(e.currentTarget.open)} style={{ borderTop: '1px solid var(--line)', padding: '10px 0' }}>
       <summary><strong>Props</strong> <span style={{ fontSize: 12, opacity: 0.7 }}>({props.length})</span></summary>
       <p style={{ fontSize: 12, opacity: 0.75, margin: '6px 0' }}>Platforms, backdrops, and other things on the field. Drag one on the field to move it in this set (or pick it and use the arrow keys); it moves between sets like a performer.</p>
-      {props.length > 0 && <label style={{ fontSize: 12 }}>Sizes in <select aria-label="Prop sizes in" value={unit} onChange={(e) => setFeet(e.target.value === 'feet')}>
-        <option value="steps">steps</option><option value="feet">feet</option>
+      {props.length > 0 && <label style={{ fontSize: 12 }}>Sizes in <select aria-label="Prop sizes in" value={unit} onChange={(e) => setInches(e.target.value === 'inches')}>
+        <option value="steps">steps</option><option value="inches">inches</option>
       </select></label>}
       {props.map((pr) => {
         const spot = onSet >= 0 ? show.sets[onSet].props?.[pr.id] : undefined, sel = pr.id === selected;
@@ -520,8 +520,8 @@ function PropsEditor({ show, setShow, onSet, selected, setSelected }: { show: Sh
                 onValue={(n) => setShow((s) => placeProp(s, onSet, pr.id, { ...spot, angle: n }))} />°</label>}
             </div>
             {!pr.triangle && <div style={row}>
-              <label>Wide <NumberField aria-label={`Prop width in ${unit}`} min={0.5 / per} max={MAX_PROP_SIZE / per} step={0.5} value={inUnits(pr.w)} style={{ width: 52 }} onValue={(n) => setShow((s) => updateProp(s, pr.id, { w: n * per }))} /></label>
-              <label>Deep <NumberField aria-label={`Prop depth in ${unit}`} min={0.5 / per} max={MAX_PROP_SIZE / per} step={0.5} value={inUnits(pr.h)} style={{ width: 52 }} onValue={(n) => setShow((s) => updateProp(s, pr.id, { h: n * per }))} /></label>
+              <label>Wide <NumberField aria-label={`Prop width in ${unit}`} min={0.5 / per} max={MAX_PROP_SIZE / per} step={inches ? 1 : 0.5} value={inUnits(pr.w)} style={{ width: 52 }} onValue={(n) => setShow((s) => updateProp(s, pr.id, { w: n * per }))} /></label>
+              <label>Deep <NumberField aria-label={`Prop depth in ${unit}`} min={0.5 / per} max={MAX_PROP_SIZE / per} step={inches ? 1 : 0.5} value={inUnits(pr.h)} style={{ width: 52 }} onValue={(n) => setShow((s) => updateProp(s, pr.id, { h: n * per }))} /></label>
               <span style={{ fontSize: 12, opacity: 0.75 }}>{unit}</span>
             </div>}
             {pr.triangle && (() => {
