@@ -31,9 +31,35 @@ export function feedbackEmail(f: Feedback): { subject: string; text: string } {
       f.message, '', '---',
       `From: ${f.name || '(no name)'}${f.email ? ` <${f.email}>` : ' (no email: they can\'t be answered)'}`,
       `Kind: ${label}`, `Language: ${f.lang === 'es' ? 'Spanish' : 'English'}`, `Page: ${f.page || '(not given)'}`,
-      'Sent with the feedback form on freeformdrill.org. Reply from an address you don\'t mind them seeing.',
+      'Sent with the feedback form on freeformdrill.org. Reply goes to them; check that it\'s from feedback@freeformdrill.org.',
     ].join('\n'),
   };
+}
+
+/**
+ * The note the sender gets back, in the language of the page they wrote from. Fixed text: nothing they typed goes in it,
+ * so the form can't be used to send someone else a message from freeformdrill.org.
+ */
+export function ackEmail(lang: string): { subject: string; text: string } {
+  return lang === 'es'
+    ? {
+        subject: 'FreeFORM Drill: recibimos tu mensaje',
+        text: [
+          'Gracias por escribir a FreeFORM Drill. Tu mensaje llegó bien, y los leo todos.', '',
+          'Si hiciste una pregunta, te contestaré desde feedback@freeformdrill.org. Si quieres agregar algo, responde a este correo.', '',
+          'FreeFORM Drill', 'https://freeformdrill.org/es/', '',
+          'Recibes este correo porque alguien escribió esta dirección en el formulario de comentarios de freeformdrill.org. Si no fuiste tú, puedes ignorarlo.',
+        ].join('\n'),
+      }
+    : {
+        subject: 'FreeFORM Drill: we got your message',
+        text: [
+          'Thanks for writing to FreeFORM Drill. Your message came through, and I read every one.', '',
+          "If you asked a question, I'll answer from feedback@freeformdrill.org. To add anything, just reply to this email.", '',
+          'FreeFORM Drill', 'https://freeformdrill.org', '',
+          "You're getting this because this address was typed into the feedback form on freeformdrill.org. If that wasn't you, you can ignore it.",
+        ].join('\n'),
+      };
 }
 
 const b64 = (t: string) => { let bin = ''; for (const byte of new TextEncoder().encode(t)) bin += String.fromCharCode(byte); return btoa(bin); };

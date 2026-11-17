@@ -129,3 +129,46 @@ describe('feedback', () => {
     expect(sent).toHaveLength(0);
   });
 });
+
+describe('feedback through Resend', () => {
+  // Stands in for Resend's API: records each email, or fails when told to.
+  function fakeResend(fail = false) {
+    const emails: { idem: string; email: Record<string, unknown> }[] = [];
+    vi.stubGlobal('fetch', async (url: string, init: RequestInit) => {
+      expect(url).toBe('https://api.resend.com/emails');
+      if (fail) return new Response('down', { status: 500 });
+      emails.push({ idem: new Headers(init.headers).get('Idempotency-Key')!, email: JSON.parse(init.body as string) });
+      return new Response('{"id":"x"}', { status: 200 });
+    });
+    return emails;
+  }
+  const withKey = () => { const f = fakeEnv(); return { ...f, env: { ...f.env, RESEND_API_KEY: 're_test' } }; };
+  const post = (env: unknown, b: Record<string, string>) => call(env, '/feedback', { method: 'POST', body: JSON.stringify(b) });
+
+  it('sends the message to feedback@ (answer goes to the sender) and a fixed note back in their language', async () => {
+    const emails = fakeResend(), { env, sent } = withKey();
+    expect((await post(env, { message: 'Más tiempos, por favor', email: 'Pat@Example.org', kind: 'idea', lang: 'es' })).status).toBe(200);
+    expect(sent).toHaveLength(0); // Email Routing not used
+    const [toJason, note] = emails;
+    expect(toJason.email).toMatchObject({ from: 'FreeFORM Drill feedback form <form@freeformdrill.org>', to: ['feedback@freeformdrill.org'], reply_to: 'Pat@Example.org' });
+    expect(note.email).toMatchObject({ from: 'FreeFORM Drill <feedback@freeformdrill.org>', to: ['Pat@Example.org'], subject: 'FreeFORM Drill: recibimos tu mensaje' });
+    expect(JSON.stringify(note.email)).not.toContain('tiempos'); // nothing they typed goes back out
+    expect(toJason.idem).not.toBe(note.idem);
+  });
+
+  it('sends one note a day per address, however it is capitalized, and none when there is no address', async () => {
+    const emails = fakeResend(), { env, kv } = withKey();
+    await post(env, { message: 'one', email: 'pat@example.org' });
+    await post(env, { message: 'two', email: 'PAT@example.org' });
+    await post(env, { message: 'three' });
+    expect(emails.map((e) => (e.email.to as string[])[0])).toEqual(['feedback@freeformdrill.org', 'pat@example.org', 'feedback@freeformdrill.org', 'feedback@freeformdrill.org']);
+    expect([...kv.keys()].some((k) => k.includes('pat'))).toBe(false); // only a hash is kept
+  });
+
+  it('falls back to Email Routing when Resend is down, and still says it worked', async () => {
+    fakeResend(true);
+    const { env, sent } = withKey();
+    expect((await post(env, { message: 'hello', email: 'pat@example.org' })).status).toBe(200);
+    expect(sent).toHaveLength(1);
+  });
+});

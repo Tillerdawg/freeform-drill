@@ -120,7 +120,7 @@ node scripts/screenshots.mjs ftl print    # or just these
 | `es/` | The front page in Spanish (freeformdrill.org/es/) |
 | `src/i18n/` | The Spanish for the phone's performer view: `tr('English text')` looks it up in `es.ts`, and a test fails if one is missing |
 | `src/guide/` | Turns `docs/HOW-TO.md` into the guide page on the site (`/guide/`) when the site is built |
-| `services/api/` | FreeFORM's small web service on Cloudflare (api.freeformdrill.org): the feedback form (emailed to Jason) and published shows (encrypted files only, in Workers KV, cleaned up after six months unused). Deploy steps in its README |
+| `services/api/` | FreeFORM's small web service on Cloudflare (api.freeformdrill.org): the feedback form (emailed to Jason through Resend, with a short note back to the sender) and published shows (encrypted files only, in Workers KV, cleaned up after six months unused). Deploy steps in its README |
 | `public/` | App icons, logos, the link-preview image, the manifest, the offline service worker (it keeps what the build lists in `precache.json`), and the rehearsal track's instrument sounds (`sounds/`, fetched only when someone makes a track) |
 | `docs/` | The How-to guide and its screenshots (the only copy: the site's guide page is made from it), and the student guide in English and Spanish (`STUDENTS.md`, `STUDENTS.es.md`, the site's /students/ pages), and older months of the decisions log (`docs/decisions/`) |
 | `scripts/` | The screenshot script |

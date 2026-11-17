@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkFeedback, feedbackEmail, LIMITS, mimeMessage } from './src/feedback';
+import { ackEmail, checkFeedback, feedbackEmail, LIMITS, mimeMessage } from './src/feedback';
 
 describe('the feedback service', () => {
   it('takes a message, trimmed, with an optional name and email', () => {
@@ -27,6 +27,15 @@ describe('the feedback service', () => {
     expect(m.subject).toBe('FreeFORM Drill Problem: A long first line that goes on and on past sixty characters…');
     expect(m.text).toContain('second line');
     expect(m.text).toContain("no email: they can't be answered");
+  });
+  it('writes the note back in English or Spanish, with the full name and how to ignore it', () => {
+    for (const lang of ['en', 'es', 'fr']) {
+      const a = ackEmail(lang);
+      expect(a.subject.startsWith('FreeFORM Drill')).toBe(true);
+      expect(a.text).toContain('feedback@freeformdrill.org');
+    }
+    expect(ackEmail('es').text).toContain('puedes ignorarlo');
+    expect(ackEmail('fr')).toEqual(ackEmail('en'));
   });
   it('builds a raw email any mail program can read, accents and all', () => {
     const raw = mimeMessage({ from: 'feedback@freeformdrill.org', fromName: 'FreeFORM Drill feedback', to: 'j@example.org', replyTo: 'pat@example.org', subject: 'FreeFORM Drill Idea: más tiempos', text: 'Hola, ¿qué tal?\nSecond line', id: 'abc', date: new Date(Date.UTC(2026, 10, 10)) });
