@@ -4,7 +4,7 @@ import {
   nextRevision, revisionLabel,
   addPerformer, addSetAfter, advance, biggestStep, chainOrder, clearFtl, ftlTrail, moveSteps, normalizeFtl, flip, mirrorSides, moveSetTo, remapHash, rotateScale, setFtl, newShowId, parseShowFile, snapSelection, playRange, playPlan, label, locate, newShow, parseShow, placeInSet, positionsAt,
   removePerformers, renumberSets, scoreOrder, DEFAULT_SECTIONS, removeSet, setAt, setCounts, setStarts, totalCounts, xFrom, yFrom, insertSetAt, showLength, movementAt, movementOfSet, setFtlTurns,
-  addSetHere, setCue, newPropSpot, setFtlSmooth, routeTurns, leaderDistance, setTiming, timingOf, fitTurn, setTurning, turnRoute, groupTurn, counterMarch, closeCalls, addProp, placeProp, propsAt, hitProp, removeProp, updateProp, propShape, shapePatch, fieldOf, moveSegments, withShowId, withField, validField,
+  addSetHere, setCue, newPropSpot, setFtlSmooth, routeTurns, leaderDistance, setTiming, timingOf, fitTurn, setTurning, turnRoute, groupTurn, counterMarch, closeCalls, addProp, placeProp, propsAt, hitProp, removeProp, updateProp, propShape, shapePatch, pointOffset, fieldOf, moveSegments, withShowId, withField, validField,
 } from './show';
 
 function twoSetShow() {
@@ -880,6 +880,24 @@ describe('triangle props', () => {
     expect(() => parseShow(JSON.stringify(both))).toThrow(/props/);
     const oval = updateProp(show, r.id, shapePatch('oval'));
     expect(parseShow(JSON.stringify(oval)).props).toEqual([{ id: r.id, name: 'Ramp', w: 8, h: 6, round: true }]); // ovals stay `round` for older copies
+  });
+});
+
+describe('lopsided triangle props', () => {
+  it('put the point anywhere along the width, and check it in files', () => {
+    const { show: base } = twoSetShow();
+    const r = addProp(base, 'Wedge', 8, 6, false, { x: 0, y: 60 });
+    const show = updateProp(r.show, r.id, { ...shapePatch('triangle'), point: 0 }); // a right triangle, its square corner front left
+    const at = propsAt(show, 0);
+    expect(pointOffset(show.props![0])).toBe(-4);
+    expect(hitProp(show, at, { x: -3.8, y: 62.5 })).toBe(r.id); // up the straight left side
+    expect(hitProp(show, at, { x: 3, y: 57.5 })).toBe(r.id); // the far front corner
+    expect(hitProp(show, at, { x: 0, y: 62.5 })).toBeUndefined(); // the middle of the back is outside now
+    expect(parseShow(JSON.stringify(show)).props![0].point).toBe(0);
+    const bad = JSON.parse(JSON.stringify(show)); bad.props[0].point = 1.5;
+    expect(() => parseShow(JSON.stringify(bad))).toThrow(/props/);
+    expect(updateProp(show, r.id, shapePatch('rectangle')).props![0].point).toBeUndefined(); // only triangles keep a point
+    expect(pointOffset({ w: 8 })).toBe(0); // no point saved: the middle
   });
 });
 

@@ -512,6 +512,12 @@ function PropsEditor({ show, setShow, onSet, selected, setSelected }: { show: Sh
               {spot && <label title="Its turn in this set, in degrees counterclockwise">Turned <NumberField aria-label="Prop turn in degrees" min={-360} max={360} integer value={spot.angle} style={{ width: 52 }}
                 onValue={(n) => setShow((s) => placeProp(s, onSet, pr.id, { ...spot, angle: n }))} />°</label>}
             </div>
+            {pr.triangle && <div style={row}>
+              <label title="Where the point is, measured along the flat side from its left corner: 0 or the full width makes a right triangle">Point <NumberField aria-label="Triangle point, steps from the left corner"
+                min={0} max={pr.w} step={0.5} value={Math.round((pr.point ?? 0.5) * pr.w * 4) / 4} style={{ width: 52 }}
+                onValue={(n) => setShow((s) => updateProp(s, pr.id, { point: Math.abs(n / pr.w - 0.5) < 1e-9 ? undefined : Math.min(1, Math.max(0, n / pr.w)) }))} /></label>
+              <span style={{ fontSize: 12, opacity: 0.75 }}>steps from the left corner</span>
+            </div>}
             {spot && <p style={{ fontSize: 12, margin: '4px 0 0' }}>Center: {readout(spot, fieldOf(show))}</p>}
           </div>
         );

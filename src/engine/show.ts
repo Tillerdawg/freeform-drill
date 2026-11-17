@@ -63,14 +63,18 @@ export interface DrillSet {
 
 /**
  * A prop on the field (a platform, a backdrop): a rectangle, an oval when `round`, or a triangle when `triangle`, `w` steps side to side
- * and `h` front to back. The triangle's point is toward the back and its flat side toward the front, until it's turned.
+ * and `h` front to back. The triangle's flat side is toward the front and its point toward the back, until it's turned. `point` is where
+ * the point sits along the width, 0 over the left corner to 1 over the right (left as the director sees it); missing means the middle.
+ * With the longest side as the flat side, that covers every triangle: right (0 or 1), even-sided, and lopsided ones.
  */
-export interface Prop { id: string; name: string; w: number; h: number; round?: boolean; triangle?: boolean }
+export interface Prop { id: string; name: string; w: number; h: number; round?: boolean; triangle?: boolean; point?: number }
 export type PropShape = 'rectangle' | 'oval' | 'triangle';
 export const propShape = (p: Pick<Prop, 'round' | 'triangle'>): PropShape => (p.triangle ? 'triangle' : p.round ? 'oval' : 'rectangle');
 /** The patch that makes a prop this shape (older files only know `round`, so ovals stay `round`). */
-export const shapePatch = (shape: PropShape): Pick<Prop, 'round' | 'triangle'> =>
-  ({ round: shape === 'oval' || undefined, triangle: shape === 'triangle' || undefined });
+export const shapePatch = (shape: PropShape): Pick<Prop, 'round' | 'triangle' | 'point'> =>
+  ({ round: shape === 'oval' || undefined, triangle: shape === 'triangle' || undefined, ...(shape === 'triangle' ? {} : { point: undefined }) });
+/** The triangle's point, side to side from the middle of its box, in steps. */
+export const pointOffset = (p: Pick<Prop, 'w' | 'point'>) => ((p.point ?? 0.5) - 0.5) * p.w;
 /** A prop's center and its turn in degrees (counterclockwise as the director sees it). */
 export interface PropSpot { x: number; y: number; angle: number }
 export const MAX_PROPS = 100;
@@ -777,6 +781,13 @@ export function propsAt(show: Show, t: number): Record<string, PropSpot> {
   return out;
 }
 
+/** Inside a triangle with its flat side 2·hw wide at v = -hh and its point at (px, hh)? */
+function inTriangle(u: number, v: number, hw: number, hh: number, px: number) {
+  if (Math.abs(v) > hh) return false;
+  const t = (v + hh) / (2 * hh); // 0 at the flat side, 1 at the point
+  return u >= -hw + t * (px + hw) && u <= hw + t * (px - hw);
+}
+
 /** The prop under field point `p` (the top one), with `pad` steps of reach around its edge. */
 export function hitProp(show: Show, spots: Record<string, PropSpot>, p: Point, pad = 0): string | undefined {
   for (const pr of [...(show.props ?? [])].reverse()) {
@@ -786,7 +797,7 @@ export function hitProp(show: Show, spots: Record<string, PropSpot>, p: Point, p
     const u = dx * Math.cos(a) - dy * Math.sin(a), v = dx * Math.sin(a) + dy * Math.cos(a); // in the prop's own frame
     const hw = pr.w / 2 + pad, hh = pr.h / 2 + pad, shape = propShape(pr);
     if (shape === 'oval' ? (u / hw) ** 2 + (v / hh) ** 2 <= 1
-      : shape === 'triangle' ? Math.abs(v) <= hh && Math.abs(u) <= (hw * (hh - v)) / (2 * hh) // full width at the front, a point at the back
+      : shape === 'triangle' ? inTriangle(u, v, hw, hh, pointOffset(pr))
       : Math.abs(u) <= hw && Math.abs(v) <= hh) return pr.id;
   }
 }
