@@ -143,6 +143,9 @@ export interface Show {
   stepLimit?: number;
   /** Review warnings the director has looked at and dismissed (see issueKey in review.ts). */
   dismissed?: string[];
+  /** 'manual' once the director names a set by hand: adding or deleting a set then leaves every other set's name alone.
+   * Missing = automatic (sets are renumbered 1, 1A, 2… as they're added and deleted). numberSetsInOrder turns it back on. */
+  setNaming?: 'manual';
 }
 
 /** What the show is written on: its floor, or the football field with its hashes. */
@@ -342,8 +345,13 @@ export function addSetAfter(show: Show, i: number, counts = 16): Show {
   const names = new Set(show.sets.map((s) => s.name));
   let n = show.sets.length + 1;
   while (names.has(String(n))) n++;
+  if (show.setNaming === 'manual') { // the next number after this set's if it's free (after 7, 8), or a sub-set (7A)
+    const next = String(parseInt(src.name, 10) + 1);
+    n = /^\d+$/.test(next) && !names.has(next) ? Number(next) : NaN;
+  }
+  const name = Number.isNaN(n) ? subSetName(names, src.name) : String(n);
   const sets = [...show.sets];
-  sets.splice(i + 1, 0, { id: newId('set'), name: String(n), counts, pos: { ...src.pos }, ...(src.props ? { props: { ...src.props } } : {}) });
+  sets.splice(i + 1, 0, { id: newId('set'), name, counts, pos: { ...src.pos }, ...(src.props ? { props: { ...src.props } } : {}) });
   return renumberSets({ ...show, sets }); // added mid-show: later sets move up a number
 }
 
@@ -376,9 +384,11 @@ export function subSetName(names: Set<string>, before: string): string {
 
 /**
  * Name the sets in order (adding and deleting sets do this automatically): main sets 1, 2, 3…, and sub-sets (4A) lettered A, B… after
- * the set before them. Names that aren't a number (none today) stay as they are. Returns the same show if nothing changes.
+ * the set before them. Names that aren't a number stay as they are. Does nothing once a set has been named by hand
+ * (setNaming 'manual'). Returns the same show if nothing changes.
  */
 export function renumberSets(show: Show): Show {
+  if (show.setNaming === 'manual') return show; // the director names them
   let n = 0, k = 0;
   const names = show.sets.map((s) => {
     const sub = /^\d+([A-Z]+)?$/.exec(s.name);
@@ -388,6 +398,34 @@ export function renumberSets(show: Show): Show {
     return String(n);
   });
   return names.every((x, i) => x === show.sets[i].name) ? show : { ...show, sets: show.sets.map((s, i) => ({ ...s, name: names[i] })) };
+}
+
+/** The longest set name you can type: it has to fit the toolbar, the timeline, dot sheets, and the phone's set chips. */
+export const MAX_SET_NAME = 8;
+
+/**
+ * Name set i by hand (Eli Williams asked, 2026-11-17: write the end picture first, then add sets where needed and number
+ * them yourself). Trimmed; must be 1 to MAX_SET_NAME characters and not another set's name. Naming a set turns off
+ * automatic renumbering for the show (setNaming 'manual'), so adding a set later doesn't undo it.
+ */
+export function renameSet(show: Show, i: number, typed: string): { show: Show } | { error: string } {
+  const name = typed.trim().replace(/\s+/g, ' ');
+  if (!show.sets[i]) return { error: 'There is no such set.' };
+  if (!name) return { error: 'A set needs a name.' };
+  if (name.length > MAX_SET_NAME) return { error: `Set names can be up to ${MAX_SET_NAME} characters.` };
+  if (show.sets.some((s, j) => j !== i && s.name.toLowerCase() === name.toLowerCase())) return { error: `There's already a set ${name}.` };
+  if (name === show.sets[i].name) return { show };
+  return { show: { ...mapSet(show, i, (s) => ({ ...s, name })), setNaming: 'manual' } };
+}
+
+/**
+ * Renumber sets: every set gets the next whole number in order, sub-sets included (1, 1A, 1B, 2 become 1, 2, 3, 4), and
+ * automatic numbering comes back on. Returns the same show if nothing changes.
+ */
+export function numberSetsInOrder(show: Show): Show {
+  const { setNaming: _, ...auto } = show;
+  return show.sets.every((s, i) => s.name === String(i + 1)) && !show.setNaming ? show
+    : { ...auto, sets: show.sets.map((s, i) => (s.name === String(i + 1) ? s : { ...s, name: String(i + 1) })) };
 }
 
 /** The timeline's length: the written sets, or the movements' total if that's longer (the part not written yet). */

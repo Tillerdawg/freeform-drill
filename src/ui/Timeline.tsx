@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { wakeClick } from './click';
 import { peakBetween, timeAt } from '../engine/music';
 import { chrome, useTheme } from './palette';
-import { biggestStep, closeCallsMemo, locate, MAX_MOVEMENT, movementAt, movementOfSet, movementStarts, moveSetTo, newId, setAt, setCounts, setMeasures, playPlan, setStarts, showLength, totalCounts, type Show } from '../engine/show';
+import { biggestStep, closeCallsMemo, locate, MAX_MOVEMENT, movementAt, movementOfSet, movementStarts, moveSetTo, newId, numberSetsInOrder, renameSet, MAX_SET_NAME, setAt, setCounts, setMeasures, playPlan, setStarts, showLength, totalCounts, type Show } from '../engine/show';
 import { Menu } from './Toolbar';
 import { STEP_TEXT } from '../field/drawField';
 import { fmtStep } from './format';
@@ -337,7 +337,7 @@ export function SetControls({ show, setShow, t, setT }: { show: Show; setShow: (
       {mid ? <button onClick={() => setT(setStarts(show)[cur])} title={`The field shows count ${Math.floor(count)} of the move into set ${show.sets[cur].name}. Performers are moved and added on a set: click to go to set ${show.sets[cur].name}.`}
         aria-label={`Previewing count ${Math.floor(count)} of ${show.sets[cur].counts}. Go to set ${show.sets[cur].name}`}>
         Ct {Math.floor(count)} of {show.sets[cur].counts}<span className="tb-long-sm"> · Go to</span> Set {show.sets[cur].name}</button>
-        : <strong>Set {show.sets[cur].name}</strong>}
+        : <SetNameMenu show={show} setShow={setShow} i={cur} />}
       <label title={cur > 0 ? `Counts in the move into set ${show.sets[cur].name}, from set ${show.sets[cur - 1].name}` : undefined}>Counts{' '}
         <NumberField min={1} integer whenDone aria-label="Counts" disabled={cur === 0} title={cur === 0 ? 'The opening set has no move into it' : undefined}
           value={cur === 0 ? '' : show.sets[cur].counts} style={{ width: 46 }}
@@ -349,6 +349,48 @@ export function SetControls({ show, setShow, t, setT }: { show: Show; setShow: (
       </label>
     </div>
   );
+}
+
+/**
+ * Set N ▾ on the toolbar: type the set's own name, or number every set in order (Eli Williams asked, 2026-11-17).
+ * Naming a set by hand stops the automatic renumbering; Renumber sets turns it back on.
+ */
+function SetNameMenu({ show, setShow, i }: { show: Show; setShow: (f: (s: Show) => Show) => void; i: number }) {
+  const name = show.sets[i].name;
+  const tidy = show.sets.every((s, j) => s.name === String(j + 1));
+  return (
+    <Menu label={<strong>Set {name}</strong>} name={`Set ${name}: rename or renumber`} title="Rename this set, or renumber every set 1, 2, 3">
+      {(close) => <SetNamePanel show={show} setShow={setShow} i={i} tidy={tidy} close={close} />}
+    </Menu>
+  );
+}
+
+function SetNamePanel({ show, setShow, i, tidy, close }: { show: Show; setShow: (f: (s: Show) => Show) => void; i: number; tidy: boolean; close: () => void }) {
+  const [draft, setDraft] = useState(show.sets[i].name), [error, setError] = useState('');
+  const box = useRef<HTMLInputElement>(null);
+  useEffect(() => { const id = setTimeout(() => { box.current?.focus(); box.current?.select(); }); return () => clearTimeout(id); }, []); // after Menu focuses its first button
+  const rename = () => {
+    const r = renameSet(show, i, draft);
+    if ('error' in r) { setError(r.error); return; }
+    setShow(() => r.show); close();
+  };
+  const manual = show.setNaming === 'manual';
+  return <>
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+      <label>Name <input ref={box} aria-label="Set name" value={draft} maxLength={MAX_SET_NAME} style={{ width: 64 }} aria-invalid={!!error || undefined}
+        aria-describedby={error ? 'set-name-error' : undefined}
+        onChange={(e) => { setDraft(e.target.value); setError(''); }} onKeyDown={(e) => { if (e.key === 'Enter') rename(); }} /></label>
+      <button onClick={rename}>Rename</button>
+    </div>
+    {error && <p id="set-name-error" role="alert" style={{ margin: '6px 0 0', fontSize: 12, whiteSpace: 'normal', fontWeight: 600 }}>{error}</p>}
+    <p style={{ margin: '6px 0 0', opacity: 0.75, fontSize: 12, whiteSpace: 'normal', maxWidth: 280 }}>{manual
+      ? 'You name the sets now: adding or deleting a set leaves the other names alone.'
+      : 'Once you name a set yourself, adding or deleting a set leaves the other names alone.'}</p>
+    <hr style={{ width: '100%', border: 0, borderTop: '1px solid var(--line)', margin: '8px 0 2px' }} />
+    <button disabled={tidy && !manual} onClick={() => { setShow((s) => numberSetsInOrder(s)); close(); }}
+      title={tidy && !manual ? 'The sets are already numbered 1, 2, 3' : 'Number every set in order, sub-sets included (1, 1A, 2 become 1, 2, 3). Undo reverses it.'}>Renumber sets</button>
+    <p style={{ margin: '6px 0 0', opacity: 0.75, fontSize: 12, whiteSpace: 'normal', maxWidth: 280 }}>Numbers every set in order (1, 1A, 2 become 1, 2, 3) and lets FreeFORM number new sets again.</p>
+  </>;
 }
 
 /** The show's music in named stretches, typed up front (count-first). The timeline runs to their total. */

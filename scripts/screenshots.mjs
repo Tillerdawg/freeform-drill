@@ -397,6 +397,13 @@ shot('timeline', async () => {
   await goSet(page, 2);
   await save(page, 'timeline', { x: 0, y: 715, width: 1080, height: H - 715 });
 });
+shot('set-name', async () => { // Set 2 ▾: renaming a set, and Renumber sets
+  const page = await editor();
+  await goSet(page, 2);
+  await page.getByRole('button', { name: /^Set 2: rename or renumber/ }).click(); await page.waitForTimeout(300);
+  await page.getByRole('textbox', { name: 'Set name' }).fill('12');
+  await save(page, 'set-name', { x: 0, y: 40, width: 760, height: 280 });
+});
 shot('music', async () => {
   const page = await editor();
   await menu(page, 'Music');
