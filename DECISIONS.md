@@ -457,7 +457,7 @@ Recent decisions are here. Older ones are in [docs/decisions/](docs/decisions/),
 - **Decision:** The last. `looksScrambled` in `src/engine/pyware.ts` measures how random a file's first 64 KB looks. Jason's real files measure about 5 bits per byte; encrypted or compressed data is close to 8, and the cutoff is 7.5 (a zip header counts too). When a `.3dj` can't be read and looks scrambled, the director sees `LOCKED_MESSAGE`: it looks locked or encrypted, FreeFORM doesn't unlock or decrypt drill, ask the drill writer for an unlocked copy, or tell Jason which Pyware version saved your own show. The policy is stated in the guide and on the front page (English and Spanish).
 - **Known limit:** no locked file has been seen yet. If Pyware's lock only sets a flag and leaves the data readable, FreeFORM would still import it. Once Jason has a locked file (or a Pyware 9 or newer one), check how the lock is stored and refuse it by its flag. The 9 zero bytes in the `PRPT` block at the top of Jason's files are one place to look, but that's a guess.
 
-## 2026-11-17 07:30 EST: Triangle props
+## 2026-11-17 07:21 EST: Triangle props
 
 - **Who:** Jason asked for a triangle alongside the rectangle and the oval. How it's stored, drawn, and picked are Claude's choices, *Jason can veto*.
 - **Context:** Props were a rectangle, or an oval when `round` was on (a **Round** checkbox). A third shape doesn't fit a checkbox.
@@ -466,7 +466,7 @@ Recent decisions are here. Older ones are in [docs/decisions/](docs/decisions/),
 - **The shape (Claude):** an isosceles triangle that fills its **Wide** by **Deep** box: the flat side is the full width at the front, the point is at the back, and **Turned** points it anywhere else. It turns around the middle of its box, like the other shapes, so its center readout and arrow keys work the same. Its name sits at the triangle's centroid (a third of the way up from the flat side), where there's room for it, instead of up near the point.
 - **Also (Claude):** the guide's Props screenshot was cut off by the save-status panel at the bottom of the sidebar (the **Round** row was half hidden). The screenshot script now scrolls the prop box clear of it, so the new **Shape** menu shows.
 
-## 2026-11-17 09:20 EST: Triangles of any shape
+## 2026-11-17 09:11 EST: Triangles of any shape
 
 - **Who:** Jason asked for triangles that aren't regular. How it works is Claude's choice, *Jason can veto*.
 - **Context:** Triangle props were always isosceles, with the point in the middle of the width. Real platforms and wedges are often right triangles or lopsided.
@@ -474,7 +474,7 @@ Recent decisions are here. Older ones are in [docs/decisions/](docs/decisions/),
 - **Decision:** The last. **Point** (shown for triangles, in steps from the left corner) slides the point anywhere from over the left corner to over the right. With the longest side as the flat side, the point always lands over that side, so this one number, with **Wide**, **Deep**, and **Turned**, reaches every triangle there is. The file stores it as `point`, a share of the width from 0 to 1 (missing means the middle, so this morning's triangles are unchanged); making the prop wider or narrower keeps the triangle's proportions. Switching away from **Triangle** drops it. `parseShow` turns away a `point` outside 0 to 1. The name sits at the triangle's centroid, which moves with the point.
 - **Not done yet:** typing three side lengths (what a builder's drawing gives you) and having FreeFORM work out **Wide**, **Deep**, and **Point**. Easy to add if directors ask.
 
-## 2026-11-17 09:45 EST: Props to exact measurements: three side lengths, and feet
+## 2026-11-17 09:20 EST: Props to exact measurements: three side lengths, and feet
 
 - **Who:** Jason asked for another way to make props to specific lengths. What it is, and how it works, are Claude's choices, *Jason can veto*.
 - **Context:** A triangle's **Wide**, **Deep**, and **Point** describe it, but a builder's drawing gives side lengths, in feet. Turning three sides into a height and a point position by hand is trigonometry nobody should have to do at rehearsal.
@@ -482,7 +482,7 @@ Recent decisions are here. Older ones are in [docs/decisions/](docs/decisions/),
 - **Decision:** For triangles, a **Sides** row (**Flat**, **Left**, **Right**) under **Point**. It shows the triangle's current sides and takes new ones: change one and the other two stay put, and **Wide**, **Deep**, and **Point** follow. Sides apply on Enter or leaving the box (not on every keystroke), since half-typed lengths usually aren't a triangle. If the sides can't make one, or the point would land past the end of the flat side, a note says why and the prop doesn't change. The math is `triangleSides` and `triangleFromSides` in `show.ts`, with tests (including a 3-4-5 right triangle).
 - **Feet:** a **Sizes in** menu (steps or feet) at the top of the Props list switches every prop size box (**Wide**, **Deep**, **Point**, **Sides**) to feet, at 22.5 inches to the step, shown to two decimals. It's this computer's choice (`freeform:prop-units` in localStorage), not saved in the show: files and links always store steps, so nothing about the file format changes and a show looks the same everywhere.
 
-## 2026-11-17 10:05 EST: Triangles are set by Side 1, Side 2, and Side 3
+## 2026-11-17 09:32 EST: Triangles are set by Side 1, Side 2, and Side 3
 
 - **Who:** Jason found "Point," "Flat," "Left," and "Right" unclear and asked for side length 1, 2, and 3 instead. The details are Claude's choices, *Jason can veto*.
 - **Context:** A triangle had two overlapping sets of boxes (**Wide**, **Deep**, **Point**, then **Flat**, **Left**, **Right**), and only worked when the longest side was the flat one.
@@ -490,7 +490,18 @@ Recent decisions are here. Older ones are in [docs/decisions/](docs/decisions/),
 - **Typing three new lengths (Claude):** entering new sides one box at a time often passes through lengths that aren't a triangle yet (16, then 28, then 16). Instead of refusing the middle one, the boxes keep what was typed, a note says why it isn't a triangle yet, and the prop changes once all three fit; **Put them back** drops the typed lengths.
 - **Replaces** the Point box and the Flat/Left/Right row from earlier today (never released). This morning's `triangle` and `point` fields keep their meaning for any triangle saved since, so nothing breaks.
 
-## 2026-11-17 09:45 EST: Prop sizes in inches instead of feet
+## 2026-11-17 09:40 EST: Prop sizes in inches instead of feet
 
 - **Who:** Jason.
 - **Decision:** **Sizes in** offers **steps** or **inches** (it was steps or feet). Inches are figured at 22.5 to the step and shown to two decimals; **Wide** and **Deep** step by 1 inch on the arrows. Still this computer's choice (`freeform:prop-units` is now `inches` or `steps`; a leftover `feet` from this morning's unreleased build reads as steps), and shows still store steps.
+
+## 2026-11-17 11:55 EST: A docs checkup
+
+- **Who:** Jason asked whether the README, the guide, and the other documents were current, then for everything found to be fixed. What counted as a fix is Claude's call, *Jason can veto*.
+- **What was checked:** the tests that guard the docs (the README's code map, every guide picture used and present, the shortcut tables), every bold button name in the guide and README against the code, and every screenshot, retaken and compared with the one in the repo.
+- **Fixed:**
+  - The README's Props line now says what props can be (rectangles, ovals, or triangles from three side lengths, in steps or inches). It also mentions the **?** shortcut list and that FreeFORM never opens locked or encrypted Pyware drill, since that's a policy and not just a feature.
+  - The Sections help in the sidebar still said to add a section "from Add Performer(s) (New section)." It now says **Add ▾**, **Create New Section**, which is what the menu says.
+  - Screenshots: **coordinates** and **trace** still showed the old field menu (before **Football field** and **Hashes** were split), and **send-band** still had "FreeFORM" where the message now says "FreeFORM Drill." **Sections** and **roster** also needed retaking, because the Hashes row pushed their headings down and the crop stopped at the save-status panel. The script now scrolls the sidebar before taking those three (the same way it does for Props), and they show more rows than before. The other pictures didn't change apart from dates and rendering, so they were left alone.
+  - This morning's prop entries had headings that didn't match when the work was done (one said 10:05 for work committed at 09:32), so the inches entry looked out of order. They now use the commit times from Jason's git history.
+  - PLAN.md's first milestone listed performer icons, which were taken out on 2026-11-07.

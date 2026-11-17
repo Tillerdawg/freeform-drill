@@ -58,6 +58,12 @@ const sidebar = { x: 1095, y: 125, width: W - 1095, height: 600 };
 const around = async (loc, pad = 16) => { const b = await loc.boundingBox(); return { x: b.x - pad, y: b.y - pad, width: b.width + 2 * pad, height: b.height + 2 * pad }; };
 /** From an element's top down to the bottom of the window, in the sidebar. */
 const fromHere = async (loc) => { // down to the save status pinned at the sidebar's bottom (it's pictured on its own)
+  await loc.evaluate((h) => { // first scroll the sidebar so this heading is near its top, leaving the most room under it
+    let el = h.parentElement;
+    while (el && !(el.scrollHeight > el.clientHeight && getComputedStyle(el).overflowY !== 'visible')) el = el.parentElement;
+    el?.scrollBy(0, h.getBoundingClientRect().top - el.getBoundingClientRect().top - 24);
+  });
+  await loc.page().waitForTimeout(200);
   const b = await loc.boundingBox(), st = await loc.page().locator('.side-status').boundingBox();
   return { ...sidebar, y: b.y - 12, height: (st ? st.y : H) - b.y + 12 };
 };
@@ -245,7 +251,13 @@ shot('coordinates', async () => {
   const g = await spot(page, { x: -20, y: 14 });
   await page.mouse.click(g.x, g.y);
   await page.waitForTimeout(200);
-  await save(page, 'coordinates', { ...sidebar, height: 680 }); // down to the coordinate, under the file buttons
+  await page.getByText('All sets').first().evaluate((b) => { // scroll the sidebar until the readout clears the save-status panel pinned at its bottom
+    let el = b.parentElement;
+    while (el && !(el.scrollHeight > el.clientHeight && getComputedStyle(el).overflowY !== 'visible')) el = el.parentElement;
+    el?.scrollBy(0, b.getBoundingClientRect().bottom - el.getBoundingClientRect().bottom + 160);
+  });
+  await page.waitForTimeout(200);
+  await save(page, 'coordinates', { ...sidebar, y: sidebar.y + 46, height: 580 }); // the selection box, down to the coordinate
 });
 shot('step-warnings', async () => {
   const page = await editor({ practice: true }); // set 4 in only 8 counts
