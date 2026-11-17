@@ -456,3 +456,41 @@ Recent decisions are here. Older ones are in [docs/decisions/](docs/decisions/),
 - **Options:** leave the messages as they were; try to read newer files' encryption (rejected: getting around a lock or encryption is what the DMCA's anti-circumvention rule is about, and locked drill is how drill writers get paid); detect files that look encrypted and say so plainly.
 - **Decision:** The last. `looksScrambled` in `src/engine/pyware.ts` measures how random a file's first 64 KB looks. Jason's real files measure about 5 bits per byte; encrypted or compressed data is close to 8, and the cutoff is 7.5 (a zip header counts too). When a `.3dj` can't be read and looks scrambled, the director sees `LOCKED_MESSAGE`: it looks locked or encrypted, FreeFORM doesn't unlock or decrypt drill, ask the drill writer for an unlocked copy, or tell Jason which Pyware version saved your own show. The policy is stated in the guide and on the front page (English and Spanish).
 - **Known limit:** no locked file has been seen yet. If Pyware's lock only sets a flag and leaves the data readable, FreeFORM would still import it. Once Jason has a locked file (or a Pyware 9 or newer one), check how the lock is stored and refuse it by its flag. The 9 zero bytes in the `PRPT` block at the top of Jason's files are one place to look, but that's a guess.
+
+## 2026-11-17 07:30 EST: Triangle props
+
+- **Who:** Jason asked for a triangle alongside the rectangle and the oval. How it's stored, drawn, and picked are Claude's choices, *Jason can veto*.
+- **Context:** Props were a rectangle, or an oval when `round` was on (a **Round** checkbox). A third shape doesn't fit a checkbox.
+- **Options for the file:** replace `round` with one `shape` field (cleaner, but every saved show and share link with an oval would need converting, and older copies of FreeFORM would misread new files); keep `round` and add `triangle: true`.
+- **Decision:** The second. Ovals are saved exactly as before, so nothing old changes, and a copy of FreeFORM from before today opening a show with a triangle draws it as a rectangle rather than refusing the file. `parseShow` turns away a prop marked both `round` and `triangle`. In the sidebar, **Round** became a **Shape** menu: **Rectangle**, **Oval**, **Triangle**.
+- **The shape (Claude):** an isosceles triangle that fills its **Wide** by **Deep** box: the flat side is the full width at the front, the point is at the back, and **Turned** points it anywhere else. It turns around the middle of its box, like the other shapes, so its center readout and arrow keys work the same. Its name sits at the triangle's centroid (a third of the way up from the flat side), where there's room for it, instead of up near the point.
+- **Also (Claude):** the guide's Props screenshot was cut off by the save-status panel at the bottom of the sidebar (the **Round** row was half hidden). The screenshot script now scrolls the prop box clear of it, so the new **Shape** menu shows.
+
+## 2026-11-17 09:20 EST: Triangles of any shape
+
+- **Who:** Jason asked for triangles that aren't regular. How it works is Claude's choice, *Jason can veto*.
+- **Context:** Triangle props were always isosceles, with the point in the middle of the width. Real platforms and wedges are often right triangles or lopsided.
+- **Options:** a menu of kinds (even, right, lopsided); three side lengths; three corners dragged on the field; one setting for where the point sits along the width.
+- **Decision:** The last. **Point** (shown for triangles, in steps from the left corner) slides the point anywhere from over the left corner to over the right. With the longest side as the flat side, the point always lands over that side, so this one number, with **Wide**, **Deep**, and **Turned**, reaches every triangle there is. The file stores it as `point`, a share of the width from 0 to 1 (missing means the middle, so this morning's triangles are unchanged); making the prop wider or narrower keeps the triangle's proportions. Switching away from **Triangle** drops it. `parseShow` turns away a `point` outside 0 to 1. The name sits at the triangle's centroid, which moves with the point.
+- **Not done yet:** typing three side lengths (what a builder's drawing gives you) and having FreeFORM work out **Wide**, **Deep**, and **Point**. Easy to add if directors ask.
+
+## 2026-11-17 09:45 EST: Props to exact measurements: three side lengths, and feet
+
+- **Who:** Jason asked for another way to make props to specific lengths. What it is, and how it works, are Claude's choices, *Jason can veto*.
+- **Context:** A triangle's **Wide**, **Deep**, and **Point** describe it, but a builder's drawing gives side lengths, in feet. Turning three sides into a height and a point position by hand is trigonometry nobody should have to do at rehearsal.
+- **Options:** a separate "make a prop from measurements" dialog; side lengths as a second, always-live view of the same triangle; drawing corners on the field.
+- **Decision:** For triangles, a **Sides** row (**Flat**, **Left**, **Right**) under **Point**. It shows the triangle's current sides and takes new ones: change one and the other two stay put, and **Wide**, **Deep**, and **Point** follow. Sides apply on Enter or leaving the box (not on every keystroke), since half-typed lengths usually aren't a triangle. If the sides can't make one, or the point would land past the end of the flat side, a note says why and the prop doesn't change. The math is `triangleSides` and `triangleFromSides` in `show.ts`, with tests (including a 3-4-5 right triangle).
+- **Feet:** a **Sizes in** menu (steps or feet) at the top of the Props list switches every prop size box (**Wide**, **Deep**, **Point**, **Sides**) to feet, at 22.5 inches to the step, shown to two decimals. It's this computer's choice (`freeform:prop-units` in localStorage), not saved in the show: files and links always store steps, so nothing about the file format changes and a show looks the same everywhere.
+
+## 2026-11-17 10:05 EST: Triangles are set by Side 1, Side 2, and Side 3
+
+- **Who:** Jason found "Point," "Flat," "Left," and "Right" unclear and asked for side length 1, 2, and 3 instead. The details are Claude's choices, *Jason can veto*.
+- **Context:** A triangle had two overlapping sets of boxes (**Wide**, **Deep**, **Point**, then **Flat**, **Left**, **Right**), and only worked when the longest side was the flat one.
+- **Decision:** A triangle's box now shows only **Side lengths** **1**, **2**, and **3** (plus **Shape** and **Turned**, which moved up beside the name). **Wide**, **Deep**, and **Point** are gone for triangles; rectangles and ovals keep **Wide** and **Deep**. Any order works: side 1 always runs along the front until it's turned, and when the corner across from it leans out past an end of side 1, the triangle leans that way (the file's `point` can now be below 0 or past 1; `parseShow` checks the whole triangle is at most 200 steps across). A triangle's center is the middle of the box around it, so turning and the center readout behave like any other prop. While a triangle is picked, the field shows a small 1, 2, and 3 beside its sides, so the numbers in the sidebar have something to point at (not on printed charts).
+- **Typing three new lengths (Claude):** entering new sides one box at a time often passes through lengths that aren't a triangle yet (16, then 28, then 16). Instead of refusing the middle one, the boxes keep what was typed, a note says why it isn't a triangle yet, and the prop changes once all three fit; **Put them back** drops the typed lengths.
+- **Replaces** the Point box and the Flat/Left/Right row from earlier today (never released). This morning's `triangle` and `point` fields keep their meaning for any triangle saved since, so nothing breaks.
+
+## 2026-11-17 09:45 EST: Prop sizes in inches instead of feet
+
+- **Who:** Jason.
+- **Decision:** **Sizes in** offers **steps** or **inches** (it was steps or feet). Inches are figured at 22.5 to the step and shown to two decimals; **Wide** and **Deep** step by 1 inch on the arrows. Still this computer's choice (`freeform:prop-units` is now `inches` or `steps`; a leftover `feet` from this morning's unreleased build reads as steps), and shows still store steps.

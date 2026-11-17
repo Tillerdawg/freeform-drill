@@ -296,8 +296,14 @@ shot('props', async () => {
   const p = await spot(page, { x: 24, y: 70 });
   await page.mouse.click(p.x, p.y);
   await page.waitForTimeout(200);
-  await page.getByRole('button', { name: '+ Prop' }).scrollIntoViewIfNeeded();
-  const list = await page.getByRole('button', { name: '+ Prop' }).boundingBox();
+  const add = page.getByRole('button', { name: '+ Prop' });
+  await add.evaluate((b) => { // scroll the sidebar until the whole prop box clears the save-status panel pinned at its bottom
+    let el = b.parentElement;
+    while (el && !(el.scrollHeight > el.clientHeight && getComputedStyle(el).overflowY !== 'visible')) el = el.parentElement;
+    el?.scrollBy(0, b.getBoundingClientRect().bottom - el.getBoundingClientRect().bottom + 160);
+  });
+  await page.waitForTimeout(200);
+  const list = await add.boundingBox();
   await save(page, 'props', { x: 1095, y: list.y + list.height + 12 - 380, width: W - 1095, height: 380 }); // the field's picture is in the editor shot
 });
 shot('letters', async () => {

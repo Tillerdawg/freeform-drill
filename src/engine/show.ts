@@ -61,8 +61,48 @@ export interface DrillSet {
   props?: Record<string, PropSpot>;
 }
 
-/** A prop on the field (a platform, a backdrop): a rectangle, or an oval when `round`, `w` steps side to side and `h` front to back. */
-export interface Prop { id: string; name: string; w: number; h: number; round?: boolean }
+/**
+ * A prop on the field (a platform, a backdrop): a rectangle or an oval (`round`) `w` steps side to side and `h` front to back, or a triangle
+ * (`triangle`). A triangle is set by its three sides. Side 1 is `w` steps long and runs side to side along the front, until it's turned;
+ * the corner across from it is `h` steps behind it, `point` × w from side 1's left end (missing means the middle; below 0 or past 1 when
+ * the triangle leans out past an end of side 1). Side 2 runs from side 1's left end to that corner, side 3 from its right end. A triangle's
+ * center is the middle of the box around it.
+ */
+export interface Prop { id: string; name: string; w: number; h: number; round?: boolean; triangle?: boolean; point?: number }
+export type PropShape = 'rectangle' | 'oval' | 'triangle';
+export const propShape = (p: Pick<Prop, 'round' | 'triangle'>): PropShape => (p.triangle ? 'triangle' : p.round ? 'oval' : 'rectangle');
+/** The patch that makes a prop this shape (older files only know `round`, so ovals stay `round`). */
+export const shapePatch = (shape: PropShape): Pick<Prop, 'round' | 'triangle' | 'point'> =>
+  ({ round: shape === 'oval' || undefined, triangle: shape === 'triangle' || undefined, ...(shape === 'triangle' ? {} : { point: undefined }) });
+
+/** A triangle prop's corners in its own frame (steps, y toward the back), around its center: side 1's left end, its right end, the far corner. */
+export function triangleCorners(p: Pick<Prop, 'w' | 'h' | 'point'>): [Point, Point, Point] {
+  const x = (p.point ?? 0.5) * p.w, mid = (Math.min(0, x) + Math.max(p.w, x)) / 2;
+  return [{ x: -mid, y: -p.h / 2 }, { x: p.w - mid, y: -p.h / 2 }, { x: x - mid, y: p.h / 2 }];
+}
+
+/** A triangle prop's sides 1, 2, and 3, in steps. */
+export function triangleSides(p: Pick<Prop, 'w' | 'h' | 'point'>): [number, number, number] {
+  const x = (p.point ?? 0.5) * p.w;
+  return [p.w, Math.hypot(x, p.h), Math.hypot(p.w - x, p.h)];
+}
+
+/** The widest a triangle prop's box may be, in steps (as for Wide). */
+export const MAX_PROP_SIZE = 200;
+/** How wide a triangle prop's box is, in steps. */
+export const triangleWidth = (p: Pick<Prop, 'w' | 'point'>) => { const x = (p.point ?? 0.5) * p.w; return Math.max(p.w, x) - Math.min(0, x); };
+
+/** The triangle with sides 1, 2, and 3 (in steps), or a sentence saying why there isn't one. */
+export function triangleFromSides(s1: number, s2: number, s3: number): { w: number; h: number; point: number | undefined } | string {
+  const sides = [s1, s2, s3];
+  if (!sides.every((n) => Number.isFinite(n) && n > 0)) return 'Each side needs a length.';
+  if (Math.max(...sides) * 2 >= s1 + s2 + s3 - 1e-9) return 'Those sides don\'t make a triangle: the longest side has to be shorter than the other two put together.';
+  const x = (s1 * s1 + s2 * s2 - s3 * s3) / (2 * s1), h = Math.sqrt(Math.max(0, s2 * s2 - x * x)), point = x / s1;
+  const t = { w: s1, h, point: Math.abs(point - 0.5) < 1e-9 ? undefined : point };
+  if (triangleWidth(t) > MAX_PROP_SIZE || h > MAX_PROP_SIZE) return `That's bigger than a prop can be (${MAX_PROP_SIZE} steps across).`;
+  return t;
+}
+
 /** A prop's center and its turn in degrees (counterclockwise as the director sees it). */
 export interface PropSpot { x: number; y: number; angle: number }
 export const MAX_PROPS = 100;
@@ -769,6 +809,18 @@ export function propsAt(show: Show, t: number): Record<string, PropSpot> {
   return out;
 }
 
+/** Inside triangle `c`, or within `pad` of its edge? */
+function inTriangle(q: Point, c: [Point, Point, Point], pad: number) {
+  const cross = (a: Point, b: Point) => (b.x - a.x) * (q.y - a.y) - (b.y - a.y) * (q.x - a.x);
+  const d = [cross(c[0], c[1]), cross(c[1], c[2]), cross(c[2], c[0])];
+  if (d.every((n) => n >= 0) || d.every((n) => n <= 0)) return true;
+  const toEdge = (a: Point, b: Point) => { // distance from q to the segment a-b
+    const vx = b.x - a.x, vy = b.y - a.y, t = Math.max(0, Math.min(1, ((q.x - a.x) * vx + (q.y - a.y) * vy) / (vx * vx + vy * vy || 1)));
+    return Math.hypot(q.x - a.x - t * vx, q.y - a.y - t * vy);
+  };
+  return Math.min(toEdge(c[0], c[1]), toEdge(c[1], c[2]), toEdge(c[2], c[0])) <= pad;
+}
+
 /** The prop under field point `p` (the top one), with `pad` steps of reach around its edge. */
 export function hitProp(show: Show, spots: Record<string, PropSpot>, p: Point, pad = 0): string | undefined {
   for (const pr of [...(show.props ?? [])].reverse()) {
@@ -776,8 +828,10 @@ export function hitProp(show: Show, spots: Record<string, PropSpot>, p: Point, p
     if (!s) continue;
     const a = (-s.angle * Math.PI) / 180, dx = p.x - s.x, dy = p.y - s.y;
     const u = dx * Math.cos(a) - dy * Math.sin(a), v = dx * Math.sin(a) + dy * Math.cos(a); // in the prop's own frame
-    const hw = pr.w / 2 + pad, hh = pr.h / 2 + pad;
-    if (pr.round ? (u / hw) ** 2 + (v / hh) ** 2 <= 1 : Math.abs(u) <= hw && Math.abs(v) <= hh) return pr.id;
+    const hw = pr.w / 2 + pad, hh = pr.h / 2 + pad, shape = propShape(pr);
+    if (shape === 'oval' ? (u / hw) ** 2 + (v / hh) ** 2 <= 1
+      : shape === 'triangle' ? inTriangle({ x: u, y: v }, triangleCorners(pr), pad)
+      : Math.abs(u) <= hw && Math.abs(v) <= hh) return pr.id;
   }
 }
 

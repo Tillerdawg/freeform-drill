@@ -1,6 +1,6 @@
 import { chrome, FIELD as F, LIGHT, PALETTE } from '../ui/palette';
 import { placeLabels, turned } from './labels';
-import type { LabelSide } from '../engine/show';
+import { propShape, triangleCorners, type LabelSide } from '../engine/show';
 import { FEET, FIELD_WIDTH, GOAL_LINE_X, HASHES, STEP_IN, type FieldSpec, type Floor, type Point } from '../engine/coords';
 import { TEXT_STEPS, type Mark } from '../engine/marks';
 
@@ -244,7 +244,7 @@ export function drawGlyph(ctx: CanvasRenderingContext2D, at: Point, glyph: strin
 
 /** Props under the performers: a shape with its name in the middle; `print` is black on white. */
 export function drawProps(
-  ctx: CanvasRenderingContext2D, v: View, props: { id: string; name: string; w: number; h: number; round?: boolean }[],
+  ctx: CanvasRenderingContext2D, v: View, props: { id: string; name: string; w: number; h: number; round?: boolean; triangle?: boolean; point?: number }[],
   spots: Record<string, { x: number; y: number; angle: number }>, selected: string | null, mode: Theme, px: number,
 ) {
   const I = INK[mode === 'print' ? 'white' : mode];
@@ -256,7 +256,11 @@ export function drawProps(
     ctx.translate(c.x, c.y);
     ctx.rotate((-s.angle * Math.PI) / 180); // the screen's y runs down, so counterclockwise on the field is negative here
     ctx.beginPath();
-    if (pr.round) ctx.ellipse(0, 0, w / 2, h / 2, 0, 0, Math.PI * 2); else ctx.rect(-w / 2, -h / 2, w, h);
+    const shape = propShape(pr), tri = shape === 'triangle' ? triangleCorners(pr) : null;
+    const at0 = (q: Point) => ({ x: q.x * v.scale, y: -q.y * v.scale }); // the prop's own frame (y toward the back) on screen, unturned
+    if (shape === 'oval') ctx.ellipse(0, 0, w / 2, h / 2, 0, 0, Math.PI * 2);
+    else if (tri) { tri.map(at0).forEach((q, k) => (k ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y))); ctx.closePath(); } // side 1 along the front
+    else ctx.rect(-w / 2, -h / 2, w, h);
     ctx.globalAlpha = mode === 'print' ? 0.85 : 0.7;
     ctx.fillStyle = I.propFill;
     ctx.fill();
@@ -267,14 +271,27 @@ export function drawProps(
     ctx.stroke();
     ctx.restore();
     ctx.save();
-    const m = ctx.getTransform(), at = m.transformPoint(c);
-    ctx.setTransform(1, 0, 0, 1, 0, 0); // the name reads upright, even on a field turned around
-    ctx.font = `700 ${px}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    const maxW = Math.max(w, h) * Math.hypot(m.a, m.b);
-    ctx.lineWidth = px * 0.3; ctx.lineJoin = 'round'; ctx.strokeStyle = I.propHalo;
-    ctx.strokeText(pr.name, at.x, at.y, maxW); // an edge, so lines on the field don't run through the name
-    ctx.fillStyle = mode === 'print' ? F.black : sel ? I.selLine : I.propName;
-    ctx.fillText(pr.name, at.x, at.y, maxW);
+    // Text reads upright, even on a field turned around: place it by hand, turned with the prop. A triangle's name sits at its
+    // centroid, where there's room; picked, its sides are numbered 1, 2, 3 (as in the sidebar), just outside each side's middle.
+    const a = (-s.angle * Math.PI) / 180, m = ctx.getTransform();
+    const place = (q: Point) => { const o = at0(q); return m.transformPoint({ x: c.x + o.x * Math.cos(a) - o.y * Math.sin(a), y: c.y + o.x * Math.sin(a) + o.y * Math.cos(a) }); };
+    const mid = tri ? { x: (tri[0].x + tri[1].x + tri[2].x) / 3, y: (tri[0].y + tri[1].y + tri[2].y) / 3 } : { x: 0, y: 0 };
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+    const label = (text: string, q: DOMPoint, size: number, maxW?: number) => {
+      ctx.font = `700 ${size}px system-ui, sans-serif`; ctx.lineWidth = size * 0.3; ctx.strokeStyle = I.propHalo;
+      ctx.strokeText(text, q.x, q.y, maxW); // an edge, so lines on the field don't run through it
+      ctx.fillStyle = mode === 'print' ? F.black : sel ? I.selLine : I.propName;
+      ctx.fillText(text, q.x, q.y, maxW);
+    };
+    label(pr.name, place(mid), px, Math.max(w, h) * Math.hypot(m.a, m.b));
+    if (tri && sel && mode !== 'print') {
+      const gap = (px * 0.9) / (v.scale * Math.hypot(m.a, m.b)); // steps, so the number clears the line
+      ([[0, 1], [0, 2], [1, 2]] as const).forEach(([i, j], k) => {
+        const e = { x: (tri[i].x + tri[j].x) / 2, y: (tri[i].y + tri[j].y) / 2 }, d = Math.hypot(e.x - mid.x, e.y - mid.y) || 1;
+        label(String(k + 1), place({ x: e.x + ((e.x - mid.x) / d) * gap, y: e.y + ((e.y - mid.y) / d) * gap }), px * 0.9);
+      });
+    }
     ctx.restore();
   }
 }

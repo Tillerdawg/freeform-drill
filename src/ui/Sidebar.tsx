@@ -8,10 +8,10 @@ import { RosterImport } from './RosterImport';
 import { deleteAudio, putAudio } from './audioStore';
 import { IconGrip } from './icons';
 import { Menu } from './Toolbar';
-import { HASHES, distance, fieldDepth, readout, type HashPreset } from '../engine/coords';
+import { STEP_IN, HASHES, distance, fieldDepth, readout, type HashPreset } from '../engine/coords';
 import type { Shape, ShapeKind } from '../engine/shapes';
 import {
-  fieldOf, withField, addProp, newPropSpot, MAX_PROPS, placeProp, removeProp, updateProp, MAX_NAME, scoreOrder, setCue, setMarks, setNames, setNote, label, locate, newId, moveToSection, removeSection, duplicateLetters, renumberSection, placeInSet, remapHash, positionsAt, xFrom, yFrom,
+  fieldOf, withField, addProp, newPropSpot, MAX_PROPS, placeProp, removeProp, updateProp, propShape, shapePatch, triangleSides, triangleFromSides, MAX_PROP_SIZE, type PropShape, MAX_NAME, scoreOrder, setCue, setMarks, setNames, setNote, label, locate, newId, moveToSection, removeSection, duplicateLetters, renumberSection, placeInSet, remapHash, positionsAt, xFrom, yFrom,
   type FrontDir, type FrontRef, type Section, type Show, type SideDir,
 } from '../engine/show';
 import { NumberField } from './NumberField';
@@ -482,15 +482,27 @@ function SectionsEditor({ show, setShow, cur, look, setLook }: { show: Show; set
   );
 }
 
+const PROP_UNITS = 'freeform:prop-units';
+
 /** Props: add, name, size, and delete them; the selected one's turn in this set. Drag a prop on the field to move it. */
 function PropsEditor({ show, setShow, onSet, selected, setSelected }: { show: Show; setShow: Props['setShow']; onSet: number; selected: string | null; setSelected: (id: string | null) => void }) {
   const props = show.props ?? [];
   const [open, setOpen] = useState(false);
   useEffect(() => { if (selected) setOpen(true); }, [selected]); // picking a prop on the field opens the list
+  // Sizes in steps or inches (a builder measures in inches): this computer's choice, not the show's. Shows always store steps.
+  const [inches, setInchesRaw] = useState(() => { try { return localStorage.getItem(PROP_UNITS) === 'inches'; } catch { return false; } });
+  const setInches = (on: boolean) => { setInchesRaw(on); try { localStorage.setItem(PROP_UNITS, on ? 'inches' : 'steps'); } catch { /* storage blocked */ } };
+  const per = inches ? 1 / STEP_IN : 1, unit = inches ? 'inches' : 'steps'; // steps in one unit
+  const inUnits = (steps: number) => Math.round((steps / per) * 100) / 100;
+  // Side lengths typed that don't make a triangle yet (often halfway through typing three new ones): kept and shown until they do.
+  const [sideDraft, setSideDraft] = useState<{ id: string; sides: number[]; text: string } | null>(null);
   return (
     <details open={open} onToggle={(e) => setOpen(e.currentTarget.open)} style={{ borderTop: '1px solid var(--line)', padding: '10px 0' }}>
       <summary><strong>Props</strong> <span style={{ fontSize: 12, opacity: 0.7 }}>({props.length})</span></summary>
       <p style={{ fontSize: 12, opacity: 0.75, margin: '6px 0' }}>Platforms, backdrops, and other things on the field. Drag one on the field to move it in this set (or pick it and use the arrow keys); it moves between sets like a performer.</p>
+      {props.length > 0 && <label style={{ fontSize: 12 }}>Sizes in <select aria-label="Prop sizes in" value={unit} onChange={(e) => setInches(e.target.value === 'inches')}>
+        <option value="steps">steps</option><option value="inches">inches</option>
+      </select></label>}
       {props.map((pr) => {
         const spot = onSet >= 0 ? show.sets[onSet].props?.[pr.id] : undefined, sel = pr.id === selected;
         return (
@@ -501,15 +513,41 @@ function PropsEditor({ show, setShow, onSet, selected, setSelected }: { show: Sh
                 onClick={(e) => { e.stopPropagation(); setShow((s) => removeProp(s, pr.id)); if (sel) setSelected(null); }}>×</button>
             </div>
             <div style={row}>
-              <label>Wide <NumberField aria-label="Prop width in steps" min={0.5} max={200} step={0.5} value={pr.w} style={{ width: 52 }} onValue={(n) => setShow((s) => updateProp(s, pr.id, { w: n }))} /></label>
-              <label>Deep <NumberField aria-label="Prop depth in steps" min={0.5} max={200} step={0.5} value={pr.h} style={{ width: 52 }} onValue={(n) => setShow((s) => updateProp(s, pr.id, { h: n }))} /></label>
-              <span style={{ fontSize: 12, opacity: 0.75 }}>steps</span>
-            </div>
-            <div style={row}>
-              <label><input type="checkbox" checked={!!pr.round} onChange={(e) => setShow((s) => updateProp(s, pr.id, { round: e.target.checked || undefined }))} /> Round</label>
+              <label>Shape <select aria-label="Prop shape" value={propShape(pr)} onChange={(e) => { setSideDraft(null); setShow((s) => updateProp(s, pr.id, shapePatch(e.target.value as PropShape))); }}>
+                <option value="rectangle">Rectangle</option><option value="oval">Oval</option><option value="triangle">Triangle</option>
+              </select></label>
               {spot && <label title="Its turn in this set, in degrees counterclockwise">Turned <NumberField aria-label="Prop turn in degrees" min={-360} max={360} integer value={spot.angle} style={{ width: 52 }}
                 onValue={(n) => setShow((s) => placeProp(s, onSet, pr.id, { ...spot, angle: n }))} />°</label>}
             </div>
+            {!pr.triangle && <div style={row}>
+              <label>Wide <NumberField aria-label={`Prop width in ${unit}`} min={0.5 / per} max={MAX_PROP_SIZE / per} step={inches ? 1 : 0.5} value={inUnits(pr.w)} style={{ width: 52 }} onValue={(n) => setShow((s) => updateProp(s, pr.id, { w: n * per }))} /></label>
+              <label>Deep <NumberField aria-label={`Prop depth in ${unit}`} min={0.5 / per} max={MAX_PROP_SIZE / per} step={inches ? 1 : 0.5} value={inUnits(pr.h)} style={{ width: 52 }} onValue={(n) => setShow((s) => updateProp(s, pr.id, { h: n * per }))} /></label>
+              <span style={{ fontSize: 12, opacity: 0.75 }}>{unit}</span>
+            </div>}
+            {pr.triangle && (() => {
+              // A triangle is its three side lengths: change one, and the other two stay put.
+              const draft = sideDraft?.id === pr.id ? sideDraft : null, sides = draft?.sides ?? triangleSides(pr);
+              const setSide = (k: number, n: number) => {
+                const next = sides.map((x, j) => (j === k ? n * per : x)), t = triangleFromSides(next[0], next[1], next[2]);
+                if (typeof t === 'string') { setSideDraft({ id: pr.id, sides: next, text: t }); return; }
+                setSideDraft(null);
+                setShow((s) => updateProp(s, pr.id, t));
+              };
+              return (
+                <>
+                  <div style={row} title="Type each side's length, as measured on the prop. Change one and the other two stay the same.">
+                    <span style={{ width: '100%' }}>Side lengths <span style={{ fontSize: 12, opacity: 0.75 }}>({unit})</span></span>
+                    {sides.map((len, k) => (
+                      <label key={k}>{k + 1} <NumberField whenDone aria-label={`Side ${k + 1} length in ${unit}`}
+                        min={0.01} max={(2 * MAX_PROP_SIZE) / per} step="any" value={inUnits(len)} style={{ width: 56 }} onValue={(n) => setSide(k, n)} /></label>
+                    ))}
+                  </div>
+                  {draft && <p role="status" style={{ fontSize: 12, margin: '4px 0 0' }}>{draft.text} The prop changes once all three fit.{' '}
+                    <button style={{ fontSize: 12 }} onClick={() => setSideDraft(null)}>Put them back</button></p>}
+                  <p style={{ fontSize: 12, opacity: 0.75, margin: '4px 0 0' }}>Side 1 runs along the front until it's turned. The field numbers the sides while the prop is picked.</p>
+                </>
+              );
+            })()}
             {spot && <p style={{ fontSize: 12, margin: '4px 0 0' }}>Center: {readout(spot, fieldOf(show))}</p>}
           </div>
         );
