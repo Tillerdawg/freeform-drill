@@ -75,7 +75,7 @@ A note on where the ideas came from: FreeFORM is modeled on Pyware and the Ultim
 - Shape handles you can move with the keyboard: Tab steps through them, arrows move them.
 - Import Pyware 3D (`.3dj`) shows from Pyware 8 and older, tested with files from 2008 to 2010. Pyware 9 and newer encrypt their files, and FreeFORM doesn't open those or try to decrypt them; it says so plainly instead. FreeFORM never opens locked or encrypted drill: it says so plainly, so you can ask the drill writer for an unlocked copy.
 - Import OpenMarch (`.dots`) shows: pages, counts, measures, sections, drill numbers and names, curved paths, and the recording.
-- **Help → Send feedback**: a short form that comes straight to me, with no account needed. Help also has **Support FreeFORM** (a tip jar on Ko-fi), **About FreeFORM Drill** (the front page), **See the code on GitHub**, and **Open-source credits** (every library FreeFORM ships, with its license).
+- **Help → Send feedback**: a short form that goes straight to the developer, with no account needed. Help also has **Support FreeFORM** (a tip jar on Ko-fi), **About FreeFORM Drill** (the front page), **See the code on GitHub**, and **Open-source credits** (every library FreeFORM ships, with its license).
 
 It runs on a current Chrome, Edge, Firefox, or Safari, and on iPadOS/iOS 16.4 or later. Write drill on a computer or an iPad (hide the timeline and sidebar for more field). Phones get only the performer view.
 

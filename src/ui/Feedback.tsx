@@ -38,7 +38,7 @@ export function FeedbackDialog({ onClose }: { onClose: () => void }) {
           </>
         ) : (
           <>
-            <p style={{ margin: '0 0 12px' }}>Something that doesn't work, an idea, or how drill writers do it in your program. It goes straight to me, with no account needed.</p>
+            <p style={{ margin: '0 0 12px' }}>Something that doesn't work, an idea, or how drill writers do it in your program. It goes straight to the developer, with no account needed.</p>
             <label style={{ display: 'block', marginBottom: 8 }}>What is it?{' '}
               <select value={kind} onChange={(e) => setKind(e.target.value)}>
                 <option value="problem">Something doesn't work</option>
@@ -57,7 +57,7 @@ export function FeedbackDialog({ onClose }: { onClose: () => void }) {
             <label style={{ display: 'block', marginBottom: 8 }}>Your email (optional, if you'd like an answer)
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={200} autoComplete="email" style={field} />
             </label>
-            <p style={{ margin: '0 0 12px', fontSize: 12, opacity: 0.8 }}>Only Jason sees what you send; it isn't posted anywhere. Your show isn't sent: to share one, attach a saved file to an <a href={ISSUES} target="_blank" rel="noreferrer" style={{ color: 'var(--blue)' }}>issue on GitHub</a>.</p>
+            <p style={{ margin: '0 0 12px', fontSize: 12, opacity: 0.8 }}>Only the developer sees what you send; it isn't posted anywhere. Your show isn't sent: to share one, attach a saved file to an <a href={ISSUES} target="_blank" rel="noreferrer" style={{ color: 'var(--blue)' }}>issue on GitHub</a>.</p>
             {error && <p role="alert" style={{ color: 'var(--danger)', margin: '0 0 12px' }}>{error}</p>}
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button onClick={onClose}>Cancel</button>

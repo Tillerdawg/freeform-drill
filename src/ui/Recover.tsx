@@ -37,7 +37,7 @@ export function RecoverDialog({ title, fileSaved, act, onClose }: { title: strin
             </li>
           ))}
         </ol>
-        <p style={{ margin: '12px 0 0' }}>None of these? <button onClick={go(act.feedback)}>Send feedback</button> and say what happened. It comes straight to me.</p>
+        <p style={{ margin: '12px 0 0' }}>None of these? <button onClick={go(act.feedback)}>Send feedback</button> and say what happened. It goes straight to the developer.</p>
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}><button onClick={onClose}>Close</button></div>
       </div>
     </div>
