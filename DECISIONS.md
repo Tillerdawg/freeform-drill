@@ -539,3 +539,9 @@ Recent decisions are here. Older ones are in [docs/decisions/](docs/decisions/),
 - **Context:** The feedback form said "Only Jason sees what you send" and "It goes straight to me." The same "straight to me" was on the recovery screen, the **Send feedback** tooltip, the front page, the guide, and the README.
 - **Other options:** "I" and "me" throughout; "the FreeFORM Drill developer."
 - **Decision:** All of them now say "the developer." The Spanish front page says "Le llega directo al desarrollador." The privacy section still speaks in the first person ("emails it to me"); it wasn't part of this change.
+
+## 2026-11-17 15:50 EST: The sender's address leaves the feedback email's body
+- **Who:** Jason chose this after a test (*his decision*).
+- **Context:** Jason sent feedback from his UGA address and replied to it. Resend delivered the reply, but UGA's Microsoft 365 never put it in his mailbox or his quarantine. A fresh message from feedback@ with no quoted text arrived fine. The likely cause: the reply quoted the footer line "From: Jason <jatiller@uga.edu>", the recipient's own address inside an outside message, which Microsoft treats as impersonation. Many school districts use Microsoft 365, so real replies could vanish the same way.
+- **Other options:** trim the quoted text by hand before every reply.
+- **Decision:** The footer says "From: <name> (Reply goes to them)". The address is only in the Reply-To header, which Gmail shows in the To line when he replies. Messages with no address still say they can't be answered.

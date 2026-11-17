@@ -29,7 +29,9 @@ export function feedbackEmail(f: Feedback): { subject: string; text: string } {
     subject: `FreeFORM Drill ${label}: ${first}${line.length > 60 ? '…' : ''}`,
     text: [
       f.message, '', '---',
-      `From: ${f.name || '(no name)'}${f.email ? ` <${f.email}>` : ' (no email: they can\'t be answered)'}`,
+      // Their address is only in Reply-To, never the body: a reply that quotes a recipient's own address looks like
+      // impersonation to Microsoft 365, which can hold it without telling anyone.
+      `From: ${f.name || '(no name)'}${f.email ? ' (Reply goes to them)' : ' (no email: they can\'t be answered)'}`,
       `Kind: ${label}`, `Language: ${f.lang === 'es' ? 'Spanish' : 'English'}`, `Page: ${f.page || '(not given)'}`,
       'Sent with the feedback form on freeformdrill.org. Reply goes to them; check that it\'s from feedback@freeformdrill.org.',
     ].join('\n'),

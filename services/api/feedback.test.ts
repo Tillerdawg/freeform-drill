@@ -28,6 +28,12 @@ describe('the feedback service', () => {
     expect(m.text).toContain('second line');
     expect(m.text).toContain("no email: they can't be answered");
   });
+  it('keeps the sender’s address out of the body (it’s only in Reply-To), so a quoted reply can’t look like impersonation', () => {
+    const r = checkFeedback({ message: 'hi', name: 'Pat', email: 'pat@example.org' });
+    const m = feedbackEmail(r.ok ? r.feedback : (null as never));
+    expect(m.text).toContain('From: Pat (Reply goes to them)');
+    expect(m.text).not.toContain('pat@example.org');
+  });
   it('writes the note back in English or Spanish, with the full name and how to ignore it', () => {
     for (const lang of ['en', 'es', 'fr']) {
       const a = ackEmail(lang);
