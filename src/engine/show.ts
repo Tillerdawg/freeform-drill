@@ -73,6 +73,27 @@ export const propShape = (p: Pick<Prop, 'round' | 'triangle'>): PropShape => (p.
 /** The patch that makes a prop this shape (older files only know `round`, so ovals stay `round`). */
 export const shapePatch = (shape: PropShape): Pick<Prop, 'round' | 'triangle' | 'point'> =>
   ({ round: shape === 'oval' || undefined, triangle: shape === 'triangle' || undefined, ...(shape === 'triangle' ? {} : { point: undefined }) });
+/** A triangle prop's three sides in steps: the flat side, then the left and right sides up to the point (left as the director sees it, unturned). */
+export function triangleSides(p: Pick<Prop, 'w' | 'h' | 'point'>) {
+  const x = (p.point ?? 0.5) * p.w;
+  return { flat: p.w, left: Math.hypot(x, p.h), right: Math.hypot(p.w - x, p.h) };
+}
+
+/**
+ * The triangle with these three sides (in steps), as Wide, Deep, and Point, or a sentence saying why there isn't one. The point has to land
+ * over the flat side (neither corner on it can be wider than square); making the longest side the flat side always works.
+ */
+export function triangleFromSides(flat: number, left: number, right: number): { w: number; h: number; point: number | undefined } | string {
+  const sides = [flat, left, right];
+  if (!sides.every((n) => Number.isFinite(n) && n > 0)) return 'Each side needs a length.';
+  if (Math.max(...sides) * 2 >= flat + left + right - 1e-9) return 'Those sides don\'t make a triangle: the longest has to be shorter than the other two together.';
+  const x = (flat * flat + left * left - right * right) / (2 * flat), h = Math.sqrt(Math.max(0, left * left - x * x));
+  if (x < -1e-9 || x > flat + 1e-9) return 'With those sides the point would hang past the end of the flat side. Make the longest side the flat side.';
+  if (flat > 200 || h > 200) return 'That\'s bigger than a prop can be (200 steps).';
+  const point = Math.min(1, Math.max(0, x / flat));
+  return { w: flat, h, point: Math.abs(point - 0.5) < 1e-9 ? undefined : point };
+}
+
 /** The triangle's point, side to side from the middle of its box, in steps. */
 export const pointOffset = (p: Pick<Prop, 'w' | 'point'>) => ((p.point ?? 0.5) - 0.5) * p.w;
 /** A prop's center and its turn in degrees (counterclockwise as the director sees it). */

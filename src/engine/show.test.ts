@@ -4,7 +4,7 @@ import {
   nextRevision, revisionLabel,
   addPerformer, addSetAfter, advance, biggestStep, chainOrder, clearFtl, ftlTrail, moveSteps, normalizeFtl, flip, mirrorSides, moveSetTo, remapHash, rotateScale, setFtl, newShowId, parseShowFile, snapSelection, playRange, playPlan, label, locate, newShow, parseShow, placeInSet, positionsAt,
   removePerformers, renumberSets, scoreOrder, DEFAULT_SECTIONS, removeSet, setAt, setCounts, setStarts, totalCounts, xFrom, yFrom, insertSetAt, showLength, movementAt, movementOfSet, setFtlTurns,
-  addSetHere, setCue, newPropSpot, setFtlSmooth, routeTurns, leaderDistance, setTiming, timingOf, fitTurn, setTurning, turnRoute, groupTurn, counterMarch, closeCalls, addProp, placeProp, propsAt, hitProp, removeProp, updateProp, propShape, shapePatch, pointOffset, fieldOf, moveSegments, withShowId, withField, validField,
+  addSetHere, setCue, newPropSpot, setFtlSmooth, routeTurns, leaderDistance, setTiming, timingOf, fitTurn, setTurning, turnRoute, groupTurn, counterMarch, closeCalls, addProp, placeProp, propsAt, hitProp, removeProp, updateProp, propShape, shapePatch, pointOffset, triangleSides, triangleFromSides, fieldOf, moveSegments, withShowId, withField, validField,
 } from './show';
 
 function twoSetShow() {
@@ -1028,5 +1028,23 @@ describe('parseShow with built-in object names as ids', () => {
     const s = plain();
     s.hash = 'toString';
     expect(() => parseShow(JSON.stringify(s))).toThrow(/hash/);
+  });
+});
+
+describe('triangle props from side lengths', () => {
+  it('builds the triangle from its three sides and reads them back', () => {
+    const t = triangleFromSides(8, 6, 6);
+    if (typeof t === 'string') throw new Error(t);
+    expect(t.point).toBeUndefined(); // even: the point in the middle
+    expect(t.h).toBeCloseTo(Math.sqrt(20));
+    const right = triangleFromSides(5, 3, 4); // the carpenter's 3-4-5: square corner where the point drops straight down
+    if (typeof right === 'string') throw new Error(right);
+    expect(right.h).toBeCloseTo(2.4);
+    const back = triangleSides(right);
+    expect([back.flat, back.left, back.right].map((n) => Math.round(n * 1e9) / 1e9)).toEqual([5, 3, 4]);
+    expect(triangleFromSides(10, 3, 4)).toMatch(/don't make a triangle/);
+    expect(triangleFromSides(5, 7, 4)).toMatch(/hang past/);
+    expect(typeof triangleFromSides(5, 5.5, 4)).toBe('object'); // a side a bit longer than the flat one can still fit
+    expect(triangleFromSides(5, 0, 4)).toMatch(/needs a length/);
   });
 });
