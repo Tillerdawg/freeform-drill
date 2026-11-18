@@ -11,7 +11,7 @@ const vars = (p: Record<string, string>) => Object.entries(p).map(([k, v]) => `-
 /** How a page differs from the director's guide: its title, language, where the site's root and the guide's pictures are
  * from the page, and its header links. The student quickstart (docs/STUDENTS.md) uses the same page. */
 export interface PageOptions { title: string; lang: 'en' | 'es'; root: string; img: string; header: string; home?: string }
-const GUIDE: PageOptions = { title: 'How to use FreeFORM Drill', lang: 'en', root: '../', img: 'img/', header: '<a href="../app/">Open the editor</a>' };
+const GUIDE: PageOptions = { title: 'How to use FreeFORM Drill', lang: 'en', root: '../', img: 'img/', header: '<a class="start" href="../app/">Start writing a show</a>' }; // a real button, so readers who land on the guide can find the way in (Jason)
 
 /** The FreeFORM Drill logo, linking home, the way the front page shows it: the light-mode version when the theme is light. */
 const logo = (root: string, home: string) =>
@@ -51,6 +51,8 @@ export function guidePage(md: string, o: PageOptions = GUIDE): string {
   :root[data-theme=light] { ${vars(LIGHT)} }
   body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.55 system-ui, sans-serif; }
   header { position: sticky; top: 0; background: var(--bg-deep); border-bottom: 1px solid var(--line); padding: 10px 16px; display: flex; align-items: center; gap: 16px; }
+  header .start { margin-left: auto; display: inline-flex; align-items: center; min-height: 40px; padding: 6px 16px; border-radius: 8px; background: var(--gold-fill); color: var(--on-gold); font-weight: 600; text-decoration: none; white-space: nowrap; }
+  header .start:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
   header .logo img { height: 28px; width: auto; display: block; border: 0; border-radius: 0; }
   :root[data-theme=light] .dark-only, :root:not([data-theme=light]) .light-only { display: none !important; }
   main { max-width: 820px; margin: 0 auto; padding: 8px 16px 64px; }
