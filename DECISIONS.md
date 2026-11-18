@@ -550,3 +550,10 @@ Recent decisions are here. Older ones are in [docs/decisions/](docs/decisions/),
 - **Who:** Jason.
 - **Context:** The form and front pages now say messages go to "the developer" (bfb843f), but the "we got your message" note still said "I read every one" and "I'll answer."
 - **Decision:** The note says the developer reads every message and will answer from feedback@freeformdrill.org (Spanish: "el desarrollador"). It's still signed "FreeFORM Drill."
+
+## 2026-11-18 14:05 EST: The front page leads with the logo and tagline
+- **Who:** Jason asked for the README's logo and "Drill, without the bill." in place of the front page's heading. The details are Claude's (*Jason can veto*).
+- **Context:** The front page's heading was the text "FreeFORM Drill: Drill, without the bill." The README opens with the full logo (dots and wordmark) and the tagline in italics under it.
+- **Other options:** Keep the text heading and put the logo above it (says the name twice); put the tagline inside the heading (search engines and screen readers would read the slogan as the page's name).
+- **Decision:** The heading is now the full logo (`logo.svg`, with `logo-light.svg` in light mode), centered, at most 440 pixels wide, with the alt text "FreeFORM Drill," so it's still the page's one heading. "Drill, without the bill." sits under it, centered and in italics, as a plain paragraph. The rest of the page stays left-aligned. The Spanish front page gets the same, with the tagline marked as English as before.
+- **Follow-up (Jason):** The small logo is gone from the front pages' top bar, since the big one sits right under it, so the bar now holds only the links and **Open the editor**. The opening paragraph is no longer capped at 38em: it runs the full width of the page, like the sections and the editor screenshot below it. The guide and student pages keep the small logo.

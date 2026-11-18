@@ -37,15 +37,16 @@
       .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
       header.top { border-bottom: 1px solid var(--line); background: var(--bg-deep); }
       header.top .wrap { display: flex; align-items: center; gap: 16px; min-height: 60px; flex-wrap: wrap; padding-top: 8px; padding-bottom: 8px; }
-      header.top img { height: 28px; display: block; }
       :root[data-theme=light] .dark-only, :root:not([data-theme=light]) .light-only { display: none !important; }
       header.top nav { margin-left: auto; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; font-size: 16px; }
       .button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 18px; border-radius: 8px; border: 1px solid var(--line-strong);
         background: var(--surface-2); color: var(--text); text-decoration: none; font-weight: 600; }
       .button.primary { background: var(--gold-fill); border-color: var(--gold-fill); color: var(--on-gold); }
       .hero { padding-top: 56px; padding-bottom: 32px; display: grid; gap: 12px; }
-      .hero h1 { font-size: clamp(30px, 5vw, 48px); line-height: 1.15; margin: 0; max-width: 18em; }
-      .lede { max-width: 38em; margin: 4px 0 8px; }
+      .hero h1 { margin: 0; text-align: center; line-height: 0; }
+      .hero h1 img { width: min(440px, 100%); height: auto; display: inline-block; }
+      .tagline { margin: 0 0 16px; text-align: center; font-style: italic; font-size: clamp(20px, 2.6vw, 24px); }
+      .lede { margin: 4px 0 8px; }
       .actions { display: flex; gap: 12px; flex-wrap: wrap; }
       .shot { width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 10px; }
       section { padding: 40px 0; border-top: 1px solid var(--line); }
@@ -74,7 +75,6 @@
   <body>
     <header class="top">
       <div class="wrap">
-        <a href="./"><img class="dark-only" src="../logo-small.svg" alt="FreeFORM Drill" /><img class="light-only" src="../logo-small-light.svg" alt="FreeFORM Drill" /></a>
         <nav aria-label="Sitio">
           <a href="../guide/">Guía (en inglés)</a>
           <a href="https://github.com/Tillerdawg/freeform-drill">Código fuente</a>
@@ -85,7 +85,8 @@
     </header>
     <main>
       <div class="wrap hero">
-        <h1>FreeFORM Drill: <span lang="en">Drill, without the bill.</span></h1>
+        <h1><img class="dark-only" src="../logo.svg" width="502" height="214" alt="FreeFORM Drill" /><img class="light-only" src="../logo-light.svg" width="502" height="214" alt="FreeFORM Drill" /></h1>
+        <p class="tagline" lang="en">Drill, without the bill.</p>
         <p class="lede">FreeFORM Drill es una herramienta gratis para diseñar y enseñar drill para bandas de marcha, drum corps y conjuntos de marcha indoor, que funciona en tu navegador. Escribe el show en una computadora o un iPad, mira cada movimiento tiempo por tiempo con tu música, imprime hojas de puntos y gráficas de drill, y manda el drill a los teléfonos de tus estudiantes. No hay nada que instalar, ninguna cuenta que crear y ninguna licencia que pagar, para un conjunto de cualquier tamaño.</p>
         <p class="note">El editor todavía está en inglés; la vista de los estudiantes en el teléfono ya está en español.</p>
         <p class="note phone-only">En un teléfono, FreeFORM muestra el drill como lo ven tus integrantes. Para escribir drill, abre esta página en una computadora o un iPad.</p>
