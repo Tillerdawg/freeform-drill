@@ -33,6 +33,8 @@ export const ES: Record<string, string> = {
   "Couldn't download the show. Check your connection, or that the file allows other sites to read it.":
     'No se pudo descargar el show. Revisa tu conexión, o que el archivo permita que otros sitios lo lean.',
   'That file is too big to be a show.': 'Ese archivo es demasiado grande para ser un show.',
+  'Writing drill? Open freeformdrill.org on a computer or an iPad. A phone only shows the drill the way performers see it.':
+    '¿Vas a escribir drill? Abre freeformdrill.org en una computadora o un iPad. Un teléfono solo muestra el drill como lo ven los integrantes.',
   "This show isn't online anymore. Ask your director for a new link.": 'Este show ya no está en línea. Pide a tu director un enlace nuevo.',
 
   // The shows on this phone

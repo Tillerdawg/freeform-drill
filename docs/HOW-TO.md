@@ -2,7 +2,7 @@
 
 This guide walks you through writing a show in FreeFORM Drill, from an empty field to dot sheets in your students' hands and the drill on their phones. It's written for band directors and drill writers. You don't need to have used Pyware or UDB before, but if you have, most of this will feel familiar.
 
-FreeFORM runs in your web browser. The front page, <https://freeformdrill.org/>, says what it is; click **Start writing a show** there (it's also at the top of this guide), or go straight to <https://freeformdrill.org/app/>. There's nothing to install, no app in the App Store, and no account to make. (Share links made before the editor moved to /app/ still work.)
+FreeFORM runs in your web browser. The front page, <https://freeformdrill.org/>, says what it is; click **Start writing a show** there (on a computer or an iPad, it's also at the top of this guide), or go straight to <https://freeformdrill.org/app/>. There's nothing to install, no app in the App Store, and no account to make. Write drill on a computer or an iPad. On a phone, FreeFORM only shows the drill the way your performers see it, so it asks for a show link. (Share links made before the editor moved to /app/ still work.)
 
 The pictures in this guide come from a small sample show (47 performers, 4 sets) that ships with the code. The pictures of warnings come from its practice show, the same drill with a few problems left in (see [Review the whole show](#review-the-whole-show)). Your screen will look the same, just with your own drill on it.
 

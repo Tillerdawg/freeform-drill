@@ -432,6 +432,7 @@ export function Perform() {
           : canStore() ? <p>{tr('Open the show link your director sent you. It will be saved on this phone and work offline after that.')}</p>
           : <p>{tr("Open the show link your director sent you. This phone can't save shows right now (its storage is full or turned off, as in a private window), so you'll need the link each time, and it won't work offline.")}</p>}
 <PasteLink />
+        {isPhone() && <p>{tr('Writing drill? Open freeformdrill.org on a computer or an iPad. A phone only shows the drill the way performers see it.')}</p>}
         <p><a href={studentsLink} style={{ color: 'var(--blue)' }}>{tr('How it works for performers (2 minutes)')}</a></p>
         <p><a href={lang === 'es' ? '../es/' : '../'} style={{ color: 'var(--blue)' }}>{tr("What's FreeFORM Drill?")}</a></p>
         <LanguageButton />

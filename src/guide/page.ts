@@ -11,7 +11,7 @@ const vars = (p: Record<string, string>) => Object.entries(p).map(([k, v]) => `-
 /** How a page differs from the director's guide: its title, language, where the site's root and the guide's pictures are
  * from the page, and its header links. The student quickstart (docs/STUDENTS.md) uses the same page. */
 export interface PageOptions { title: string; lang: 'en' | 'es'; root: string; img: string; header: string; home?: string }
-const GUIDE: PageOptions = { title: 'How to use FreeFORM Drill', lang: 'en', root: '../', img: 'img/', header: '<a class="start" href="../app/">Start writing a show</a>' }; // a real button, so readers who land on the guide can find the way in (Jason)
+const GUIDE: PageOptions = { title: 'How to use FreeFORM Drill', lang: 'en', root: '../', img: 'img/', header: '<a class="start" href="../app/">Start writing a show</a><span class="start-phone">Write drill on a computer or an iPad</span>' }; // a real button, so readers who land on the guide can find the way in (Jason); a phone gets only the performer view, so it gets a note instead
 
 /** The FreeFORM Drill logo, linking home, the way the front page shows it: the light-mode version when the theme is light. */
 const logo = (root: string, home: string) =>
@@ -52,6 +52,8 @@ export function guidePage(md: string, o: PageOptions = GUIDE): string {
   body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.55 system-ui, sans-serif; }
   header { position: sticky; top: 0; background: var(--bg-deep); border-bottom: 1px solid var(--line); padding: 10px 16px; display: flex; align-items: center; gap: 16px; }
   header .start { margin-left: auto; display: inline-flex; align-items: center; min-height: 40px; padding: 6px 16px; border-radius: 8px; background: var(--gold-fill); color: var(--on-gold); font-weight: 600; text-decoration: none; white-space: nowrap; }
+  header .start-phone { display: none; margin-left: auto; font-size: 14px; text-align: right; }
+  @media (pointer: coarse) and (max-width: 499px), (pointer: coarse) and (max-height: 499px) { header .start { display: none; } header .start-phone { display: block; } } /* = isPhone() in src/perform/device.ts */
   header .start:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
   header .logo img { height: 28px; width: auto; display: block; border: 0; border-radius: 0; }
   :root[data-theme=light] .dark-only, :root:not([data-theme=light]) .light-only { display: none !important; }
