@@ -40,6 +40,8 @@ You'll want a computer or an iPad to write drill. FreeFORM needs a current versi
 
 Phones only get the performer view. That's on purpose: a phone screen is too small to write drill on, but it's perfect for a student checking their spot.
 
+**If the site won't open at school** ("This site can't be reached" or a blocked page), your school's web filter is probably stopping it. New websites are often blocked until the filter companies review them. Try it on another network, like at home or on your phone's hotspot, and ask your technology department to allow freeformdrill.org.
+
 **On a school Chromebook,** check before you rely on the autosave. Many schools set Chromebooks to clear everything in the browser when you sign out, which would take your shows with it. Save to a file (Google Drive works) at the end of every session, and use **Import…** to open it next time.
 
 One thing to know up front: **your shows are saved in the browser you're using.** FreeFORM saves every change automatically, but only on that computer, in that browser. If you clear your browser data, or switch from Chrome to Safari, your shows won't be there. Use **Save** often to keep a file you control (see [Saving, backing up, and opening files](#saving-backing-up-and-opening-files)).

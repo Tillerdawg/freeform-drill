@@ -569,3 +569,9 @@ Recent decisions are here. Older ones are in [docs/decisions/](docs/decisions/),
 - **Context:** The same director tried the site on her phone. The guide's new **Start writing a show** button and the front page's footer link sent her to the phone's performer view, which says "Open the show link your director sent you." She *is* the director, so it was a dead end. (Her desktop couldn't reach the site at all, likely a school web filter blocking a new domain; that's outside the code.)
 - **Other options:** Let phones into the editor (it needs a bigger screen and a mouse or pencil); send phones from the guide to the sample show (the guide is built apart from the front page's sample link, and the front page already offers it).
 - **Decision:** On a phone, the front page's footer link is hidden like its other editor buttons, and the guide's header shows "Write drill on a computer or an iPad" in place of the button. The phone's performer view, before a show is open, adds: "Writing drill? Open freeformdrill.org on a computer or an iPad. A phone only shows the drill the way performers see it." (Spanish too.) The guide's opening says the same.
+
+## 2026-11-19 07:25 EST: The guide says what to do when a school filter blocks the site
+- **Who:** Jason approved; the wording is Claude's (*Jason can veto*).
+- **Context:** A director's desktop said "site can't be reached" in Edge and Chrome while the site was up, most likely a school web filter blocking a new domain.
+- **Other options:** A note on the front page (a blocked director can't see it); a troubleshooting page of its own (one paragraph doesn't need a page).
+- **Decision:** A short paragraph in the guide's "Before you start": the likely cause, try another network, and ask the technology department to allow freeformdrill.org. Jason is also asking the filter companies to categorize the site as Education.
