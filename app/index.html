@@ -66,6 +66,12 @@
       input[type=radio]:checked { background: radial-gradient(circle, var(--on-gold) 0 3.5px, var(--gold-fill) 4px); border-color: var(--gold-fill); }
       :root[data-theme=light] input[type=radio] { border-color: var(--turf); }
       :root[data-theme=light] input[type=radio]:checked { background: radial-gradient(circle, var(--on-turf) 0 3.5px, var(--turf) 4px); }
+      /* Light-mode checkboxes match the light-mode radio buttons (Jason): a green border, filled green with a white check (the on-turf white). */
+      :root[data-theme=light] input[type=checkbox] { border-color: var(--turf); }
+      :root[data-theme=light] input[type=checkbox]:hover { border-color: var(--gold-fill); }
+      :root[data-theme=light] input[type=checkbox]:checked, :root[data-theme=light] input[type=checkbox]:indeterminate { background-color: var(--turf); border-color: var(--turf); }
+      :root[data-theme=light] input[type=checkbox]:checked { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.5l3.2 3L13 4.5' fill='none' stroke='%23ffffff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+      :root[data-theme=light] input[type=checkbox]:indeterminate { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8h9' stroke='%23ffffff' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E"); }
       input[type=radio]:disabled { opacity: 0.45; cursor: default; }
       select, input:not([type=radio]):not([type=checkbox]):not([type=range]), textarea { font: inherit; font-size: 13px; color: var(--text); background: var(--bg-deep);
         border: 1px solid var(--line-strong); border-radius: 6px; padding: 3px 6px; }

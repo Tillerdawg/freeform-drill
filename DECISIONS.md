@@ -636,3 +636,7 @@ Recent decisions are here. Older ones are in [docs/decisions/](docs/decisions/),
 ## 2026-11-19 14:25 EST: Radio buttons gold in dark mode, green in light mode
 - **Who:** Jason: in dark mode, radio buttons go back to gold, as before; light mode keeps the logo's green with a white dot.
 - **Decision:** Dark mode: a dark box with a gray-green border that turns gold with a dark dot when chosen, like the checkboxes. Light mode: a green ring, filled green (`turf`) with a white dot (`on-turf`) when chosen. `palette.test.ts` checks the light-mode pair; dark mode's dot is the pressed toggles' `on-gold` on `gold-fill`, already checked. This replaces the 14:20 entry's "the same in both modes".
+
+## 2026-11-19 14:30 EST: Light-mode checkboxes match the light-mode radio buttons
+- **Who:** Jason: checkboxes stay as they are in dark mode, and in light mode turn green with a white check, to match the light-mode radio buttons. The empty box's green border is Claude's, to match the radio buttons' green ring (*Jason can veto*).
+- **Decision:** In light mode a checkbox has a green (`turf`) border, and when checked it fills green with a white check (the `on-turf` white; the same goes for the "some" dash). Hover is still gold. Dark mode is unchanged: a dark box that turns gold with a dark check. The guide's screenshots are all in dark mode, so none change.
