@@ -606,3 +606,9 @@ Recent decisions are here. Older ones are in [docs/decisions/](docs/decisions/),
   - It shows in three places: the line at the top ("Updated to revision 7. Your part changed in sets 8 and 9. See My dots."), a box at the top of **My dots** with a button per set, and **Changed:** in words plus a dashed outline on each changed card (never color alone). Staff (whole band) get the line, listing the sets that changed for anyone.
   - **Jump to** is a plain set picker at the top of **My dots**, each choice with its measures ("Set 12B · m. 45–52"). A phone's own picker is big, scrolls fast, and works with VoiceOver. The card goes to the top of the list.
 - **Other options:** compare by set name or position (renaming or adding a set would mark everything after it changed); flag every set where *anyone* changed for performers too (a trumpet doesn't need to relearn the guard's move); type a set name or measure to jump (a keyboard on a phone outdoors is slower than a picker); put **Jump to** on the field too (the set buttons under the field already scroll; it can follow if students ask).
+
+## 2026-11-19 13:30 EST: Got it stands out
+- **Who:** Jason asked for a more obvious **Got it** in the phone's "What changed for you" box. The styling is Claude's (*Jason can veto*).
+- **Context:** It looked like the set buttons above it, so a student could miss it, and the box (and the dashed outline on changed cards) stays until it's tapped.
+- **Other options:** gold, like a pressed button (gold already means "on" or "the set you're on" on the phone); move it to the top of the box (students should see what changed before clearing it).
+- **Decision:** **Got it** is the box's one main button: the green of other main buttons, the full width of the box, taller (48 px), and bold. It stays at the bottom.

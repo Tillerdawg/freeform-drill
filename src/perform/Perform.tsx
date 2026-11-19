@@ -540,7 +540,7 @@ export function Perform() {
                 <strong>{tr('Set {name}', { name: show.sets[i].name })}</strong>: {c.what.map(whatWords).join(', ')}</button>;
             })}
             {changed.gone.length > 0 && <span>{tr('Sets taken out: {list}.', { list: listOf(changed.gone) })}</span>}
-            <button onClick={() => update({ changed: undefined })}>{tr('Got it')}</button>
+            <button className="primary perform-gotit" onClick={() => update({ changed: undefined })}>{tr('Got it')}</button>{/* the one main button here: full width, so it reads as the way to finish */}
           </div>
         )}
         {/* "Start at 12B": straight to a set (or its measures), instead of scrolling a long show. */}
