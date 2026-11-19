@@ -23,7 +23,7 @@ Sostén el teléfono vertical. **Mis puntos** muestra una tarjeta para cada set,
 - cómo llegar: tu tamaño de paso y hacia dónde vas, como si miraras al frente
 - tus notas y las notas del conjunto
 
-El set en el que estás tiene un borde dorado. Toca una tarjeta para ir a ese set.
+El set en el que estás tiene un borde dorado. Toca una tarjeta para ir a ese set. En un show largo, usa **Ir a** arriba de la lista: elige un set (cada uno muestra también sus compases) y su tarjeta sube al principio.
 
 ![Mis puntos en un teléfono vertical](img/phone.png)
 
@@ -50,6 +50,10 @@ Una línea en el teléfono (arriba de **Mis puntos**, y debajo del campo) te dic
 - **Listo sin internet** quiere decir que el show está guardado en este teléfono y funciona sin señal.
 - **Revisión 6** es la versión que tienes. Cuando tu director diga "todos deben tener la revisión 7", revisa este número.
 - Si tu director mantiene el show actualizado en línea, el teléfono busca una versión nueva cada vez que lo abres. **Buscar actualizaciones** vuelve a buscar ahora mismo. Si no tienes internet, la línea lo dice y usa la copia que ya tienes.
+
+Cuando llega una revisión nueva, el teléfono te dice qué cambió para ti. **Mis puntos** empieza con un recuadro, **Qué cambió para ti en la revisión 7**, con cada set donde cambió tu lugar, tus tiempos, tu camino o tus notas. Toca uno para ir a él. Esas tarjetas también dicen **Cambió:** hasta que tocas **Entendido**. Si dice **Nada cambió para ti**, estás listo.
+
+![Qué cambió después de una actualización](img/phone-changed.png)
 
 ¿Sigues con una revisión vieja después de buscar? Pídele el enlace nuevo a tu director.
 

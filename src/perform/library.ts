@@ -1,18 +1,21 @@
 // The shows kept on a phone: a short list (Opener, Ballad, Drum Feature, Closer…) and which one is open.
 import { parseHosted } from '../engine/share';
 import { label, parseShow, type Show } from '../engine/show';
+import { readChanges, type Changes } from './changes';
 
 export const STAFF = 'staff';
 export const MAX_SHOWS = 12;
 
 /** `source`: the hosted link ("#load=…", with its key) a show came from, so the phone can pick up updates when online. */
-export interface Saved { show: Show; me: string | null; facingFront: boolean; follow: boolean; source?: string; checked?: number } // checked: when a hosted show last reached its file
+/** `changed`: what the last update changed for this phone's performer (see changes.ts), until the student taps Got it. */
+export interface Saved { show: Show; me: string | null; facingFront: boolean; follow: boolean; source?: string; checked?: number; changed?: Changes } // checked: when a hosted show last reached its file
 export interface Library { shows: Saved[]; current: number }
 
 const toSaved = (s: Record<string, unknown>): Saved => ({
   show: parseShow(JSON.stringify(s.show)), me: typeof s.me === 'string' ? s.me : null, facingFront: !!s.facingFront, follow: s.follow !== false,
   source: typeof s.source === 'string' && parseHosted(s.source) ? s.source : undefined,
   ...(typeof s.checked === 'number' && s.checked > 0 ? { checked: s.checked } : {}),
+  ...(s.changed !== undefined && readChanges(s.changed) ? { changed: readChanges(s.changed) } : {}),
 });
 
 /** The library from storage. A phone from before the library kept one show (the saved object itself); a show that no longer reads is skipped. */

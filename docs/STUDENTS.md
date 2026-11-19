@@ -23,7 +23,7 @@ Hold the phone upright. **My dots** shows a card for every set, like a printed d
 - how to get there: your step size and which way you go, as if you're facing the front
 - your own notes and the ensemble notes
 
-The set you're on has a gold outline. Tap a card to go to that set.
+The set you're on has a gold outline. Tap a card to go to that set. In a long show, use **Jump to** at the top of the list: pick a set (each one shows its measures too) and its card comes to the top.
 
 ![My dots on an upright phone](img/phone.png)
 
@@ -50,6 +50,10 @@ A line on the phone (at the top of **My dots**, and under the field) tells you a
 - **Ready offline** means the show is saved on this phone and works with no signal.
 - **Revision 6** is which version you have. When your director says "everyone should be on revision 7," check this number.
 - If your director keeps the show updated online, the phone checks for a new version each time you open it. **Check for updates** checks again right now. If you're offline, the line says so and uses the copy you already have.
+
+When a new revision arrives, the phone tells you what changed for you. **My dots** starts with a box, **What changed for you in revision 7**, listing each set where your spot, counts, route, or notes changed. Tap one to go to it. Those cards also say **Changed:** until you tap **Got it**. If it says **Nothing changed for you**, you're set.
+
+![What changed after an update](img/phone-changed.png)
 
 Still on an old revision after checking? Ask your director for the new link.
 

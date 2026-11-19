@@ -530,6 +530,30 @@ shot('phone', async () => {
   await page.waitForTimeout(200);
   await save(page, 'phone-loop');
 });
+shot('phone-changed', async () => {
+  // P1 has the show; then an update moves their spot in set 3, changes the counts into set 4, and adds a note for them.
+  const ed = await editor();
+  const [first, update] = await ed.evaluate(async () => {
+    const { encodeShow, SHARE_PREFIX } = await import('/src/engine/share.ts');
+    const { nextRevision, placeInSet, setCounts, setCue } = await import('/src/engine/show.ts');
+    let s = JSON.parse(localStorage.getItem('freeform:autosave'));
+    for (let k = 0; k < 6; k++) s = nextRevision(s);
+    const p1 = s.performers.find((p) => p.section === s.sections.find((x) => x.letter === 'P').id && p.number === 1).id, at = s.sets[2].pos[p1];
+    let u = nextRevision(setCue(setCounts(placeInSet(s, 2, { [p1]: { x: at.x + 2, y: at.y } }), 3, s.sets[3].counts + 4), 3, [p1], 'Stick click on 1'));
+    return [SHARE_PREFIX + await encodeShow(s), SHARE_PREFIX + await encodeShow(u)];
+  });
+  const ctx = await browser.newContext({ ...devices['iPhone 15'], colorScheme: 'dark' });
+  const page = await ctx.newPage();
+  await page.goto(URL_ + first);
+  await page.waitForTimeout(1500);
+  await page.locator('.who-button').click();
+  await page.getByRole('searchbox').fill('P1');
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(300);
+  await page.goto(URL_ + update); // the same show again, updated: it replaces the copy on the phone
+  await page.waitForTimeout(1500);
+  await save(page, 'phone-changed');
+});
 /** A printed page (US Letter width at 96 dpi), as the browser would print it. */
 async function printed(kind, name, opts = {}) {
   const page = await editor();

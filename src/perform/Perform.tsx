@@ -21,6 +21,7 @@ import { nearest, stepWords, yardLabel } from './neighbors';
 import { panCenter, pinchZoom, ZOOM_MAX } from './gestures';
 import { WhoPicker } from './WhoPicker';
 import { myDots, paneFor } from './myDots';
+import { changesFor, mergeChanges, type Changes, type What } from './changes';
 import { statusParts, type Check } from './status';
 import { lang, setLang, tr } from '../i18n';
 import { NumberField } from '../ui/NumberField';
@@ -94,12 +95,18 @@ export function Perform() {
     if (id && !l.shows.some((s) => s.show.music?.audioId === id)) deleteAudio(id);
   };
   // Keep a newly arrived show in the phone's list and open it (the same show again replaces itself; see addShow).
-  const adopt = (show: Show, source: string | undefined, fresh: boolean, audio?: Blob) => {
+  // An update to a show already here: what changed for this phone's performer is kept with it until they tap Got it.
+  const adopt = (show: Show, source: string | undefined, fresh: boolean, audio?: Blob): Changes | null => {
     const r = addShow(libRef.current, show, source);
-    setLib(r.lib); setError('');
+    const old = r.replaced, mine = r.lib.shows[r.lib.current];
+    const found = old && JSON.stringify(old.show) !== JSON.stringify(show) ? changesFor(old.show, show, mine.me, STAFF) : null;
+    const changed = found ? mergeChanges(old!.changed, found, show.sets.map((x) => x.id)) : old?.changed;
+    const lib = changed ? { ...r.lib, shows: r.lib.shows.map((x, i) => (i === r.lib.current ? { ...x, changed } : x)) } : r.lib;
+    setLib(lib); setError('');
     keepAudio(show, audio, r.replaced?.show);
     dropAudio(r.dropped, r.lib);
     if (fresh) setT(0);
+    return found;
   };
   // When this phone last reached a hosted show's file, so "do you have the latest?" has an answer on screen.
   const markChecked = (source: string) => { const l = libRef.current; setLib({ ...l, shows: l.shows.map((x) => (x.source === source ? { ...x, checked: Date.now() } : x)) }); };
@@ -114,7 +121,12 @@ export function Perform() {
     // An unchanged file isn't downloaded again: the fetch revalidates (cache: 'no-cache'), and GitHub answers 304 for the same ETag.
     fetchHosted(saved.source).then(({ show, audio }) => {
       if (libRef.current.shows[libRef.current.current]?.source !== saved.source) return; // switched to another show meanwhile
-      if (JSON.stringify(show) !== JSON.stringify(saved.show)) { adopt(show, saved.source, false, audio); setNotice(show.revision ? tr('Updated to revision {n}.', { n: show.revision }) : tr('Show updated.')); }
+      if (JSON.stringify(show) !== JSON.stringify(saved.show)) {
+        const c = adopt(show, saved.source, false, audio);
+        const head = show.revision ? tr('Updated to revision {n}.', { n: show.revision }) : tr('Show updated.');
+        setNotice(!c ? head : c.staff ? `${head} ${c.sets.length ? tr('Changed: {list}.', { list: setList(show, c) }) : tr('No sets changed.')}`
+          : `${head} ${c.sets.length ? tr('Your part changed in {list}. See My dots.', { list: setList(show, c) }) : tr('Nothing changed for you.')}`);
+      }
       else keepAudio(show, audio, saved.show); // same show; the recording may be new (added to the file later)
       markChecked(saved.source!);
       setCheck(null);
@@ -292,6 +304,11 @@ export function Perform() {
   const pane = paneFor(!me, chosen, portrait);
   const rows = useMemo(() => (show && me ? myDots(show, me.id, lang) : []), [show, me]);
   const listRef = useRef<HTMLOListElement>(null);
+  // What the last update changed for me, until Got it: a box at the top of My dots, and a line on each changed card.
+  const changed = !preview && me ? state?.changed : undefined;
+  const changedAt = useMemo(() => new Map((changed?.sets ?? []).map((c) => [c.id, c.what])), [changed]);
+  // Jump to a set (Jump to, or a set in the changes box): the card goes to the top of the list, not just into view.
+  const jumped = useRef(false);
   // Both views zoom in as close as Follow my dot does at its max (the whole field starts much further out).
   const maxZoom = me && state?.follow ? ZOOM_MAX : size[0] ? (ZOOM_MAX * size[0]) / FOLLOW_STEPS / fitView(size[0], size[1], show ? fieldOf(show) : undefined).scale : ZOOM_MAX;
   maxRef.current = maxZoom;
@@ -323,8 +340,10 @@ export function Perform() {
   // The set I'm on stays in view in My dots (when it opens, and as the set changes).
   useEffect(() => {
     if (pane !== 'dots') return;
-    (listRef.current?.querySelector('[aria-current]') as HTMLElement | null)?.scrollIntoView({ block: 'nearest' });
+    (listRef.current?.querySelector('[aria-current]') as HTMLElement | null)?.scrollIntoView({ block: jumped.current ? 'start' : 'nearest' });
+    jumped.current = false;
   }, [pane, cur]);
+  const jumpTo = (i: number) => { setPlaying(false); jumped.current = true; setT(starts[i]); };
 
   // My path into the next set, sampled count by count (so follow-the-leader trails come out right).
   const myPath = useMemo<Point[]>(() => {
@@ -511,14 +530,33 @@ export function Perform() {
       <section className="perform-dots" aria-label={tr('My dots')} tabIndex={-1}>
         {meta}
         {checkButton}
+        {changed && (
+          <div className="perform-changed" role="status">
+            <strong>{changed.to ? tr('What changed for you in revision {n}', { n: changed.to }) : tr('What changed for you in this update')}</strong>
+            {!changed.sets.length && <span>{tr('Nothing changed for you.')}</span>}
+            {changed.sets.map((c) => {
+              const i = show.sets.findIndex((x) => x.id === c.id);
+              return i < 0 ? null : <button key={c.id} className="perform-changed-set" onClick={() => jumpTo(i)}>
+                <strong>{tr('Set {name}', { name: show.sets[i].name })}</strong>: {c.what.map(whatWords).join(', ')}</button>;
+            })}
+            {changed.gone.length > 0 && <span>{tr('Sets taken out: {list}.', { list: listOf(changed.gone) })}</span>}
+            <button onClick={() => update({ changed: undefined })}>{tr('Got it')}</button>
+          </div>
+        )}
+        {/* "Start at 12B": straight to a set (or its measures), instead of scrolling a long show. */}
+        {show.sets.length > 1 && <label className="perform-jump">{tr('Jump to')}
+          <select value={cur} onChange={(e) => jumpTo(Number(e.target.value))}>
+            {show.sets.map((x, i) => <option key={x.id} value={i}>{x.measures ? tr('Set {name} · m. {m}', { name: x.name, m: x.measures }) : tr('Set {name}', { name: x.name })}</option>)}
+          </select></label>}
         <ol ref={listRef}>
           {rows.map((r) => (
             <li key={r.index}>
-              <button className="dot-row" aria-current={r.index === cur ? 'step' : undefined} onClick={() => { setPlaying(false); setT(starts[r.index]); }}>
+              <button className="dot-row" aria-current={r.index === cur ? 'step' : undefined} data-changed={changedAt.has(show.sets[r.index].id) || undefined} onClick={() => { setPlaying(false); setT(starts[r.index]); }}>
                 {/* The hidden ". " and ": " give VoiceOver pauses between the card's parts; on screen they're laid out apart instead. */}
                 <span className="dot-head"><strong>{tr('Set {name}', { name: r.set })}</strong><span className="sr-only">. </span>
                   <span><span aria-hidden="true">{[r.counts != null ? tr('{n} cts', { n: r.counts }) : '', r.measures ? tr('m. {m}', { m: r.measures }) : ''].filter(Boolean).join(' · ')}</span>
                     <span className="sr-only">{[r.counts != null ? tr('{n} counts', { n: r.counts }) : '', r.measures ? tr('measures {m}', { m: r.measures.replace('–', ` ${tr('to')} `) }) : ''].filter(Boolean).join(', ')}{r.counts != null && '. '}</span></span></span>
+                {changedAt.has(show.sets[r.index].id) && <span className="dot-small dot-changed">{tr('Changed: {what}', { what: changedAt.get(show.sets[r.index].id)!.map(whatWords).join(', ') })}<span className="sr-only">. </span></span>}
                 <span className="dot-coord">{r.side}</span><span className="sr-only">. </span>
                 <span className="dot-coord">{r.front}</span><span className="sr-only">. </span>
                 {/* The move in plain words, with the step size in parentheses: "smaller step size than normal (10.4-to-5), moving forward". */}
@@ -618,6 +656,25 @@ export function Perform() {
 }
 
 const toEditor = () => { location.hash = ''; location.reload(); };
+
+/** "8, 9, and 12" (or "8, 9 y 12"), in the phone's language. */
+const listOf = (names: string[]) => new Intl.ListFormat(lang, { type: 'conjunction' }).format(names);
+/** "set 8" or "sets 8, 9, and 12": the changed sets still in the show. */
+function setList(show: Show, c: Changes): string {
+  const names = c.sets.map((x) => show.sets.find((s) => s.id === x.id)?.name).filter((n): n is string => !!n);
+  return names.length === 1 ? tr('set {name}', { name: names[0] }) : tr('sets {list}', { list: listOf(names) });
+}
+/** One kind of change, in words. */
+function whatWords(w: What): string {
+  switch (w) {
+    case 'new': return tr('a new set');
+    case 'spot': return tr('your spot');
+    case 'counts': return tr('its counts');
+    case 'route': return tr('how you get there');
+    case 'notes': return tr('your notes');
+    default: return tr('the ensemble notes');
+  }
+}
 
 /** English or Spanish (FreeFORM starts in the phone's own language). */
 export function LanguageButton() {
