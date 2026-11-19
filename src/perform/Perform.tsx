@@ -513,8 +513,8 @@ export function Perform() {
         </div>
         {pane === 'field' && <div className="perform-who">
           {me && <button className="perform-view" aria-pressed={state!.follow} onClick={() => { update({ follow: !state!.follow }); setZoom(1); setCenter({ x: 0, y: 42 }); }}>{tr('Follow my dot')}</button>}
-          <button className="perform-view" aria-pressed={whiteField} title={tr('A white field with black lines, instead of green')}
-            onClick={() => { setWhiteField(!whiteField); setLayoutPref('whiteField', !whiteField); }}>{tr('White field')}</button>
+          <button className="perform-view" aria-pressed={whiteField} title={show.surface ? tr('A white floor with black lines, instead of its color') : tr('A white field with black lines, instead of green')}
+            onClick={() => { setWhiteField(!whiteField); setLayoutPref('whiteField', !whiteField); }}>{show.surface ? tr('White floor') : tr('White field')}</button>
         </div>}
       </header>
       {/* Field: one line of where I am, over the controls. */}

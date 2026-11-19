@@ -251,7 +251,10 @@ export function Menu({ label, name, panelName, title, disabled, keepOpen, collap
   const [at, setAt] = useState<React.CSSProperties | null>(null);
   useLayoutEffect(() => {
     if (!shown) return;
-    const r = ref.current!.getBoundingClientRect(), left = Math.max(8, Math.min(r.left, innerWidth - 352));
+    // Under its button, starting at the button's left edge. A panel that would run off the right edge lines up with the
+    // button's right edge instead, so it still hangs from the button (measured: a short menu like Layout is narrow).
+    const r = ref.current!.getBoundingClientRect(), w = panel.current?.offsetWidth ?? 340;
+    const left = Math.max(8, r.left + w > innerWidth - 8 ? r.right - w : r.left);
     // Near the bottom of the window (the timeline), open upward.
     setAt(r.bottom > innerHeight * 0.6 ? { left, bottom: innerHeight - r.top + 6 } : { left, top: r.bottom + 6 });
   }, [shown]);

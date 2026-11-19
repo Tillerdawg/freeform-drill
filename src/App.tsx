@@ -1196,12 +1196,14 @@ export function App() {
           )}</Menu>
         </span>
         <span style={{ flex: 'none' }}>
-          <Menu label="Layout" title="Put the sidebar on the left or right and the timeline on the top or bottom, or switch to a white field">{(close) => (
+          <Menu label="Layout" title={`Put the sidebar on the left or right and the timeline on the top or bottom, or switch to a white ${show.surface ? 'floor' : 'field'}`}>{(close) => (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch' }}>
               <button onClick={() => { close(); setSideLeft(!sideLeft); setLayoutPref('sideLeft', !sideLeft); }}>{sideLeft ? 'Sidebar on the right' : 'Sidebar on the left'}</button>
               <button onClick={() => { close(); setTimelineTop(!timelineTop); setLayoutPref('timelineTop', !timelineTop); }}>{timelineTop ? 'Timeline at the bottom' : 'Timeline at the top'}</button>
               <button onClick={() => { close(); setWhiteField(!whiteField); setLayoutPref('whiteField', !whiteField); }}
-                title="The field's look while you write. Printed charts are always black on white.">{whiteField ? 'Green field' : 'White field'}</button>
+                title={`The ${show.surface ? 'floor' : 'field'}'s look while you write. Printed charts are always black on white.`}>
+                {/* A court or a custom floor isn't green: it switches between its floor color and white. */}
+                {show.surface ? (whiteField ? 'Colored floor' : 'White floor') : (whiteField ? 'Green field' : 'White field')}</button>
             </div>
           )}</Menu>
         </span>

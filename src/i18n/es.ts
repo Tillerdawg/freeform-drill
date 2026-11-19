@@ -84,6 +84,8 @@ export const ES: Record<string, string> = {
   'Follow my dot': 'Seguir mi punto',
   'My dots': 'Mis puntos',
   'White field': 'Campo blanco',
+  'White floor': 'Piso blanco',
+  'A white floor with black lines, instead of its color': 'Un piso blanco con líneas negras, en vez de su color',
   'A white field with black lines, instead of green': 'Un campo blanco con líneas negras, en vez de verde',
   'Show my dots or the field': 'Ver mis puntos o el campo',
   'Reset zoom': 'Restablecer zoom',
