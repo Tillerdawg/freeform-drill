@@ -58,11 +58,14 @@
       input[type=checkbox]:checked { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.5l3.2 3L13 4.5' fill='none' stroke='%23182419' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
       input[type=checkbox]:indeterminate { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8h9' stroke='%23182419' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E"); }
       input[type=checkbox]:disabled { opacity: 0.45; cursor: default; }
-      /* Radio buttons in the green of the light FreeFORM Drill logo's dot (Jason): a green ring, filled green with a white dot when chosen (the dot says it, not just the color). */
+      /* Radio buttons (Jason): in dark mode like the checkboxes, a dark box that turns gold with a dark dot when chosen; in light
+         mode the green of the light FreeFORM Drill logo's dot, a green ring, filled green with a white dot. The dot says it, not just the color. */
       input[type=radio] { appearance: none; -webkit-appearance: none; flex: none; width: 20px; height: 20px; margin: 0 4px 0 0; vertical-align: middle; cursor: pointer;
-        background: var(--bg-deep); border: 2px solid var(--turf); border-radius: 50%; }
+        background: var(--bg-deep); border: 2px solid var(--line-strong); border-radius: 50%; }
       input[type=radio]:hover { border-color: var(--gold-fill); }
-      input[type=radio]:checked { background: radial-gradient(circle, var(--on-turf) 0 3.5px, var(--turf) 4px); border-color: var(--turf); }
+      input[type=radio]:checked { background: radial-gradient(circle, var(--on-gold) 0 3.5px, var(--gold-fill) 4px); border-color: var(--gold-fill); }
+      :root[data-theme=light] input[type=radio] { border-color: var(--turf); }
+      :root[data-theme=light] input[type=radio]:checked { background: radial-gradient(circle, var(--on-turf) 0 3.5px, var(--turf) 4px); }
       input[type=radio]:disabled { opacity: 0.45; cursor: default; }
       select, input:not([type=radio]):not([type=checkbox]):not([type=range]), textarea { font: inherit; font-size: 13px; color: var(--text); background: var(--bg-deep);
         border: 1px solid var(--line-strong); border-radius: 6px; padding: 3px 6px; }

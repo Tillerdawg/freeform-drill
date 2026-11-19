@@ -632,3 +632,7 @@ Recent decisions are here. Older ones are in [docs/decisions/](docs/decisions/),
 - **Context:** An hour earlier they'd been made gold like the checkboxes. In light mode, gold on the pale page was soft (about 1.3:1).
 - **Decision:** An unchosen radio button is a green ring around the usual box (dark, or white in light mode). A chosen one is filled green with a white dot in the middle. The green is the palette's `turf` (already the logo's and the field's green), the same in both modes, and the white is a new palette color, `on-turf`. `palette.test.ts` checks the white dot on green (5.4:1) and the ring against its box (3:1 in dark mode, 5.4:1 in light). Checkboxes stay gold.
 - **Other options:** fill every radio button green, chosen or not (the dot would be the only difference); a lighter green in dark mode so the ring stands out more against the dark dialog (about 2.8:1 there) (not the logo's green).
+
+## 2026-11-19 14:25 EST: Radio buttons gold in dark mode, green in light mode
+- **Who:** Jason: in dark mode, radio buttons go back to gold, as before; light mode keeps the logo's green with a white dot.
+- **Decision:** Dark mode: a dark box with a gray-green border that turns gold with a dark dot when chosen, like the checkboxes. Light mode: a green ring, filled green (`turf`) with a white dot (`on-turf`) when chosen. `palette.test.ts` checks the light-mode pair; dark mode's dot is the pressed toggles' `on-gold` on `gold-fill`, already checked. This replaces the 14:20 entry's "the same in both modes".

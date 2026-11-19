@@ -31,10 +31,8 @@ describe.each([['app/index.html', app], ['index.html (the front page)', front], 
     expect(ratio('#111111', P.gold)).toBeGreaterThanOrEqual(4.5); // pressed toggles, selected letters
     expect(ratio('#ffffff', P.turf)).toBeGreaterThanOrEqual(4.5); // letters and numbers on the field
     expect(ratio(P['bg-deep'], P.turf)).toBeGreaterThanOrEqual(3); // normal paths
-    for (const M of [P, LIGHT]) {
-      expect(ratio(M['on-turf'], M.turf)).toBeGreaterThanOrEqual(3); // a chosen radio button's dot
-      expect(ratio(M['bg-deep'], M.turf)).toBeGreaterThanOrEqual(3); // a radio button's ring around its box
-    }
+    expect(ratio(LIGHT['on-turf'], LIGHT.turf)).toBeGreaterThanOrEqual(3); // a chosen radio button's dot, in light mode (dark mode's is on-gold on gold-fill)
+    expect(ratio(LIGHT['bg-deep'], LIGHT.turf)).toBeGreaterThanOrEqual(3); // a light-mode radio button's ring around its box
     expect(ratio('#ffffff', P.floor)).toBeGreaterThanOrEqual(4.5); // letters and numbers on an indoor floor
     expect(ratio(P['bg-deep'], P.floor)).toBeGreaterThanOrEqual(3); // normal paths on a floor
     expect(ratio(P.warn, P['bg-deep'])).toBeGreaterThanOrEqual(3); // warning paths against their casing
