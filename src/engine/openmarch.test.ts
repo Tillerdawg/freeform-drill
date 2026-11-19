@@ -15,8 +15,9 @@ const hsField = (custom?: { name: string; w: number; d: number }) => JSON.string
 // Field point (steps from the 50, steps behind the front sideline) → canvas pixels, for a field 160 wide and 85.33 deep.
 const px = (x: number, y: number, w = 160, d = 85.33) => [x * PX + (w * PX) / 2, d * PX - y * PX];
 
-type Opts = { field?: string; audio?: Uint8Array; offset?: number; path?: string; withPath?: boolean };
-function dots({ field = hsField(), audio, offset = 0, path, withPath = false }: Opts = {}) {
+type Run = (sql: string, ...args: unknown[]) => void;
+type Opts = { field?: string; audio?: Uint8Array; offset?: number; path?: string; withPath?: boolean; extra?: (run: Run) => void };
+function dots({ field = hsField(), audio, offset = 0, path, withPath = false, extra }: Opts = {}) {
   return makeDatabase((run) => {
     run('CREATE TABLE `beats` (`id` integer PRIMARY KEY NOT NULL, `duration` real NOT NULL, `position` integer NOT NULL, `include_in_measure` integer DEFAULT 1 NOT NULL, `notes` text, `created_at` text, `updated_at` text)');
     run('CREATE TABLE `pages` (`id` integer PRIMARY KEY NOT NULL, `is_subset` integer DEFAULT 0 NOT NULL, `notes` text, `created_at` text, `updated_at` text, `start_beat` integer NOT NULL)');
@@ -58,8 +59,17 @@ function dots({ field = hsField(), audio, offset = 0, path, withPath = false }: 
       run('INSERT INTO pathways (id, path_data) VALUES (1, ?)', path ?? JSON.stringify({ segments: [{ type: 'arc', data: { startPoint: { x: sx, y: sy }, rx: 4 * PX, ry: 4 * PX, xAxisRotation: 0, largeArcFlag: 0, sweepFlag: 1, endPoint: { x: ex, y: ey } } }] }));
     }
     if (audio) run("INSERT INTO audio_files (path, nickname, data, selected) VALUES ('C:\\\\Shows\\\\closer.mp3', NULL, ?, 1)", audio);
+    extra?.(run as Run);
   });
 }
+
+// An indoor floor laid out the way OpenMarch's "Indoor 50x70 - 24-inch steps" is: 35 by 25 of its 24-inch steps,
+// lines every 4 steps across (5 line in the middle) and lettered lines front to back (A line half a step in).
+const indoorField = JSON.stringify({ name: 'Indoor 50x70 - 24-inch steps', isCustom: false, useHashes: false, stepSizeInches: 24,
+  xCheckpoints: [['5 line', 0], ['Left Edge', -17.5], ['Right Edge', 17.5], ['4 line', 4], ['4 line', -4], ['1 line', 16], ['1 line', -16]]
+    .map(([name, s], k) => ({ id: k, name, axis: 'x', stepsFromCenterFront: s, useAsReference: true })),
+  yCheckpoints: [['Front edge', 0], ['Back edge', -25], ['A line', -0.5], ['C line', -8.5], ['G line', -24.5]]
+    .map(([name, s], k) => ({ id: 100 + k, name, axis: 'y', stepsFromCenterFront: s, useAsReference: true })) });
 
 describe('OpenMarch import', () => {
   it('brings in performers, sets named as OpenMarch names them, counts, measures, notes, and spots', async () => {
@@ -116,6 +126,26 @@ describe('OpenMarch import', () => {
   it('a custom floor becomes a floor of the same size', async () => {
     const { show } = parseDots(await dots({ field: hsField({ name: 'Gym', w: 160, d: 85.33 }) }));
     expect(show.surface).toEqual({ kind: 'floor', w: 160, d: 85.25 });
+  });
+
+  it('an indoor floor in 24-inch steps becomes an 8-to-5 floor of the same real size, dots and all', async () => {
+    const { show } = parseDots(await dots({ field: indoorField, extra: (run) => {
+      // A third guard prefix and an unnamed drum numbered 0, each standing on the 4 line (Side 2), C line on every page.
+      // The floor is 35 * 12 = 420 pixels wide and 25 * 12 = 300 deep, so that spot is (210 + 4 * 12, 300 - 8.5 * 12).
+      run("INSERT INTO marchers (id, section, drill_prefix, drill_order) VALUES (5, 'Color Guard', 'C', 14)");
+      run("INSERT INTO marchers (id, section, drill_prefix, drill_order) VALUES (6, 'Bass Drum', 'B', 0)");
+      for (const m of [5, 6]) for (const page of [0, 2, 3, 4]) run('INSERT INTO marcher_pages (marcher_id, page_id, x, y) VALUES (?, ?, 258, 198)', m, page);
+    } }));
+    // 35 * 24 / 22.5 = 37.33 and 25 * 24 / 22.5 = 26.67 steps, to the nearest quarter step.
+    expect(show.surface).toEqual({ kind: 'floor', w: 37.25, d: 26.75 });
+    expect(show.sections.map((s) => s.name)).toEqual(['Trumpet', 'Bass Drum', 'Color Guard (C)', 'Color Guard (G)', 'Color Guard (R)']); // score order
+    const by = Object.fromEntries(show.performers.map((p) => [label(show, p), p]));
+    expect(by.B0.name).toBeUndefined();
+    for (const l of ['B0', 'C14']) for (const set of show.sets) {
+      const q = set.pos[by[l].id];
+      expect(q.x).toBeCloseTo((4 * 24) / 22.5, 6); // 4 of their steps is 4.27 of ours
+      expect(q.y).toBeCloseTo((8.5 * 24) / 22.5, 6);
+    }
   });
 
   it('turns away files that are not OpenMarch shows', async () => {

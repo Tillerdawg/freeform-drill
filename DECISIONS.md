@@ -575,3 +575,9 @@ Recent decisions are here. Older ones are in [docs/decisions/](docs/decisions/),
 - **Context:** A director's desktop said "site can't be reached" in Edge and Chrome while the site was up, most likely a school web filter blocking a new domain.
 - **Other options:** A note on the front page (a blocked director can't see it); a troubleshooting page of its own (one paragraph doesn't need a page).
 - **Decision:** A short paragraph in the guide's "Before you start": the likely cause, try another network, and ask the technology department to allow freeformdrill.org. Jason is also asking the filter companies to categorize the site as Education.
+
+## 2026-11-19 09:20 EST: A test for OpenMarch indoor floors in 24-inch steps
+- **Who:** Jason asked for it after a real OpenMarch show (an indoor guard show on "Indoor 50x70 - 24-inch steps") opened and played correctly. The test's details are Claude's (*Jason can veto*).
+- **Context:** The OpenMarch tests only used fields drawn in 8-to-5 steps, so nothing checked the conversion from a floor laid out in other step sizes. That conversion is what made the real show come out the right size.
+- **Other options:** Put the real show in the repo as a test file (no: third-party show files stay out of the repo); test only the floor's size (would miss dots landing in the wrong place).
+- **Decision:** `openmarch.test.ts` builds a made-up show on a 35 by 25 floor in 24-inch steps and checks that it becomes a 37.25 by 26.75 floor in 8-to-5 steps, that a dot on the 4 line and C line lands 4.27 and 9.07 of our steps from the center front, that one section with three drill prefixes splits in three, and that an unnamed performer numbered 0 comes in as B0. No app code changed.
