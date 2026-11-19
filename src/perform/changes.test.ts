@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { addPerformer, addSetAfter, newShow, nextRevision, placeInSet, removeSet, setCounts, setCue, setNote, setTiming, type Show } from '../engine/show';
-import { changesFor, mergeChanges, readChanges } from './changes';
+import { changedForPrint, changesFor, mergeChanges, readChanges } from './changes';
 
 /** Two trumpets in four sets of 8 counts, at revision 6. */
 function band() {
@@ -77,5 +77,24 @@ describe('changes kept on the phone', () => {
     expect(readChanges({ from: 6, to: 7, sets: [{ id: 'set1', what: ['spot', 'oops'] }, { id: 2, what: ['spot'] }], gone: ['4', 5] }))
       .toEqual({ from: 6, to: 7, sets: [{ id: 'set1', what: ['spot'] }], gone: ['4'] });
     expect(readChanges('junk')).toBeUndefined();
+  });
+});
+
+describe('printing just what changed', () => {
+  it('gives each performer only the sets where their card changed, and the charts every set that changed', () => {
+    const { show, me, other } = band();
+    let next = placeInSet(show, 2, { [me]: { x: -16, y: 32 } }); // my spot in set 3
+    next = setNote(next, 3, 'Guard: flag toss'); // an ensemble note in set 4: on the chart, not on dot sheets
+    next = setCounts(next, 1, 12); // everyone's set 2
+    const p = changedForPrint(show, next);
+    expect([...p.sets].sort()).toEqual([1, 2, 3]);
+    expect([...p.byPerformer.get(me)!].sort()).toEqual([1, 2]);
+    expect([...p.byPerformer.get(other)!]).toEqual([1]);
+  });
+
+  it('gives a performer who is new since then every set', () => {
+    const { show } = band();
+    const added = addPerformer(show, show.sections[0].id, { x: 10, y: 10 });
+    expect(changedForPrint(show, added.show).byPerformer.get(added.id)!.size).toBe(show.sets.length);
   });
 });

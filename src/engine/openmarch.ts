@@ -30,7 +30,12 @@ const num = (v: Value | undefined, fallback = NaN) => (typeof v === 'number' && 
 const text = (v: Value | undefined) => (typeof v === 'string' ? v.trim() : '');
 const json = (v: Value | undefined): unknown => { try { return typeof v === 'string' ? JSON.parse(v) : null; } catch { return null; } };
 
-export interface DotsImport { show: Show; audio?: Blob }
+/** `notes`: what didn't come in, or came in approximated, in plain sentences, for the import summary. */
+export interface DotsImport { show: Show; audio?: Blob; notes: string[] }
+
+/** Tables FreeFORM reads. Others with rows that a director would recognize are named in the summary as not brought in. */
+const READ = ['marchers', 'beats', 'pages', 'marcher_pages', 'pathways', 'field_properties', 'measures', 'audio_files', 'workspace_settings', 'utility'];
+const UNREAD: [RegExp, string][] = [[/midset/i, 'midsets'], [/shape/i, 'shapes'], [/tag/i, 'tags'], [/appearance|colou?r/i, 'section colors'], [/prop/i, 'props']];
 
 export function parseDots(data: ArrayBuffer | Uint8Array, title = 'Imported show'): DotsImport {
   if (data.byteLength > MAX_BYTES) fail('That file is too big to be an OpenMarch show.');
@@ -97,17 +102,21 @@ export function parseDots(data: ArrayBuffer | Uint8Array, title = 'Imported show
 
   const sets: DrillSet[] = [];
   let prev: Record<string, Point> = {};
+  let unplaced = 0, carried = 0, longRoutes = 0; // for the summary: no spot at all on page 1, a spot carried over, a route too long
   pages.forEach((page, i) => {
     const pos: Record<string, Point> = { ...prev }, routes: Record<string, Point[]> = {};
+    const here = new Set<string>();
     for (const mp of byPage.get(page.id) ?? []) {
       const id = pid.get(mp.marcher_id), x = num(mp.x), y = num(mp.y);
       if (!id || !Number.isFinite(x) || !Number.isFinite(y)) continue;
-      pos[id] = spot(x, y);
+      pos[id] = spot(x, y); here.add(id);
+      if (i > 0 && prev[id] && counts[i] > MAX_PATH_COUNTS && mp.path_data_id != null) longRoutes++;
       if (i > 0 && prev[id] && counts[i] <= MAX_PATH_COUNTS && mp.path_data_id != null) {
         const route = sampleRoute(pathways.get(mp.path_data_id), num(mp.path_start_position, 0), num(mp.path_end_position, 1), counts[i]);
         if (route) routes[id] = route.map((q) => spot(q.x, q.y));
       }
     }
+    for (const p of performers) if (!here.has(p.id)) { if (pos[p.id]) carried++; else unplaced++; }
     for (const p of performers) pos[p.id] ??= { x: 0, y: field.depth / 2 };
     const set: DrillSet = { id: newId('set'), name: names[i], counts: counts[i], pos };
     // Routes that really leave the straight line, pinned to the two spots and stepped evenly.
@@ -148,7 +157,15 @@ export function parseDots(data: ArrayBuffer | Uint8Array, title = 'Imported show
   const show: Show = { format: 'freeform-show', version: 1, title, hash: field.hash, ...(field.surface ? { surface: field.surface } : {}),
     sections: scoreOrder(sections), performers, sets, ...(music ? { music } : {}),
     setNaming: 'manual' }; // the writer's set names stay as they are when sets are added or deleted (Jason, 2026-11-17)
-  return { show: parseShow(JSON.stringify(show)), audio }; // the same checks as any imported file
+  const notes: string[] = [];
+  if (unplaced) notes.push(`${unplaced} ${unplaced === 1 ? 'performer has' : 'performers have'} no spot in the file's first set, so FreeFORM put ${unplaced === 1 ? 'them' : 'them'} at the center of the field until their first spot.`);
+  if (carried) notes.push(`${carried === 1 ? 'Once' : `${carried} times`}, a performer had no spot on a page, so they hold where they were (as OpenMarch shows it).`);
+  if (longRoutes) notes.push(`${longRoutes} curved ${longRoutes === 1 ? 'route' : 'routes'} in moves longer than ${MAX_PATH_COUNTS} counts came in as straight lines.`);
+  if (files.length && !music) notes.push("The file has a recording, but FreeFORM couldn't time it to the counts, so it didn't come in. Add it under Music.");
+  const skipped = [...new Set(db.tables.filter((t) => !READ.includes(t) && !/sqlite_|history|undo|redo|migration/i.test(t) && db.rows(t).length)
+    .map((t) => UNREAD.find(([re]) => re.test(t))?.[1]).filter((x): x is string => !!x))];
+  if (skipped.length) notes.push(`Not brought in: ${skipped.length > 1 ? `${skipped.slice(0, -1).join(', ')}${skipped.length > 2 ? ',' : ''} and ${skipped.at(-1)}` : skipped[0]}.`);
+  return { show: parseShow(JSON.stringify(show)), audio, notes }; // the same checks as any imported file
 }
 
 /** OpenMarch's page names: "0", "1", "1A", "1B", "2" … (the first page always takes the offset's number). */

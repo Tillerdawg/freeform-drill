@@ -23,12 +23,14 @@ import { NewShowDialog } from './ui/NewShow';
 import { FieldSelect, FieldDetails } from './ui/FieldPicker';
 import { MusicMenu } from './ui/Music';
 import { getAudio, putAudio } from './ui/audioStore';
-import { addVersion, filesUsed, forgetShow, keepShow, listShows, loadShow, readAutosave, sweepFiles, writeAutosave } from './ui/showStore';
+import { addVersion, filesUsed, forgetShow, keepPublished, keepShow, listShows, loadShow, readAutosave, sweepFiles, writeAutosave } from './ui/showStore';
 import { ShowsDialog, type ShowActions } from './ui/Shows';
 import { peaks } from './engine/music';
 import { confirmDelete, Menu, SHAPES, Toolbar } from './ui/Toolbar';
 import { parse3dj } from './engine/pyware';
 import { parseDots } from './engine/openmarch';
+import { importSummary, type ImportSummary } from './engine/importSummary';
+import { ImportSummaryDialog } from './ui/ImportSummary';
 import { usePlayback } from './ui/usePlayback';
 import { clickWanted, setClickWanted, wakeClick } from './ui/click';
 import { VideoDialog } from './ui/VideoExport';
@@ -1042,7 +1044,9 @@ export function App() {
   /** Import a file: it joins the library as a show of its own (a full backup's recording and picture go into this browser). */
   const open = async (f: File) => {
     try {
-      const r = /\.3dj$/i.test(f.name) ? { show: parse3dj(await f.arrayBuffer(), f.name.replace(/\.3dj$/i, '')) }
+      const notes: string[] = []; // a Pyware file's approximations, for the summary (OpenMarch's come back with the show)
+      const from = /\.3dj$/i.test(f.name) ? 'Pyware' as const : /\.dots$/i.test(f.name) ? 'OpenMarch' as const : null;
+      const r = /\.3dj$/i.test(f.name) ? { show: parse3dj(await f.arrayBuffer(), f.name.replace(/\.3dj$/i, ''), notes) }
         : /\.dots$/i.test(f.name) ? parseDots(await f.arrayBuffer(), f.name.replace(/\.dots$/i, '')) // OpenMarch (its recording comes along as a Blob)
         : parseShowFile(await f.text());
       await leave(async () => {
@@ -1056,12 +1060,15 @@ export function App() {
         const pub = 'publishing' in r ? readPublishing(r.publishing) : null;
         if (pub && s.id && !getPublishing(s.id)) setPublishing(s.id, pub); // a Full backup from another computer: keep publishing to the same link
         openShow(s, true); setFileError(''); // what's open is the file itself
+        // From another program: what came in, and what to check before teaching it.
+        if (from) setImported({ from, summary: importSummary(s, { audio: !!audio, notes: [...notes, ...('notes' in r ? r.notes : [])] }) });
       });
     } catch (err) {
       setFileError(err instanceof Error ? err.message : String(err));
     }
   };
 
+  const [imported, setImported] = useState<{ from: 'Pyware' | 'OpenMarch'; summary: ImportSummary } | null>(null); // the summary after an import
   const [showKeys, setShowKeys] = useState(false); // the keyboard cheat sheet (?)
   const [newing, setNewing] = useState(false); // the New show dialog: title and field first
   const fresh = async (title: string, field: FieldSpec) => {
@@ -1342,11 +1349,13 @@ export function App() {
       />
       </div>
       </div>
-      {sharing && <ShareDialog show={show} onClose={() => setSharing(false)} published={(p) => setShow((s) => ({ ...s, revision: p.revision, revisionSig: p.revisionSig }))} />}
+      {sharing && <ShareDialog show={show} onClose={() => setSharing(false)} published={(p) => { setShow((s) => ({ ...s, revision: p.revision, revisionSig: p.revisionSig })); keepPublished(p); }} />}{/* the copy phones get, for Print's "only what changed" */}
       {roster && <RosterImport show={show} setShow={setShow} onClose={() => setRoster(false)} />}
       {newing && <NewShowDialog onStart={fresh} onClose={() => setNewing(false)} />}
       {library && <ShowsDialog show={show} act={act} linkFirst={library === 'link'} versionsFirst={library === 'versions'} onClose={() => setLibrary(false)} />}
       {showKeys && <ShortcutsDialog onClose={() => setShowKeys(false)} />}
+      {imported && <ImportSummaryDialog title={show.title} from={imported.from} summary={imported.summary} setName={(i) => show.sets[i]?.name ?? String(i + 1)}
+        onReview={() => setReviewing(true)} onGo={goToIssue} onClose={() => setImported(null)} />}
       {recovering && <RecoverDialog title={show.title} fileSaved={fileSavedAt ? `${today(fileSavedAt) ? 'at' : 'on'} ${whenLabel(fileSavedAt)}` : null} onClose={() => setRecovering(false)} act={{
         canUndo: !!hist.past.length, undo: () => step('undo'), versions: () => setLibrary('versions'), shows: () => setLibrary(true),
         importFile: () => fileRef.current?.click(), fromLink: () => setLibrary('link'), feedback: () => setFeedback(true),

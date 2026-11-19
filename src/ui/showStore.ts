@@ -115,6 +115,20 @@ export function filesUsed(json: string): string[] | null {
 export async function forgetShow(id: string): Promise<void> {
   await run('shows', 'readwrite', (s) => s.delete(id));
   await run('versions', 'readwrite', (s) => s.delete(range(id)));
+  await run('versions', 'readwrite', (s) => s.delete(publishedKey(id)));
+}
+
+/**
+ * The show as it was last sent to phones (published, or a locked file downloaded), so Print can give paper for just what
+ * changed since. It's kept beside the versions under time -1, outside the range they're listed and pruned by.
+ */
+const publishedKey = (id: string) => [id, -1];
+export async function keepPublished(show: Show, now = Date.now()): Promise<boolean> {
+  try { await run('versions', 'readwrite', (s) => s.put(entry(show, now), publishedKey(show.id!))); return true; } catch { return false; }
+}
+/** That copy, if this browser has one. */
+export async function loadPublished(id: string): Promise<Entry | undefined> {
+  try { return await run<Entry | undefined>('versions', 'readonly', (s) => s.get(publishedKey(id))); } catch { return undefined; }
 }
 
 /** Every recording id ("audioId") anywhere in the phone's own list of shows (it shares this browser's storage). */

@@ -148,7 +148,9 @@ Claude went through the docs, ran the tests, and clicked through the editor and 
 - ✅ Recovery table in the guide (what each kind of copy carries), the band message's wording, and the save status's revision wording.
 - ✅ **What changed for you** on the phone (2026-11-19): after an update, a box at the top of **My dots** lists the sets where the performer's spot, counts, route, or notes changed (or says nothing did), each a tap away, with **Changed:** on those cards until **Got it**. Staff get the list of changed sets.
 - ✅ **Jump to** at the top of **My dots** (2026-11-19): a set picker with each set's measures.
-- Follow-ups: print only the sets (and performers) that changed, using the same comparison; a summary after a Pyware or OpenMarch import; **Jump to** on the field view too, if students ask for it.
+- ✅ **Only what changed since** in Print (2026-11-19): compared with the copy last sent to phones (kept at each publish) or an earlier version; charts for the changed sets, dot sheets only for performers whose card changed, with just those sets.
+- ✅ A summary after a Pyware or OpenMarch import (2026-11-19): what came in, what FreeFORM worked out or left behind, and what Review finds, with **Go to the first problem**.
+- Follow-ups: **Jump to** on the field view too, if students ask for it.
 
 ### Repository
 - ✅ The deploy workflow runs `scripts/screenshots.mjs` after the build, as a smoke test: it clicks through every screen in the guide, and a failure stops the deploy.

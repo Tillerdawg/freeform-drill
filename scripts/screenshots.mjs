@@ -464,6 +464,62 @@ shot('print', async () => {
   await page.waitForTimeout(400);
   await save(page, 'print', await around(page.locator('[role=dialog] > div').first()));
 });
+shot('print-changed', async () => {
+  // Published as revision 6 (a copy kept to compare with), then two flutes' spots in set 3 change.
+  const page = await editor();
+  await page.evaluate(async () => {
+    const { nextRevision, placeInSet } = await import('/src/engine/show.ts');
+    const { keepPublished } = await import('/src/ui/showStore.ts');
+    let s = JSON.parse(localStorage.getItem('freeform:autosave'));
+    for (let k = 0; k < 6; k++) s = nextRevision(s);
+    await keepPublished(s, new Date('2026-11-18T19:05:00').getTime());
+    const two = s.performers.filter((p) => p.section === s.sections[0].id).slice(0, 2);
+    localStorage.setItem('freeform:autosave', JSON.stringify(placeInSet(s, 2, Object.fromEntries(two.map((p) => [p.id, { x: s.sets[2].pos[p.id].x + 2, y: s.sets[2].pos[p.id].y }])))));
+  });
+  await page.reload();
+  await page.waitForTimeout(500);
+  await page.getByRole('button', { name: 'Print…' }).click();
+  await page.getByLabel(/Only what changed since/).check();
+  await page.waitForTimeout(300);
+  await save(page, 'print-changed', await around(page.locator('[role=dialog] > div').first()));
+});
+/** A small OpenMarch file made with Node's own SQLite: six trumpets, three pages, one too-big move, one marcher who
+ * starts with no spot, and midsets (which FreeFORM doesn't bring in). For the import summary. */
+async function openMarchFile() {
+  const [{ DatabaseSync }, fs, os, path] = await Promise.all([import('node:sqlite'), import('node:fs'), import('node:os'), import('node:path')]);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'freeform-dots-')), file = path.join(dir, 'Closer.dots');
+  const db = new DatabaseSync(file), PX = 11.25, px = (x, y) => [x * PX + 80 * PX, 85.33 * PX - y * PX];
+  db.exec(`CREATE TABLE beats (id integer PRIMARY KEY, duration real NOT NULL, position integer NOT NULL);
+    CREATE TABLE pages (id integer PRIMARY KEY, is_subset integer DEFAULT 0, notes text, start_beat integer NOT NULL);
+    CREATE TABLE marchers (id integer PRIMARY KEY, name text, section text NOT NULL, drill_prefix text NOT NULL, drill_order integer NOT NULL);
+    CREATE TABLE marcher_pages (id integer PRIMARY KEY, marcher_id integer, page_id integer, x real, y real, path_data_id integer, path_start_position real, path_end_position real);
+    CREATE TABLE pathways (id integer PRIMARY KEY, path_data text); CREATE TABLE measures (id integer PRIMARY KEY, start_beat integer);
+    CREATE TABLE field_properties (id integer PRIMARY KEY, json_data text, image blob); CREATE TABLE utility (id integer PRIMARY KEY, last_page_counts integer);
+    CREATE TABLE workspace_settings (id integer PRIMARY KEY, json_data text); CREATE TABLE audio_files (id integer PRIMARY KEY, path text, nickname text, data blob, selected integer);
+    CREATE TABLE midsets (id integer PRIMARY KEY, marcher_page_id integer); INSERT INTO midsets (marcher_page_id) VALUES (1);
+    INSERT INTO utility (id, last_page_counts) VALUES (0, 8); INSERT INTO workspace_settings (id, json_data) VALUES (1, '{}');`);
+  const field = { name: 'HS', isCustom: false, useHashes: true, stepSizeInches: 22.5,
+    xCheckpoints: Array.from({ length: 21 }, (_, k) => ({ id: k, name: `${k} line`, axis: 'x', stepsFromCenterFront: (k - 10) * 8, useAsReference: true })),
+    yCheckpoints: [['front sideline', 0], ['HS front hash', -28], ['HS back hash', -56], ['real back sideline', -85.33]].map(([name, st], k) => ({ id: 100 + k, name, axis: 'y', stepsFromCenterFront: st, useAsReference: true })) };
+  db.prepare('INSERT INTO field_properties (id, json_data) VALUES (1, ?)').run(JSON.stringify(field));
+  for (let k = 0; k <= 40; k++) db.prepare('INSERT INTO beats (id, duration, position) VALUES (?, 0.5, ?)').run(k + 100, k);
+  db.exec("INSERT INTO pages (id, start_beat, notes) VALUES (0, 100, 'Opener'); INSERT INTO pages (id, start_beat) VALUES (2, 101); INSERT INTO pages (id, start_beat) VALUES (3, 109)");
+  for (let m = 1; m <= 6; m++) db.prepare("INSERT INTO marchers (id, section, drill_prefix, drill_order) VALUES (?, 'Trumpet', 'T', ?)").run(m, m);
+  const at = (m, pg, x, y) => { const [a, b] = px(x, y); db.prepare('INSERT INTO marcher_pages (marcher_id, page_id, x, y) VALUES (?, ?, ?, ?)').run(m, pg, a, b); };
+  for (let m = 1; m <= 5; m++) at(m, 0, -20 + m * 4, 28);
+  for (let m = 1; m <= 6; m++) at(m, 2, -20 + m * 4, 36);
+  for (let m = 1; m <= 6; m++) at(m, 3, -20 + m * 4, 36 + (m === 1 ? 40 : 0)); // T1 runs 40 steps in 8 counts
+  db.close();
+  const bytes = fs.readFileSync(file); fs.rmSync(dir, { recursive: true, force: true });
+  return bytes;
+}
+shot('import-summary', async () => {
+  const page = await editor();
+  await page.locator('input[type=file][accept*=".dots"]').setInputFiles({ name: 'Closer.dots', mimeType: 'application/octet-stream', buffer: await openMarchFile() });
+  const d = page.getByRole('dialog', { name: 'Import summary' });
+  await d.waitFor();
+  await save(page, 'import-summary', await around(d.locator(':scope > div')));
+});
 shot('video', async () => {
   const page = await editor();
   await page.getByRole('button', { name: 'Video…' }).click();

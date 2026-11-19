@@ -23,6 +23,38 @@ export interface Changes {
 
 const same = (a: Point | undefined, b: Point | undefined) => (!a && !b) || (!!a && !!b && Math.abs(a.x - b.x) < 0.01 && Math.abs(a.y - b.y) < 0.01);
 
+/** One set of `next`, compared with the same set (by id) in `old`: what changed for the set, and for each performer in `who`. */
+interface SetCompare { id: string; index: number; isNew: boolean; counts: boolean; ensemble: boolean; per: Map<string, What[]> }
+
+/**
+ * The comparison under both the phone's "What changed for you" and Print's "only what changed": each performer's spot,
+ * their route (same spots and counts, a different way there), and their notes, plus each set's counts and ensemble
+ * notes. One pass over the counts covers every performer, so a whole band is quick.
+ */
+function compare(old: Show, next: Show, who: string[]): SetCompare[] {
+  const oldAt = new Map(old.sets.map((s, i) => [s.id, i])), oldStarts = setStarts(old), newStarts = setStarts(next);
+  return next.sets.map((s, i) => {
+    const j = oldAt.get(s.id), per = new Map<string, What[]>();
+    if (j === undefined) return { id: s.id, index: i, isNew: true, counts: false, ensemble: false, per };
+    const o = old.sets[j], add = (id: string, w: What) => (per.get(id) ?? per.set(id, []).get(id)!).push(w);
+    for (const id of who) if (!same(o.pos[id], s.pos[id])) add(id, 'spot');
+    // How they get there: same start and end, same counts, but a different route count by count (a path, a step-off, a
+    // turn). Only for performers whose spots at both ends are the same: a moved spot already says it (the route follows).
+    const prevSame = i > 0 && j > 0 && old.sets[j - 1].id === next.sets[i - 1].id;
+    let steady = prevSame && o.counts === s.counts ? who.filter((id) => same(o.pos[id], s.pos[id]) && same(old.sets[j - 1].pos[id], next.sets[i - 1].pos[id])) : [];
+    for (let k = 1; steady.length && k < s.counts; k++) {
+      const a = positionsAt(old, oldStarts[j - 1] + k), b = positionsAt(next, newStarts[i - 1] + k);
+      const moved = steady.filter((id) => !same(a[id], b[id]));
+      for (const id of moved) add(id, 'route');
+      steady = steady.filter((id) => !moved.includes(id));
+    }
+    for (const id of who) if ((o.cues?.[id] ?? '') !== (s.cues?.[id] ?? '')) add(id, 'notes');
+    return { id: s.id, index: i, isNew: false, counts: i > 0 && o.counts !== s.counts, ensemble: (o.note ?? '') !== (s.note ?? ''), per };
+  });
+}
+const inBoth = (old: Show, next: Show) => next.performers.map((p) => p.id).filter((id) => old.performers.some((p) => p.id === id));
+const ordered = (ws: Iterable<What>) => { const set = new Set(ws); return WHATS.filter((w) => set.has(w)); };
+
 /**
  * What changed between the phone's old copy and the new one, for performer `me` (STAFF compares everyone). Null when
  * there's nothing to compare for them: no one picked yet, or a performer who isn't in both copies.
@@ -31,32 +63,33 @@ export function changesFor(old: Show, next: Show, me: string | null, staffId = '
   if (!me) return null;
   const staff = me === staffId;
   if (!staff && !(old.performers.some((p) => p.id === me) && next.performers.some((p) => p.id === me))) return null;
-  const who = staff ? next.performers.map((p) => p.id).filter((id) => old.performers.some((p) => p.id === id)) : [me];
-  const oldAt = new Map(old.sets.map((s, i) => [s.id, i])), oldStarts = setStarts(old), newStarts = setStarts(next);
   const sets: Changes['sets'] = [];
-  next.sets.forEach((s, i) => {
-    const j = oldAt.get(s.id);
-    if (j === undefined) { sets.push({ id: s.id, what: ['new'] }); return; }
-    const o = old.sets[j], what: What[] = [];
-    if (who.some((id) => !same(o.pos[id], s.pos[id]))) what.push('spot');
-    if (i > 0 && o.counts !== s.counts) what.push('counts');
-    // How I get there: same start and end, same counts, but a different route count by count (a path, a step-off, a turn).
-    // Only for performers whose spots at both ends are the same: a moved spot already says it (the route follows).
-    const prevSame = i > 0 && j > 0 && old.sets[j - 1].id === next.sets[i - 1].id;
-    const steady = prevSame && o.counts === s.counts ? who.filter((id) => same(o.pos[id], s.pos[id]) && same(old.sets[j - 1].pos[id], next.sets[i - 1].pos[id])) : [];
-    for (let k = 1; steady.length && k < s.counts; k++) {
-      const a = positionsAt(old, oldStarts[j - 1] + k), b = positionsAt(next, newStarts[i - 1] + k);
-      if (steady.some((id) => !same(a[id], b[id]))) { what.push('route'); break; }
-    }
-    if (!staff && (o.cues?.[me] ?? '') !== (s.cues?.[me] ?? '')) what.push('notes');
-    if ((o.note ?? '') !== (s.note ?? '')) what.push('ensemble');
-    if (what.length) sets.push({ id: s.id, what });
-  });
+  for (const c of compare(old, next, staff ? inBoth(old, next) : [me])) {
+    const mine = staff ? [...c.per.values()].flat().filter((w) => w !== 'notes') : c.per.get(me) ?? [];
+    const what = c.isNew ? ['new' as What] : ordered([...mine, ...(c.counts ? ['counts' as What] : []), ...(c.ensemble ? ['ensemble' as What] : [])]);
+    if (what.length) sets.push({ id: c.id, what });
+  }
   const kept = new Set(next.sets.map((s) => s.id));
   return {
     ...(old.revision ? { from: old.revision } : {}), ...(next.revision ? { to: next.revision } : {}),
     sets, gone: old.sets.filter((s) => !kept.has(s.id)).map((s) => s.name), ...(staff ? { staff: true } : {}),
   };
+}
+
+/**
+ * For printing just what changed since `old`: the sets (indexes in `next`) with any change, for drill charts; and for each
+ * performer, the sets where their own card changed (a new set, the counts, their spot, route, or notes), for dot sheets.
+ * A performer who wasn't in `old` gets every set.
+ */
+export function changedForPrint(old: Show, next: Show): { sets: Set<number>; byPerformer: Map<string, Set<number>> } {
+  const sets = new Set<number>(), byPerformer = new Map<string, Set<number>>();
+  const mark = (id: string, i: number) => (byPerformer.get(id) ?? byPerformer.set(id, new Set()).get(id)!).add(i);
+  const both = new Set(inBoth(old, next));
+  for (const c of compare(old, next, [...both])) {
+    if (c.isNew || c.counts || c.ensemble || c.per.size) sets.add(c.index);
+    for (const p of next.performers) if (c.isNew || c.counts || c.per.has(p.id) || !both.has(p.id)) mark(p.id, c.index);
+  }
+  return { sets, byPerformer };
 }
 
 /**

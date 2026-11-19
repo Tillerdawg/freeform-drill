@@ -24,8 +24,11 @@ function stepOff(show: Show, i: number, id: string): string {
   return t.move < n ? `Hold ${t.wait}, move ${t.move}${n - t.wait - t.move ? `, hold ${n - t.wait - t.move}` : ''}` : '';
 }
 
-/** One or more cards per performer (long shows continue onto another card). */
-export function dotCards(show: Show, performers: Performer[], perCard = ROWS_PER_CARD, sets: [number, number] = [0, show.sets.length - 1]): Card[] {
+/**
+ * One or more cards per performer (long shows continue onto another card). `keepRow`: print only some sets for each
+ * performer (just what changed for them); a performer left with no rows gets no card.
+ */
+export function dotCards(show: Show, performers: Performer[], perCard = ROWS_PER_CARD, sets: [number, number] = [0, show.sets.length - 1], keepRow?: (id: string, index: number) => boolean): Card[] {
   const cards: Card[] = [];
   for (const p of performers) {
     const rows: CardRow[] = show.sets.map((s, i) => ({
@@ -36,7 +39,8 @@ export function dotCards(show: Show, performers: Performer[], perCard = ROWS_PER
       cue: [stepOff(show, i, p.id), s.cues?.[p.id]].filter(Boolean).join(' · '),
       side: sideToSide(s.pos[p.id].x, fieldOf(show)),
       front: frontToBack(s.pos[p.id].y, fieldOf(show)),
-    })).slice(sets[0], sets[1] + 1); // a rehearsal packet: just these sets
+    })).slice(sets[0], sets[1] + 1).filter((r) => !keepRow || keepRow(p.id, r.index)); // a rehearsal packet: just these sets
+    if (!rows.length) continue;
     const parts = Math.max(1, Math.ceil(rows.length / perCard));
     const section = show.sections.find((s) => s.id === p.section)?.name ?? '';
     for (let k = 0; k < parts; k++) {

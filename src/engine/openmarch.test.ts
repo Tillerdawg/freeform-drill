@@ -148,6 +148,23 @@ describe('OpenMarch import', () => {
     }
   });
 
+  it('says, for the import summary, what came in approximated or not at all', async () => {
+    expect(parseDots(await dots()).notes).toEqual([]);
+    const { notes } = parseDots(await dots({ extra: (run) => {
+      run("INSERT INTO marchers (id, section, drill_prefix, drill_order) VALUES (5, 'Trumpet', 'T', 3)"); // no spot until page 2
+      run('INSERT INTO marcher_pages (marcher_id, page_id, x, y) VALUES (5, 3, 100, 100)');
+      run('CREATE TABLE `midsets` (`id` integer PRIMARY KEY NOT NULL, `marcher_page_id` integer)');
+      run('INSERT INTO midsets (marcher_page_id) VALUES (1)');
+      run('CREATE TABLE `history_undo` (`id` integer PRIMARY KEY NOT NULL)'); // OpenMarch's own bookkeeping: not worth a word
+      run('INSERT INTO history_undo (id) VALUES (1)');
+    } }));
+    expect(notes).toEqual([
+      expect.stringContaining("1 performer has no spot in the file's first set"),
+      expect.stringContaining('2 times, a performer had no spot on a page'),
+      'Not brought in: midsets.',
+    ]);
+  });
+
   it('turns away files that are not OpenMarch shows', async () => {
     expect(() => parseDots(new TextEncoder().encode('{"format":"freeform-show"}'))).toThrow(/isn't an OpenMarch/);
     const other = await makeDatabase((run) => run('CREATE TABLE notes (id integer PRIMARY KEY, body text)'));

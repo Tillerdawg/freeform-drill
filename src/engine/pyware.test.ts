@@ -158,9 +158,11 @@ describe('Pyware follow-the-leader saved as straight lines', () => {
     // A file of four, 2 steps apart, marches to the front, turns toward Side 2, and comes back: 8 steps each.
     const from = [{ id: 1, sym: 'T', x: 0, y: 6 }, { id: 2, sym: 'T', x: 0, y: 4 }, { id: 3, sym: 'A', x: 0, y: 2 }, { id: 4, sym: 'X', x: 0, y: 0 }];
     const to = [{ id: 1, sym: 'T', x: 2, y: 0 }, { id: 2, sym: 'T', x: 2, y: 2 }, { id: 3, sym: 'A', x: 2, y: 4 }, { id: 4, sym: 'X', x: 2, y: 6 }];
-    const s = parse3dj(file([page(from), prop('Set 1'), ...move(from, to, 8), prop('Set 2 mm. 1-2 follow-the-leader')]));
+    const notes: string[] = [];
+    const s = parse3dj(file([page(from), prop('Set 1'), ...move(from, to, 8), prop('Set 2 mm. 1-2 follow-the-leader')]), 'Show', notes);
     const set = s.sets[1];
     expect(set.ftl!.length).toBe(1);
+    expect(notes).toEqual([expect.stringContaining(`worked them out: set ${set.name}. Watch it`)]); // said in the import summary
     expect(set.ftl![0].order.map((id) => label(s, id))).toEqual(['T1', 'T2', 'A1', 'X1']); // fits from either end: the one nearest the front leads
     expect(set.ftl![0].turns).toEqual([{ x: 2, y: 36 }]); // the corner: 2 steps toward Side 2 of where the leader started
     expect(set.paths).toBeUndefined();

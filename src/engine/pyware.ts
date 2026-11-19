@@ -57,7 +57,8 @@ export function looksScrambled(b: Uint8Array): boolean {
 }
 
 /** Read a .3dj file into a FreeFORM show. Throws a readable error for anything it can't use. */
-export function parse3dj(data: ArrayBuffer, title = 'Imported show'): Show {
+/** `notes`: what came in approximated, in plain sentences, for the import summary (filled in when given). */
+export function parse3dj(data: ArrayBuffer, title = 'Imported show', notes?: string[]): Show {
   if (data.byteLength > MAX_BYTES) fail('That file is too big to be a Pyware show.');
   const b = new Uint8Array(data);
   const v = new DataView(data);
@@ -91,6 +92,7 @@ export function parse3dj(data: ArrayBuffer, title = 'Imported show'): Show {
   const c2 = first('CST2');
   if (c2) readList(b, v, c2, (id, strs) => figures.set(id, strs[0] ?? ''), 1);
 
+  const rebuilt: string[] = []; // sets whose follow-the-leader was worked out from straight lines (for the import summary)
   // Sets: the PAGEs between PROPs.
   type Rec = { x: number; y: number; sym: string; lab: number };
   const readPage = (blk: { at: number; len: number }) => {
@@ -192,11 +194,12 @@ export function parse3dj(data: ArrayBuffer, title = 'Imported show'): Show {
         for (const [id, a] of dots) if (dots.some(([other, c]) => other !== id && Math.hypot(a.x - c.x, a.y - c.y) < UNIT * SHARED)) crowded.add(pid.get(id)!);
       }
       const ftl = hiddenFtl(prev, pos, [...crowded].filter((p) => prev[p]), r.counts);
-      if (ftl.length) set.ftl = ftl;
+      if (ftl.length) { set.ftl = ftl; rebuilt.push(set.name); }
     }
     sets.push(set); prev = pos;
   });
 
+  if (rebuilt.length) notes?.push(`Follow-the-leader moves were saved in the file as straight lines that run through each other, so FreeFORM worked them out: ${rebuilt.length === 1 ? 'set' : 'sets'} ${rebuilt.join(', ')}. Watch ${rebuilt.length === 1 ? 'it' : 'them'} to be sure ${rebuilt.length === 1 ? "it's" : "they're"} what the writer meant.`);
   // setNaming 'manual': the writer's set names stay as they are when sets are added or deleted (Jason, 2026-11-17)
   const show: Show = { format: 'freeform-show', version: 1, title, hash: hashFrom(b, first('GRID')), sections: scoreOrder(sections), performers, sets, setNaming: 'manual' };
   return parseShow(JSON.stringify(show)); // same checks as any imported file

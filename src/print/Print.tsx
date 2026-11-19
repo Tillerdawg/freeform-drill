@@ -1,13 +1,17 @@
 import { Fragment, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useDialog } from '../ui/useDialog';
-import { colorOf, fieldOf, mark, moveSegments, revisionLabel, type Show } from '../engine/show';
+import { colorOf, fieldOf, mark, moveSegments, parseShow, revisionLabel, type Show } from '../engine/show';
+import { changedForPrint } from '../perform/changes';
+import { listVersions, loadPublished } from '../ui/showStore';
 import { drawProps, drawField, drawGlyph, drawLabels, drawMarks, fitView, toScreen } from '../field/drawField';
 import { ROWS_PER_PAGE, ROWS_WITH_PICTURES, chartTitle, chunk, dotCards, hasMeasures, sortedPerformers, type Card } from './docs';
 
 type Kind = 'dots' | 'charts';
 type Who = 'all' | 'section' | 'selected';
-interface Job { kind: Kind; ids: Set<string> | undefined; single: boolean; pics: boolean; paths: boolean; sets: [number, number] } // single: one dot sheet per page; pics: with a field picture per set (single only); paths: the moves into each set on its chart; sets: first and last set printed
+/** Only what changed since an earlier copy: the sets for charts, each performer's sets for dot sheets, and what it was. */
+interface Only { sets: Set<number>; byPerformer: Map<string, Set<number>>; label: string }
+interface Job { kind: Kind; ids: Set<string> | undefined; single: boolean; pics: boolean; paths: boolean; sets: [number, number]; only?: Only } // single: one dot sheet per page; pics: with a field picture per set (single only); paths: the moves into each set on its chart; sets: first and last set printed
 
 /** A set's field chart as a high-resolution black-on-white image. */
 function chartImage(show: Show, i: number, paths: boolean): string {
@@ -90,11 +94,34 @@ export function PrintDialog({ show, selected, onClose }: Props) {
   const last = show.sets.length - 1;
   const [from, setFrom] = useState(0), [to, setTo] = useState(last); // a rehearsal packet: "work 8–10 tonight"
   const sets: [number, number] = [Math.min(from, to), Math.max(from, to)];
+  // Only what changed: since the copy last sent to phones, or an earlier version, so a revision gets new paper only
+  // for the sets (and the performers) that changed.
+  const [bases, setBases] = useState<{ key: string; label: string; short: string; json: string }[]>([]);
+  const [since, setSince] = useState('');
+  useEffect(() => {
+    if (!show.id) return;
+    const when = (at: number) => new Date(at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    Promise.all([loadPublished(show.id), listVersions(show.id).catch(() => [])]).then(([pub, versions]) => {
+      const rev = (json: string) => { try { return (JSON.parse(json) as Show).revision; } catch { return undefined; } };
+      const r = pub && rev(pub.json);
+      setBases([
+        ...(pub ? [{ key: 'published', label: `${r ? `Revision ${r}, ` : ''}sent to phones ${when(pub.at)}`, short: r ? `rev ${r}` : `the copy sent ${when(pub.at)}`, json: pub.json }] : []),
+        ...versions.map((v) => ({ key: String(v.at), label: `Version from ${when(v.at)}`, short: `the version from ${when(v.at)}`, json: v.json })),
+      ]);
+    });
+  }, [show.id]);
+  const only = useMemo<Only | null>(() => {
+    const b = bases.find((x) => x.key === since);
+    if (!b) return null;
+    try { return { ...changedForPrint(parseShow(b.json), show), label: b.short }; } catch { return null; }
+  }, [bases, since, show]);
 
   const ids = who === 'all' ? undefined
     : who === 'selected' ? selected
     : new Set(show.performers.filter((p) => p.section === section).map((p) => p.id));
-  const count = ids ? ids.size : show.performers.length;
+  const count = only ? show.performers.filter((p) => (!ids || ids.has(p.id)) && only.byPerformer.get(p.id)?.size).length
+    : ids ? ids.size : show.performers.length;
+  const pages = only ? only.sets.size : sets[1] - sets[0] + 1;
 
   // Once the pages are in the document (and images decoded), open the browser's print dialog.
   useLayoutEffect(() => {
@@ -116,9 +143,21 @@ export function PrintDialog({ show, selected, onClose }: Props) {
         <fieldset style={{ border: 'none', padding: 0, margin: '0 0 12px' }}>
           <legend style={{ fontWeight: 700, marginBottom: 4 }}>What</legend>
           <label style={{ display: 'block' }}><input type="radio" name="kind" checked={kind === 'dots'} onChange={() => setKind('dots')} /> Dot sheets</label>
-          <label style={{ display: 'block' }}><input type="radio" name="kind" checked={kind === 'charts'} onChange={() => setKind('charts')} /> Drill charts (one page per set, {sets[1] - sets[0] + 1} pages)</label>
+          <label style={{ display: 'block' }}><input type="radio" name="kind" checked={kind === 'charts'} onChange={() => setKind('charts')} /> Drill charts (one page per set, {pages} {pages === 1 ? 'page' : 'pages'})</label>
         </fieldset>
-        {show.sets.length > 1 && (
+        <div style={{ margin: '0 0 12px' }}>
+          <label style={{ display: 'block' }}>
+            <input type="checkbox" checked={!!only} disabled={!bases.length} onChange={(e) => setSince(e.target.checked ? bases[0]?.key ?? '' : '')} /> Only what changed since{' '}
+            {bases.length > 0 && <select aria-label="Changed since" value={since || bases[0].key} onChange={(e) => setSince(e.target.value)} style={{ maxWidth: '100%' }}>
+              {bases.map((b) => <option key={b.key} value={b.key}>{b.label}</option>)}
+            </select>}
+          </label>
+          {!bases.length && <p style={{ opacity: 0.75, fontSize: 12, margin: '4px 0 0' }}>Nothing to compare with yet. Publishing to phones keeps a copy, and FreeFORM keeps earlier versions as you work.</p>}
+          {only && <p style={{ fontSize: 12, margin: '4px 0 0' }}>{only.sets.size
+            ? `Changed: ${only.sets.size === 1 ? 'set' : 'sets'} ${[...only.sets].sort((a, b) => a - b).map((i) => show.sets[i].name).join(', ')}. Dot sheets go only to performers whose spot, counts, route, or notes changed, with just those sets.`
+            : 'Nothing has changed since then.'}</p>}
+        </div>
+        {show.sets.length > 1 && !only && (
           <div style={{ margin: '0 0 12px' }}>
             <strong>Sets</strong>{' '}
             <select aria-label="Print from set" value={from} onChange={(e) => setFrom(Number(e.target.value))}>
@@ -157,7 +196,7 @@ export function PrintDialog({ show, selected, onClose }: Props) {
         <p style={{ opacity: 0.75, fontSize: 12, margin: '0 0 12px' }}>Opens your browser's print dialog. Choose "Save as PDF" there to get a PDF.</p>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button onClick={onClose}>Cancel</button>
-          <button onClick={() => setJob({ kind, ids, single, pics, paths, sets })} disabled={kind === 'dots' && !count}>Print{kind === 'dots' ? ` ${count}` : ''}</button>
+          <button onClick={() => setJob({ kind, ids, single, pics, paths, sets, ...(only ? { only } : {}) })} disabled={kind === 'dots' ? !count : !pages}>Print{kind === 'dots' ? ` ${count}` : ''}</button>
         </div>
       </div>
       {job && createPortal(<Pages show={show} job={job} />, document.getElementById('print-root')!)}
@@ -166,11 +205,12 @@ export function PrintDialog({ show, selected, onClose }: Props) {
 }
 
 function Pages({ show, job }: { show: Show; job: Job }) {
-  const nums = show.sets.map((_, i) => i).slice(job.sets[0], job.sets[1] + 1);
+  const nums = job.only ? [...job.only.sets].sort((a, b) => a - b) : show.sets.map((_, i) => i).slice(job.sets[0], job.sets[1] + 1);
   const charts = useMemo(() => (job.kind === 'charts' ? nums.map((i) => chartImage(show, i, job.paths)) : []), [show, job]); // eslint-disable-line react-hooks/exhaustive-deps
-  const rev = show.revision ? ` · ${revisionLabel(show)}` : ''; // so "who has revision 6?" works on paper too
+  const rev = `${show.revision ? ` · ${revisionLabel(show)}` : ''}${job.only ? ` · changes since ${job.only.label}` : ''}`; // so "who has revision 6?" works on paper too
   const meas = hasMeasures(show);
-  const cards = useMemo(() => (job.kind === 'dots' ? dotCards(show, sortedPerformers(show, job.ids), job.pics ? ROWS_WITH_PICTURES : job.single ? ROWS_PER_PAGE : undefined, job.sets) : []), [show, job]);
+  const cards = useMemo(() => (job.kind === 'dots' ? dotCards(show, sortedPerformers(show, job.ids), job.pics ? ROWS_WITH_PICTURES : job.single ? ROWS_PER_PAGE : undefined,
+    job.only ? [0, show.sets.length - 1] : job.sets, job.only ? (id, i) => !!job.only!.byPerformer.get(id)?.has(i) : undefined) : []), [show, job]);
   const pictures = useMemo(() => (job.pics ? dotPictures(show, cards) : null), [show, job, cards]);
   const pageStyle = job.kind === 'charts' ? '@page { size: letter landscape; margin: 0.4in; }' : '@page { size: letter portrait; margin: 0.4in; }';
   return (

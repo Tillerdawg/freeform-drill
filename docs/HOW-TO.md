@@ -430,6 +430,10 @@ Click **Print…** in the sidebar.
 
 Choose **Dot sheets** or **Drill charts**, and who to print for: **Everyone**, one **Section**, or the performers you have **Selected**. **Sets … to …** prints just part of the show, for a rehearsal packet ("work sets 8 to 10 tonight"); **All** puts it back to the whole show. FreeFORM opens your browser's print dialog. To get a PDF instead of paper, pick **Save as PDF** there.
 
+**Only what changed.** After a revision, you don't have to reprint the whole show. Check **Only what changed since** and pick what to compare with: the copy you last sent to phones ("Revision 6, sent to phones Nov 18, 7:05 PM"), or one of the show's earlier versions. FreeFORM lists the sets that changed. Drill charts print just those sets. Dot sheets go only to performers whose spot, counts, route, or notes changed, with just those sets on their card, so a change to two trumpets' dots prints two cards, not the whole band's. **Who** still narrows it to a section or the performers you selected. The paper says what it is, like "rev 7 · changes since rev 6" (publish first, so the number matches the phones). FreeFORM keeps the copy each time you publish, or download a locked file, so this works from your next publish on.
+
+![Print only what changed since revision 6](img/print-changed.png)
+
 Once you've published the show to phones, charts and dot sheets print its revision number next to the title ("rev 6"), so paper and phones can be compared. If you've changed the drill since you published, it prints "rev 6 + changes" instead. Publish, then print, so the number matches what students have.
 
 Dot sheets come four cards to a page. Each card has the performer's label, name, and section, then every set with its counts, measures, and coordinates. Under a set go any notes for it: a delayed step-off ("Hold 4, move 12") and the performer notes.
@@ -636,6 +640,10 @@ When something isn't saved somewhere it could be, the box also gets a dashed out
 
   Pyware 9 and newer encrypt the files they save, so FreeFORM can't open those. It says so plainly instead of calling the file damaged. The same goes for a show a drill writer locked before selling it. FreeFORM never unlocks or decrypts drill, so for a locked show, ask the drill writer for an unlocked copy. If a file from Pyware 8 or older won't open, please tell me with **Send feedback**.
 - **OpenMarch files (`.dots`)**: **Import…** opens these too. You get the pages as sets, with OpenMarch's names (0, 1, 1A, 2, and so on, kept as they are when you add or delete sets), their counts, measures, and notes; a section for each of OpenMarch's sections, with each marcher's drill number (T12 stays T12) and name; and the field, a football field with the nearest of FreeFORM's hashes, or a floor the same size. A curved path comes in count by count, with even steps. If the show file has its music in it, the recording comes along, timed to OpenMarch's beats, so playback follows the music right away. Midsets, shapes, tags, colors, and the field picture don't come over. If a show doesn't come in right, please tell me with **Send feedback**.
+
+  **After a Pyware or OpenMarch import**, a summary says what came in: performers and sections, sets and counts, measure numbers (or that there aren't any), curved and follow-the-leader routes, and the recording. Under **Check before you teach it**, it lists anything FreeFORM had to work out or leave behind (a follow-the-leader rebuilt from straight lines, a marcher with no spot in the first set, midsets that didn't come over) and what **Review** finds, like moves with steps over the limit. **Go to the first problem** jumps there, and **Open Review** opens the whole list.
+
+  ![The summary after opening an OpenMarch show](img/import-summary.png)
 
 ## Keyboard shortcuts
 
