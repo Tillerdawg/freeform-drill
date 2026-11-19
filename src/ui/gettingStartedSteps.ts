@@ -45,7 +45,7 @@ export function sendSteps(show: Show, did: SendDone, openIssues: number): Step[]
 export function bandMessage(title: string, link: string | null): string {
   return [
     `Here's our drill for ${title || 'the show'} in FreeFORM Drill: ${link ?? '(paste the link from Share here)'}`,
-    'Open it on your phone, pick your name, and your dots are there. It works with no signal once it\'s opened.',
+    'Open it on your phone, pick your name or your drill number (like B5), and your dots are there. Before rehearsal, open it once with signal and check that the top of My dots says Ready offline.',
     'New to FreeFORM Drill? This two-minute guide shows how: https://freeformdrill.org/students/',
     'En español: https://freeformdrill.org/es/students/',
   ].join('\n');

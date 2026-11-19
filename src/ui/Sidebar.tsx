@@ -5,13 +5,13 @@ import { Fragment, useEffect, useRef, useState } from 'react';
 import { FIELD } from './palette';
 import { getPublishing } from './publishing';
 import { RosterImport } from './RosterImport';
-import { deleteAudio, putAudio } from './audioStore';
+import { putAudio } from './audioStore';
 import { IconGrip } from './icons';
 import { Menu } from './Toolbar';
 import { STEP_IN, HASHES, distance, fieldDepth, readout, type HashPreset } from '../engine/coords';
 import type { Shape, ShapeKind } from '../engine/shapes';
 import {
-  fieldOf, withField, addProp, newPropSpot, MAX_PROPS, placeProp, removeProp, updateProp, propShape, shapePatch, triangleSides, triangleFromSides, MAX_PROP_SIZE, type PropShape, MAX_NAME, scoreOrder, setCue, setMarks, setNames, setNote, label, locate, newId, moveToSection, removeSection, duplicateLetters, renumberSection, placeInSet, remapHash, positionsAt, xFrom, yFrom,
+  fieldOf, withField, addProp, newPropSpot, MAX_PROPS, placeProp, removeProp, updateProp, propShape, shapePatch, triangleSides, triangleFromSides, MAX_PROP_SIZE, type PropShape, MAX_NAME, tooBigForBackup, scoreOrder, setCue, setMarks, setNames, setNote, label, locate, newId, moveToSection, removeSection, duplicateLetters, renumberSection, placeInSet, remapHash, positionsAt, xFrom, yFrom,
   type FrontDir, type FrontRef, type Section, type Show, type SideDir,
 } from '../engine/show';
 import { NumberField } from './NumberField';
@@ -566,10 +566,13 @@ function TraceEditor({ show, setShow, onTrace, ask }: { show: Show; setShow: Pro
   const [open, setOpen] = useState(false);
   useEffect(() => { if (ask) { setOpen(true); requestAnimationFrame(() => box.current?.scrollIntoView({ block: 'nearest' })); } }, [ask]); // the Shape menu's link
   const [err, setErr] = useState('');
+  const [big, setBig] = useState<string | null>(null); // too big for a Full backup: said now, not on the new computer
   const pick = async (f: File) => {
-    const id = tr?.id ?? newId('trace');
+    // A new id even when changing the picture, so Undo and earlier versions still show the old one (the unused one is
+    // cleared away later, see sweepFiles).
+    const id = newId('trace');
     if (!(await putAudio(id, f))) { setErr("This browser wouldn't save the picture (private browsing?)."); return; }
-    setErr('');
+    setErr(''); setBig(tooBigForBackup('picture', f.size));
     setShow((s) => ({ ...s, trace: s.trace ? { ...s.trace, id } : { id, x: 0, y: fieldDepth(fieldOf(s)) / 2, w: 40, opacity: 0.5 } }));
     onTrace();
   };
@@ -580,10 +583,11 @@ function TraceEditor({ show, setShow, onTrace, ask }: { show: Show; setShow: Pro
       <p style={{ fontSize: 12, opacity: 0.75, margin: '6px 0' }}>A logo or a sketch under the field, to place performers on. It stays in this browser: it isn't saved in the show file, printed, or sent to phones.</p>
       <div style={row}>
         <button onClick={() => file.current?.click()}>{tr ? 'Change picture…' : 'Add a picture…'}</button>
-        {tr && <button onClick={() => { deleteAudio(tr.id); setShow(({ trace: _, ...s }) => s); }}>Remove</button>}
+        {tr && <button onClick={() => { setBig(null); setShow(({ trace: _, ...s }) => s); }}>Remove</button>}{/* the picture itself stays until nothing can bring it back (Undo, a version): see sweepFiles */}
         <input ref={file} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) pick(f); e.target.value = ''; }} />
       </div>
       {err && <p role="alert" style={{ color: 'var(--danger)', fontSize: 12, margin: '4px 0 0' }}>{err}</p>}
+      {tr && big && <p style={{ fontSize: 12, margin: '4px 0 0' }}>{big}</p>}
       {tr && <>
         <div style={row}>
           <label>Wide <NumberField aria-label="Picture width in steps" min={2} max={200} step={1} value={tr.w} style={{ width: 52 }} onValue={(n) => set({ w: n })} /> steps</label>

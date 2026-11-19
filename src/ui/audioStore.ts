@@ -14,12 +14,17 @@ function db(): Promise<IDBDatabase> {
   });
 }
 
-export async function run<T>(store: Store, mode: IDBTransactionMode, f: (s: IDBObjectStore) => IDBRequest<T>): Promise<T> {
-  const d = await db();
+/**
+ * One request in its own transaction. It resolves only once the transaction has committed: a request can succeed and
+ * its transaction still abort afterward (a full disk often shows up that way), and then nothing was written.
+ */
+export async function run<T>(store: Store, mode: IDBTransactionMode, f: (s: IDBObjectStore) => IDBRequest<T>, open: () => Promise<IDBDatabase> = db): Promise<T> {
+  const d = await open();
   return new Promise((ok, fail) => {
-    const req = f(d.transaction(store, mode).objectStore(store));
-    req.onsuccess = () => ok(req.result);
-    req.onerror = () => fail(req.error);
+    const tx = d.transaction(store, mode);
+    const req = f(tx.objectStore(store));
+    tx.oncomplete = () => ok(req.result);
+    tx.onabort = tx.onerror = () => fail(tx.error ?? req.error ?? new Error('This browser refused to save.'));
   });
 }
 

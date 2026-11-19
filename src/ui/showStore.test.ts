@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { newShow } from '../engine/show';
-import { filesUsed, readAutosave, writeAutosave } from './showStore';
+import { filesToSweep, filesUsed, phoneFiles, readAutosave, writeAutosave } from './showStore';
 
 describe('filesUsed', () => {
   it('finds the recording and picture ids, even in a show that no longer opens', () => {
@@ -52,5 +52,27 @@ describe('the autosave in localStorage', () => {
 
   it('opens nothing on a first visit', () => {
     expect(readAutosave(fakeStore(1e6))).toBeNull();
+  });
+});
+
+describe('clearing away recordings and pictures nothing uses (removed music waits, so Undo can bring it back)', () => {
+  it('keeps every file a show, a version, the open show, or the phone list uses', () => {
+    expect(filesToSweep(['a1', 't1', 'p1'], [['a1'], ['t1'], ['p1']], ['a1', 't1', 'p1'])).toEqual({ drop: [], unused: [] });
+  });
+
+  it('deletes an unused file only when it was unused at the last sweep too', () => {
+    const first = filesToSweep(['a1', 'old'], [['a1']], []);
+    expect(first).toEqual({ drop: [], unused: ['old'] }); // just removed (or just stored by another tab): wait
+    expect(filesToSweep(['a1', 'old'], [['a1']], first.unused)).toEqual({ drop: ['old'], unused: [] });
+  });
+
+  it('deletes nothing when a show or list cannot be read', () => {
+    expect(filesToSweep(['a1', 'old'], [['a1'], null], ['old'])).toEqual({ drop: [], unused: [] });
+  });
+
+  it("finds the recordings in the phone's own list of shows", () => {
+    expect(phoneFiles(JSON.stringify({ shows: [{ show: { music: { audioId: 'a9' } } }, { show: {} }], current: 0 }))).toEqual(['a9']);
+    expect(phoneFiles(null)).toEqual([]);
+    expect(phoneFiles('{broken')).toBeNull();
   });
 });

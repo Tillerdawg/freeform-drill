@@ -7,7 +7,7 @@ import { addInk, hitMark, moveMark, type Mark } from './engine/marks';
 import { assign, fitShape, fitText, handleName, isControl, moveHandle, samplePath, slots, type Shape, type ShapeKind } from './engine/shapes';
 import { colorOf,
   addPerformer, closeCalls, setFtlTurns, locate, label, mark, newId, setMarks, moveSegments, fieldOf,  hitProp, placeProp, propsAt, removeProp, normalizeFtl, overLimit, snapPoint, playRange, newShow, parseShow, placeInSet, positionsAt, removePerformers,
-  rotateScale, setAt, setStarts, withShowId, withField, type Show, newShowId, parseShowFile, type Attached,
+  rotateScale, setAt, setStarts, withShowId, withField, type Show, newShowId, parseShowFile, type Attached, isBlankShow, planBackup,
   showLength,
   revisionLabel, addProp, newPropSpot,
 } from './engine/show';
@@ -23,7 +23,7 @@ import { NewShowDialog } from './ui/NewShow';
 import { FieldSelect, FieldDetails } from './ui/FieldPicker';
 import { MusicMenu } from './ui/Music';
 import { getAudio, putAudio } from './ui/audioStore';
-import { addVersion, forgetShow, keepShow, listShows, loadShow, readAutosave, writeAutosave } from './ui/showStore';
+import { addVersion, filesUsed, forgetShow, keepShow, listShows, loadShow, readAutosave, sweepFiles, writeAutosave } from './ui/showStore';
 import { ShowsDialog, type ShowActions } from './ui/Shows';
 import { peaks } from './engine/music';
 import { confirmDelete, Menu, SHAPES, Toolbar } from './ui/Toolbar';
@@ -59,6 +59,12 @@ const fileSavedKey = (id?: string) => `freeform:file-saved:${id}`, SNOOZE = 'fre
 // Made once: building a date format is slow, and the save status asks for one on every render.
 const CLOCK = new Intl.DateTimeFormat([], { hour: 'numeric', minute: '2-digit' }), SHORT_DATE = new Intl.DateTimeFormat([], { month: 'short', day: 'numeric' });
 const LOOK = 'freeform:section-view'; // which sections are dimmed or hidden in the editor
+
+/** This tab, so a tab can tell another tab's saves from its own (EDITED). */
+const TAB = Math.random().toString(36).slice(2);
+/** Written after each save to the library: which show, and which tab. Small, so it works for a show too big for
+ * localStorage, where the two-tab warning can't watch the full autosave. */
+const EDITED = 'freeform:edited';
 
 /** Set by loadAutosave when the open show was too big for localStorage: its library id, opened once the editor is up. */
 let restoreFromLibrary: string | null = null;
@@ -192,15 +198,33 @@ export function App() {
     // so it's kept at once instead of a moment later. Only the library failing means the work isn't safe.
     const fits = writeAutosave(s);
     clearTimeout(keepTimer.current);
-    keepTimer.current = window.setTimeout(async () => { const ok = await keepShow(s); setSaveFailed((f) => (ok ? 'no' : f === 'seen' ? f : 'yes')); }, fits ? 800 : 0);
+    keepTimer.current = window.setTimeout(async () => {
+      const ok = await keepShow(s); setSaveFailed((f) => (ok ? 'no' : f === 'seen' ? f : 'yes'));
+      if (ok) try { localStorage.setItem(EDITED, JSON.stringify({ id: s.id, tab: TAB, at: Date.now() })); } catch { /* storage blocked */ }
+    }, fits ? 800 : 0);
   };
   /** The open show into the library now (before another one opens, or the library is listed). */
   const flush = async () => {
     clearTimeout(keepTimer.current);
     const s = showRef.current;
-    // A blank show nobody touched (a first visit, then Try the sample or Import) isn't worth keeping in the list.
-    if (s === firstShow.current && !s.performers.length) { await forgetShow(s.id!); return true; }
+    // The blank show a first visit opens, untouched and still empty (then Try the sample or Import), isn't worth keeping in
+    // the list. Only that one: a show opened from the library is never dropped, even a draft with no performers yet.
+    if (disposable.current && s === firstShow.current && isBlankShow(s)) { await forgetShow(s.id!); return true; }
     const ok = await keepShow(s); if (!ok) setSaveFailed((f) => (f === 'seen' ? f : 'yes')); return ok;
+  };
+  /**
+   * Before another show opens (New, Open, Import, the sample, a link): keep the open one in the library first. If the
+   * browser won't keep it, nothing opens yet: the director chooses to save a file, continue anyway, or stay (`leaving`).
+   */
+  const [leaving, setLeaving] = useState<null | (() => Promise<void>)>(null);
+  const leave = async (then: () => Promise<void>) => {
+    if (await flush()) { await then(); return; }
+    setLibrary(false); setNewing(false);
+    setLeaving(() => then);
+  };
+  const goOn = () => {
+    const then = leaving; setLeaving(null);
+    then?.().catch((err) => setFileError(err instanceof Error ? err.message : String(err)));
   };
   // Two tabs: when another tab saves this same show, say so and let the director choose, instead of the last write winning.
   const [otherTab, setOtherTab] = useState<Show | null>(null);
@@ -212,6 +236,14 @@ export function App() {
   useEffect(() => { if (!otherRef.current) persist(checked); }, [checked]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const f = (e: StorageEvent) => {
+      // A big show (too big for localStorage): the other tab says which show it saved, and the library has it.
+      if (e.key === EDITED && e.newValue) {
+        let note: { id?: unknown; tab?: unknown };
+        try { note = JSON.parse(e.newValue); } catch { return; }
+        if (note.tab === TAB || note.id !== showRef.current.id) return;
+        loadShow(String(note.id)).then((s) => { if (s.id === showRef.current.id && JSON.stringify(s) !== JSON.stringify(showRef.current)) setOtherTab(s); }, () => { /* gone: ignore */ });
+        return;
+      }
       if (e.key !== AUTOSAVE || !e.newValue || e.newValue === JSON.stringify(showRef.current)) return;
       try { const s = parseShow(e.newValue); if (s.id === showRef.current.id) setOtherTab(s); } catch { /* not readable: ignore */ }
     };
@@ -222,6 +254,9 @@ export function App() {
   // Backups: the show lives only in this browser, so after a week of changes that haven't been exported, a notice
   // asks for an Export. "Later" asks again in a day.
   const firstShow = useRef(show);
+  // The show this visit started with is the throwaway blank one (a first visit, or a reload of a still-blank show). Opening
+  // any other show clears this, so only that blank show is ever dropped from the library without asking.
+  const disposable = useRef(isBlankShow(show));
   // Each show has its own "changed since" time (unexportedKey).
   const [unexported, setUnexported] = useState(() => readTime(unexportedKey(show.id)));
   const [snooze, setSnooze] = useState(() => readTime(SNOOZE));
@@ -239,7 +274,7 @@ export function App() {
     lastShow.current = s; setHist(emptyHistory<Show>());
     setShowRaw(s); setT(0); setSelected(new Set()); setSection(s.sections[0]?.id ?? '');
     if (fromFile) writeTime(unexportedKey(s.id), null);
-    firstShow.current = s; setUnexported(readTime(unexportedKey(s.id))); setFileSavedAt(readTime(fileSavedKey(s.id))); fileHandle.current = null; // a different show: ⌘S mustn't write over the last one's file
+    firstShow.current = s; disposable.current = false; setUnexported(readTime(unexportedKey(s.id))); setFileSavedAt(readTime(fileSavedKey(s.id))); fileHandle.current = null; // a different show: ⌘S mustn't write over the last one's file
   };
   const fileHandle = useRef<FileSystemFileHandle | null>(null); // where Save last put this show (Chrome, Edge), for ⌘S
   // The show was too big for localStorage last time: open the library copy (the blank field shows only for a moment).
@@ -250,6 +285,10 @@ export function App() {
     loadShow(id).then((s) => { if (showRef.current === firstShow.current) openShow(s); }).catch(() => { /* not in the library: start blank */ })
       .finally(() => { restoring.current = false; });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Once a visit, a moment after it opens: clear away recordings and pictures nothing can bring back any more (removed
+  // music or pictures wait for this, so Undo and earlier versions can still bring them back; see sweepFiles).
+  useEffect(() => { const t = setTimeout(() => sweepFiles(filesUsed(JSON.stringify(showRef.current)) ?? []), 10_000); return () => clearTimeout(t); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A short message over the field about what just happened (a jump to a close call, an edit refused mid-move). It goes away when the playhead moves.
   const [notice, setNotice] = useState<{ text: string; t: number } | null>(null);
@@ -947,11 +986,11 @@ export function App() {
     const name = `${show.title.replace(/[^\w\- ]+/g, '').trim() || 'show'}${full ? ' full backup' : ''}.freeform`;
     let attached: { audio?: Attached; picture?: Attached; publishing?: Publishing } | undefined;
     if (full) {
-      const pack = async (id: string | undefined, kind: 'audio' | 'image', fallback: string) => {
-        const b = id ? await getAudio(id) : undefined;
-        return b ? { type: new RegExp(`^${kind}/[\\w.+-]{1,40}$`).test(b.type) ? b.type : fallback, data: await toBase64(b) } : undefined;
-      };
-      const audio = await pack(show.music?.audioId, 'audio', 'audio/mpeg'), picture = await pack(show.trace?.id, 'image', 'image/png');
+      // Only what Import will open again (planBackup uses its limits): a recording too big stays out rather than spoil the file.
+      const found = await backupFiles(), plan = planBackup(show, found);
+      const pack = async (b: Blob | undefined, kind: 'audio' | 'image', fallback: string) =>
+        b ? { type: new RegExp(`^${kind}/[\\w.+-]{1,40}$`).test(b.type) ? b.type : fallback, data: await toBase64(b) } : undefined;
+      const audio = plan.audio ? await pack(found.audio, 'audio', 'audio/mpeg') : undefined, picture = plan.picture ? await pack(found.picture, 'image', 'image/png') : undefined;
       const publishing = getPublishing(show.id ?? show.title, show.title); // so a new computer keeps updating the same link
       attached = { ...(audio ? { audio } : {}), ...(picture ? { picture } : {}), ...(publishing ? { publishing } : {}) };
     }
@@ -985,6 +1024,19 @@ export function App() {
     return true;
   };
   const save = () => saveTo(true), saveAs = () => saveTo(false);
+  /** The open show's recording and picture as this browser has them, for a Full backup. */
+  const backupFiles = async () => ({
+    audio: show.music ? await getAudio(show.music.audioId) : undefined,
+    picture: show.trace ? await getAudio(show.trace.id) : undefined,
+  });
+  // Full backup: first check what it can carry. Anything that has to stay out (too big, or gone from this browser) is
+  // named before the file is saved, not discovered on the new computer.
+  const [backupCheck, setBackupCheck] = useState<string[] | null>(null);
+  const fullBackup = async () => {
+    const { problems } = planBackup(show, await backupFiles());
+    if (problems.length) { setBackupCheck(problems); return false; }
+    return saveTo(false, true);
+  };
   const saveRef = useRef(saveTo); saveRef.current = saveTo; // the key handler's copy is only refreshed on some changes; this one is always current
 
   /** Import a file: it joins the library as a show of its own (a full backup's recording and picture go into this browser). */
@@ -993,17 +1045,18 @@ export function App() {
       const r = /\.3dj$/i.test(f.name) ? { show: parse3dj(await f.arrayBuffer(), f.name.replace(/\.3dj$/i, '')) }
         : /\.dots$/i.test(f.name) ? parseDots(await f.arrayBuffer(), f.name.replace(/\.dots$/i, '')) // OpenMarch (its recording comes along as a Blob)
         : parseShowFile(await f.text());
-      let s = r.show;
-      await flush();
-      // The same show again (a file saved from here) becomes a copy beside it, never written over it.
-      const taken = !s.id || (await listShows()).some((x) => x.id === s.id);
-      if (taken) s = { ...s, id: newShowId() };
-      const audio = 'audio' in r && r.audio ? (r.audio instanceof Blob ? r.audio : fromAttached(r.audio)) : undefined;
-      const picture = 'picture' in r && r.picture ? fromAttached(r.picture) : undefined;
-      if (audio || picture || taken) s = await ownFiles(s, audio, picture);
-      const pub = 'publishing' in r ? readPublishing(r.publishing) : null;
-      if (pub && s.id && !getPublishing(s.id)) setPublishing(s.id, pub); // a Full backup from another computer: keep publishing to the same link
-      openShow(s, true); setFileError(''); // what's open is the file itself
+      await leave(async () => {
+        let s = r.show;
+        // The same show again (a file saved from here) becomes a copy beside it, never written over it.
+        const taken = !s.id || (await listShows()).some((x) => x.id === s.id);
+        if (taken) s = { ...s, id: newShowId() };
+        const audio = 'audio' in r && r.audio ? (r.audio instanceof Blob ? r.audio : fromAttached(r.audio)) : undefined;
+        const picture = 'picture' in r && r.picture ? fromAttached(r.picture) : undefined;
+        if (audio || picture || taken) s = await ownFiles(s, audio, picture);
+        const pub = 'publishing' in r ? readPublishing(r.publishing) : null;
+        if (pub && s.id && !getPublishing(s.id)) setPublishing(s.id, pub); // a Full backup from another computer: keep publishing to the same link
+        openShow(s, true); setFileError(''); // what's open is the file itself
+      });
     } catch (err) {
       setFileError(err instanceof Error ? err.message : String(err));
     }
@@ -1014,13 +1067,14 @@ export function App() {
   const fresh = async (title: string, field: FieldSpec) => {
     setNewing(false);
     saveStartingField(field); // the next new show starts on the same surface
-    await flush();
-    openShow({ ...newShow(startingSections(), field), title }); // nothing to back up yet
-    setTool('select'); // the blank field's note leads: Place performers, Import a roster, or the sample (Jason, 2026-11-11)
+    await leave(async () => {
+      openShow({ ...newShow(startingSections(), field), title }); // nothing to back up yet
+      setTool('select'); // the blank field's note leads: Place performers, Import a roster, or the sample (Jason, 2026-11-11)
+    });
   };
   const [openAdd, setOpenAdd] = useState(0);
   // The docs' demo show, to look around in before writing one (or the practice show, with problems to fix): a show of its own in the library.
-  const trySample = async (practice = false) => { await flush(); openShow({ ...(practice ? practiceShow() : sampleShow()), id: newShowId() }); setTool('select'); }; // in the main bundle: the offline cache only keeps files the page links
+  const trySample = (practice = false) => leave(async () => { openShow({ ...(practice ? practiceShow() : sampleShow()), id: newShowId() }); setTool('select'); }); // in the main bundle: the offline cache only keeps files the page links
   // The front page's "Try the sample show" opens app/?sample.
   useEffect(() => { if (new URLSearchParams(location.search).has('sample')) { history.replaceState(null, '', location.pathname + location.hash); trySample(); } }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [library, setLibrary] = useState<boolean | 'link' | 'versions'>(false); // 'link': opened on Open from a link; 'versions': on the open show's earlier versions
@@ -1030,23 +1084,24 @@ export function App() {
   const act: ShowActions = {
     flush,
     fresh: async () => { setLibrary(false); setNewing(true); },
-    open: async (id) => { const s = await loadShow(id); await flush(); openShow(s); setLibrary(false); },
+    open: async (id) => { const s = await loadShow(id); await leave(async () => { openShow(s); setLibrary(false); }); },
     // Open a show from a phone link or a recovery code: recovers the drill (the link holds the key that unlocks it), and
     // with a recovery code, keeps updating the same link from here.
     openLink: async (text) => {
       const code = readPublishingCode(text), hash = code ? code.link.slice(code.link.indexOf('#')) : linkHash(text);
       if (!hash) throw new Error("That isn't a FreeFORM link or recovery code. Paste the whole link students open, or the recovery code.");
       const got = hash.startsWith(SHARE_PREFIX) ? { show: await decodeShow(hash.slice(SHARE_PREFIX.length)), audio: undefined } : await fetchHosted(hash);
-      let s = got.show;
-      await flush();
-      if (!s.id || (await listShows()).some((x) => x.id === s.id)) s = { ...s, id: newShowId() }; // already here: a copy beside it
-      s = await ownFiles(s, got.audio);
-      if (code) setPublishing(s.id!, code);
-      else if (!hash.startsWith(SHARE_PREFIX)) setPublishing(s.id!, { link: location.origin + location.pathname + hash }); // the link, without the token to update it
-      openShow(s); setLibrary(false);
-      setNotice({ t: 0, text: code ? `Opened "${s.title}". This browser can keep updating the same link: Share…, then Publish update.`
-        : hash.startsWith(SHARE_PREFIX) ? `Opened "${s.title}" from a share link. Performers' names aren't in share links, so add them again in Roster.`
-        : `Opened "${s.title}". To keep updating the same link from here, paste the recovery code from the device that published it (Share…, Keep phones up to date). Publishing without it makes a new link.` }); // over the field, where the show just opened
+      await leave(async () => {
+        let s = got.show;
+        if (!s.id || (await listShows()).some((x) => x.id === s.id)) s = { ...s, id: newShowId() }; // already here: a copy beside it
+        s = await ownFiles(s, got.audio);
+        if (code) setPublishing(s.id!, code);
+        else if (!hash.startsWith(SHARE_PREFIX)) setPublishing(s.id!, { link: location.origin + location.pathname + hash }); // the link, without the token to update it
+        openShow(s); setLibrary(false);
+        setNotice({ t: 0, text: code ? `Opened "${s.title}". This browser can keep updating the same link: Share…, then Publish update.`
+          : hash.startsWith(SHARE_PREFIX) ? `Opened "${s.title}" from a share link. Performers' names aren't in share links, so add them again in Roster.`
+          : `Opened "${s.title}". To keep updating the same link from here, paste the recovery code from the device that published it (Share…, Keep phones up to date). Publishing without it makes a new link.` }); // over the field, where the show just opened
+      });
     },
     rename: async (id, title) => {
       if (id === show.id) { setShow((s) => ({ ...s, title })); await keepShow({ ...show, title }); }
@@ -1071,6 +1126,7 @@ export function App() {
       writeTime(unexportedKey(id), null);
       const next = (await listShows())[0];
       openShow(next ? await loadShow(next.id) : newShow(startingSections(), startingField()));
+      disposable.current = !next; // the last show is gone: the blank one in its place is throwaway, like a first visit's
     },
     restore: async (version) => {
       if (!(await addVersion(show))) throw new Error("This browser couldn't keep a copy of the current show. Try restoring again after checking browser storage.");
@@ -1192,7 +1248,22 @@ export function App() {
             <button onClick={() => { setOtherTab(null); persist(show); }}>Keep this one</button>
           </div>
         )}
-        {saveFailed === 'yes' && !otherTab && (
+        {backupCheck && (
+          <div role="alert" className="backup-note">
+            <span>Full backup: {backupCheck.join(' ')}</span>
+            <button className="primary" onClick={() => { setBackupCheck(null); saveTo(false, true); }}>Save the backup without it</button>
+            <button onClick={() => setBackupCheck(null)}>Cancel</button>
+          </div>
+        )}
+        {leaving && (
+          <div role="alert" className="backup-note">
+            <span>This browser couldn't save "{show.title || 'this show'}", so the other show hasn't opened yet. Save this one to a file first, or its latest changes could be lost.</span>
+            <button className="primary" onClick={async () => { if (await saveTo(false)) goOn(); }}>Save a file, then continue</button>
+            <button onClick={goOn}>Continue without saving</button>
+            <button onClick={() => setLeaving(null)}>Stay here</button>
+          </div>
+        )}
+        {saveFailed === 'yes' && !otherTab && !leaving && (
           <div role="alert" className="backup-note">
             <span>This browser didn't save your latest changes (its storage is full or turned off). Save it to a file now so you don't lose them.</span>
             <button className="primary" onClick={save}>Save now</button>
@@ -1204,7 +1275,7 @@ export function App() {
             <span>This show is saved only in this browser, and you haven't saved it to a file since {new Date(unexported!).toLocaleDateString()}. Save a copy to keep it safe.
               {(show.music || show.trace) && ' Full backup also keeps the recording and tracing picture, for moving the show to another computer.'}</span>
             <button className="primary" onClick={save}>Save</button>
-            {(show.music || show.trace) && <button onClick={() => saveTo(false, true)}>Full backup…</button>}
+            {(show.music || show.trace) && <button onClick={fullBackup}>Full backup…</button>}
             <button onClick={() => { const n = Date.now() + DAY; writeTime(SNOOZE, n); setSnooze(n); }}>Later</button>
           </div>
         )}
@@ -1241,7 +1312,7 @@ export function App() {
         show={show} setShow={setShow} t={t} setT={(x) => { setPlaying(false); setT(x); }} onSet={onSet}
         selected={selected} setSelected={setSelected} tool={tool} setTool={setTool}
         section={section} setSection={setSection} snap={snap} setSnap={setSnap} starts={starts}
-        onNew={() => setNewing(true)} onOpen={() => fileRef.current?.click()} onSave={save} onSaveAs={saveAs} onShows={() => setLibrary(true)} onFullBackup={() => saveTo(false, true)} onPrint={() => setPrinting(true)} onShare={() => setSharing(true)} onVideo={() => setVideo(true)} fileError={fileError}
+        onNew={() => setNewing(true)} onOpen={() => fileRef.current?.click()} onSave={save} onSaveAs={saveAs} onShows={() => setLibrary(true)} onFullBackup={fullBackup} onPrint={() => setPrinting(true)} onShare={() => setSharing(true)} onVideo={() => setVideo(true)} fileError={fileError}
         selectedMark={selectedMark} setSelectedMark={setSelectedMark} adding={adding} setAdding={setAdding} lassoOn={lassoOn} setLassoOn={setLassoOn}
         look={look} setLook={setLook}
         clip={clip ? Object.keys(clip).length : 0} onCopy={copySpots} onPaste={pasteSpots} selectedProp={selectedProp} setSelectedProp={setSelectedProp} onTrace={() => setTraceTick((n) => n + 1)} traceAsk={traceAsk}
@@ -1259,7 +1330,7 @@ export function App() {
               <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 <button onClick={() => { close(); save(); }} title="Save to a .freeform file (⌘S)">Save</button>
                 <button onClick={() => { close(); saveAs(); }} title="Save to a new file">Save As…</button>
-                {(show.music || show.trace || getPublishing(show.id ?? show.title, show.title)) && <button onClick={() => { close(); saveTo(false, true); }} title="A file that also holds the recording, the tracing picture, and the show's publishing, to move the show to another computer complete">Full backup…</button>}
+                {(show.music || show.trace || getPublishing(show.id ?? show.title, show.title)) && <button onClick={() => { close(); fullBackup(); }} title="A file that also holds the recording, the tracing picture, and the show's publishing, to move the show to another computer complete">Full backup…</button>}
               </span>
               <strong style={{ fontSize: 14 }}>Phones</strong>
               <span>{saved.phones}</span>

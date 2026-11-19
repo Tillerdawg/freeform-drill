@@ -108,14 +108,59 @@ export function filesUsed(json: string): string[] | null {
   } catch { return null; }
 }
 
-/** Take a show and its versions out of the library, and its recording and picture unless another kept show uses them. */
+/**
+ * Take a show and its versions out of the library. Its recording and picture are cleared later by sweepFiles, once
+ * nothing else uses them (another show, a version, or the phone's own list in this browser).
+ */
 export async function forgetShow(id: string): Promise<void> {
-  const gone = await run<Entry | undefined>('shows', 'readonly', (s) => s.get(id));
   await run('shows', 'readwrite', (s) => s.delete(id));
   await run('versions', 'readwrite', (s) => s.delete(range(id)));
-  const mine = gone ? filesUsed(gone.json) : null;
-  if (!mine?.length) return;
-  const others = (await run<Entry[]>('shows', 'readonly', (s) => s.getAll())).map((e) => filesUsed(e.json));
-  if (others.includes(null)) return; // a kept show we can't read at all: keep every file rather than guess
-  for (const blob of mine) if (!others.some((o) => o!.includes(blob))) await deleteAudio(blob);
+}
+
+/** Every recording id ("audioId") anywhere in the phone's own list of shows (it shares this browser's storage). */
+export function phoneFiles(raw: string | null): string[] | null {
+  if (!raw) return [];
+  try {
+    const out: string[] = [];
+    const walk = (x: unknown) => {
+      if (Array.isArray(x)) x.forEach(walk);
+      else if (x && typeof x === 'object') for (const [k, v] of Object.entries(x)) { if (k === 'audioId' && typeof v === 'string') out.push(v); else walk(v); }
+    };
+    walk(JSON.parse(raw));
+    return out;
+  } catch { return null; }
+}
+
+/**
+ * Which stored recordings and pictures to delete now. Removing music or a picture doesn't delete it at once, because
+ * Undo or an earlier version can bring it back; files nothing points at are cleared here instead. To be safe, a file goes
+ * only when nothing used it at the last sweep either (`before`, a visit or more ago), so a file another tab has just
+ * stored, and hasn't kept in a show yet, is never caught. `used`: every list of ids in use; a null (a show or list that
+ * can't be read) means nothing is safe to delete. Returns the files to delete and the unused ones to remember for next time.
+ */
+export function filesToSweep(stored: string[], used: (string[] | null)[], before: string[]): { drop: string[]; unused: string[] } {
+  if (used.includes(null)) return { drop: [], unused: [] };
+  const inUse = new Set(used.flat() as string[]);
+  const unused = stored.filter((id) => !inUse.has(id));
+  return { drop: unused.filter((id) => before.includes(id)), unused: unused.filter((id) => !before.includes(id)) };
+}
+
+const UNUSED = 'freeform:unused-files';
+
+/** Clear away recordings and pictures nothing can bring back (see filesToSweep). `keep`: the ids the open show uses. */
+export async function sweepFiles(keep: string[], store: Pick<Storage, 'getItem' | 'setItem'> = localStorage): Promise<void> {
+  try {
+    const stored = (await run<IDBValidKey[]>('audio', 'readonly', (s) => s.getAllKeys())).map(String);
+    if (!stored.length) return;
+    const shows = await run<Entry[]>('shows', 'readonly', (s) => s.getAll());
+    const versions = await run<Entry[]>('versions', 'readonly', (s) => s.getAll());
+    const autosave = store.getItem(AUTOSAVE);
+    const used = [keep, ...shows.map((e) => filesUsed(e.json)), ...versions.map((e) => filesUsed(e.json)),
+      autosave ? filesUsed(autosave) : [], phoneFiles(store.getItem('freeform:performer'))];
+    let before: string[] = [];
+    try { const b = JSON.parse(store.getItem(UNUSED) ?? '[]'); if (Array.isArray(b)) before = b.filter((x) => typeof x === 'string'); } catch { /* start over */ }
+    const { drop, unused } = filesToSweep(stored, used, before);
+    for (const id of drop) await deleteAudio(id);
+    store.setItem(UNUSED, JSON.stringify(unused));
+  } catch { /* storage blocked: try again next visit */ }
 }

@@ -184,6 +184,14 @@ export function validSectionList(x: unknown): SectionList | null {
 }
 
 /** A new show, on a football field (high school hashes unless `field` says otherwise) or the floor `field` names. */
+/**
+ * Nothing written in it yet: no performers, props, recording, tracing picture, or music layout, and one set with no
+ * markup or note. Only such a show may be dropped from the library without asking (the blank show a first visit opens).
+ * A show with a prop, a second set, or a note is a draft, even with no performers.
+ */
+export const isBlankShow = (s: Show): boolean => !s.performers.length && !s.props?.length && !s.music && !s.trace && !s.movements?.length
+  && s.sets.length <= 1 && !s.sets.some((x) => x.marks?.length || x.note);
+
 export function newShow(sections: SectionList = DEFAULT_SECTIONS, field: FieldSpec = 'highSchool'): Show {
   return withField({
     format: 'freeform-show',
@@ -1068,7 +1076,7 @@ export function revisionLabel(show: Show): string {
   return show.revisionSig && show.revisionSig !== drillSig(show) ? `rev ${show.revision} + changes` : `rev ${show.revision}`;
 }
 
-export { parseShow, parseShowFile, MAX_ATTACHED_AUDIO, MAX_ATTACHED_PICTURE, type Attached } from './showFile';
+export { parseShow, parseShowFile, MAX_ATTACHED_AUDIO, MAX_ATTACHED_PICTURE, planBackup, tooBigForBackup, type Attached } from './showFile';
 
 // ---- Range playback.
 

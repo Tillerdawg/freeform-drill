@@ -4,7 +4,7 @@ import {
   nextRevision, revisionLabel,
   addPerformer, addSetAfter, advance, biggestStep, chainOrder, clearFtl, ftlTrail, moveSteps, normalizeFtl, flip, mirrorSides, moveSetTo, remapHash, rotateScale, setFtl, newShowId, parseShowFile, snapSelection, playRange, playPlan, label, locate, newShow, parseShow, placeInSet, positionsAt,
   removePerformers, renumberSets, scoreOrder, DEFAULT_SECTIONS, removeSet, setAt, setCounts, setStarts, totalCounts, xFrom, yFrom, insertSetAt, showLength, movementAt, movementOfSet, setFtlTurns,
-  addSetHere, setCue, newPropSpot, setFtlSmooth, routeTurns, leaderDistance, setTiming, timingOf, fitTurn, setTurning, turnRoute, groupTurn, counterMarch, closeCalls, addProp, placeProp, propsAt, hitProp, removeProp, updateProp, propShape, shapePatch, triangleCorners, triangleSides, triangleFromSides, triangleWidth, fieldOf, moveSegments, withShowId, withField, validField,
+  addSetHere, setCue, newPropSpot, setFtlSmooth, routeTurns, leaderDistance, setTiming, timingOf, fitTurn, setTurning, turnRoute, groupTurn, counterMarch, closeCalls, addProp, placeProp, propsAt, hitProp, removeProp, updateProp, propShape, shapePatch, triangleCorners, triangleSides, triangleFromSides, triangleWidth, fieldOf, moveSegments, withShowId, withField, validField, isBlankShow,
 } from './show';
 
 function twoSetShow() {
@@ -39,6 +39,21 @@ describe('what a new show is written on', () => {
     expect(validField({ kind: 'floor', w: 32, d: 21, extra: 1 })).toEqual({ kind: 'floor', w: 32, d: 21 });
     for (const bad of ['toString', 'grass', null, 3, {}, { kind: 'floor', w: 2, d: 20 }, { kind: 'floor', w: 20, d: 1e9 }, { kind: 'pool', w: 20, d: 20 }, { kind: 'court', w: NaN, d: 20 }])
       expect(validField(bad)).toBeNull();
+  });
+});
+
+describe('isBlankShow (only a show with nothing in it may be dropped without asking)', () => {
+  it('a new show is blank', () => {
+    expect(isBlankShow(newShow())).toBe(true);
+  });
+
+  it('a draft with a prop, a second set, a note, markup, or a recording is not, even with no performers', () => {
+    const s = newShow();
+    expect(isBlankShow(addProp(s, 'Podium', 4, 2, false, { x: 0, y: 30 }).show)).toBe(false);
+    expect(isBlankShow(addSetAfter(s, 0, 8))).toBe(false);
+    expect(isBlankShow({ ...s, sets: [{ ...s.sets[0], note: 'Opener' }] })).toBe(false);
+    expect(isBlankShow({ ...s, music: { audioId: 'a1', name: 'x.mp3', beats: [] } as unknown as typeof s.music })).toBe(false);
+    expect(isBlankShow(twoSetShow().show)).toBe(false);
   });
 });
 

@@ -38,6 +38,9 @@ jobs:
           if command -v google-chrome >/dev/null; then echo "CHROME=$(command -v google-chrome)" >> "$GITHUB_ENV"
           else npx playwright install --with-deps chromium; fi
       - run: node scripts/screenshots.mjs
+      # Journeys: the production build in fresh browser profiles (offline use only works there). A draft survives Shows…,
+      # a failed save stops a switch, Remove music then Undo keeps the recording, and a phone works with no signal.
+      - run: node scripts/journeys.mjs
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist

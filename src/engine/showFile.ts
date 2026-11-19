@@ -32,6 +32,39 @@ export function parseShow(text: string): Show {
 /** A recording or tracing picture packed into a full backup file: its type and its bytes as base64. */
 export interface Attached { type: string; data: string }
 export const MAX_ATTACHED_AUDIO = 25_000_000, MAX_ATTACHED_PICTURE = 10_000_000; // bytes, before base64
+
+const mb = (bytes: number) => `${Math.round(bytes / 100_000) / 10} MB`;
+
+/**
+ * Said when a recording or picture is added, if it's too big to go in a Full backup (the limits every FreeFORM opens),
+ * so a director finds out now and not on the new computer. Null when it fits.
+ */
+export function tooBigForBackup(kind: 'audio' | 'picture', bytes: number): string | null {
+  const max = kind === 'audio' ? MAX_ATTACHED_AUDIO : MAX_ATTACHED_PICTURE;
+  if (bytes <= max) return null;
+  return kind === 'audio'
+    ? `It's ${mb(bytes)}, too big to go in a Full backup (up to ${mb(max)}), so keep the recording's own file too. An MP3 of the same music is usually small enough.`
+    : `It's ${mb(bytes)}, too big to go in a Full backup (up to ${mb(max)}), so keep the picture's own file too.`;
+}
+
+/**
+ * What a Full backup will carry, checked with the same limits Import uses (parseShowFile), so a backup that saves always
+ * opens again. `found`: the recording and picture as this browser has them (undefined: the show points at one that's gone).
+ * `problems`: one plain sentence for each one that has to stay out.
+ */
+export function planBackup(show: Show, found: { audio?: { size: number }; picture?: { size: number } }): { audio: boolean; picture: boolean; problems: string[] } {
+  const problems: string[] = [];
+  const check = (kind: 'audio' | 'picture', wanted: boolean, blob: { size: number } | undefined, what: string): boolean => {
+    if (!wanted) return false;
+    if (!blob) { problems.push(`${what} isn't in this browser anymore, so the backup can't carry it.`); return false; }
+    const max = kind === 'audio' ? MAX_ATTACHED_AUDIO : MAX_ATTACHED_PICTURE;
+    if (blob.size > max) { problems.push(`${what} is ${mb(blob.size)}, and a Full backup can carry up to ${mb(max)}, so it stays out.${kind === 'audio' ? ' An MP3 of the same music is usually small enough.' : ''}`); return false; }
+    return true;
+  };
+  const audio = check('audio', !!show.music, found.audio, `The recording "${show.music?.name ?? ''}"`);
+  const picture = check('picture', !!show.trace, found.picture, 'The tracing picture');
+  return { audio, picture, problems };
+}
 const ATTACHED_TYPE = { audio: /^audio\/[\w.+-]{1,40}$/, picture: /^image\/[\w.+-]{1,40}$/ };
 const B64_RE = /^[A-Za-z0-9+/]*={0,2}$/;
 

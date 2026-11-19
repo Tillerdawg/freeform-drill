@@ -8,14 +8,16 @@ Open an [issue](https://github.com/Tillerdawg/freeform-drill/issues/new/choose).
 
 ## Changing the code
 
-You need [Node.js](https://nodejs.org/) 22 or newer.
+You need [Node.js](https://nodejs.org/) 22.12 or later on the 22 line, or 24 or later (`package.json` says so under `engines`). Earlier 22 releases are too old for the build tools.
 
 ```sh
-npm install
+npm ci             # install exactly what package-lock.json lists
 npm run dev        # the editor, at the address it prints (/app/)
 npm test           # unit tests
 npm run typecheck  # TypeScript checks
 npm run build      # the site in dist/
+npm run preview    # serve that build (guide and student pages, offline use on)
+npm run journeys   # after a build: browser checks of saving, switching shows, and offline phones
 ```
 
 Before you open a pull request, read [CLAUDE.md](CLAUDE.md): it has the house rules for people and AI agents alike. The short version:

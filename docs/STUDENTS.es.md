@@ -4,7 +4,7 @@ Tu director escribe el drill en FreeFORM Drill y te manda un enlace. Esta págin
 
 ## 1. Abre el enlace
 
-Toca el enlace que te mandó tu director, o escanea el código QR con la cámara. El show se abre en el navegador de tu teléfono. No hay que instalar ninguna app ni crear una cuenta. Después de eso, el show queda guardado en tu teléfono, así que funciona en el ensayo sin señal.
+Toca el enlace que te mandó tu director, o escanea el código QR con la cámara. El show se abre en el navegador de tu teléfono. No hay que instalar ninguna app ni crear una cuenta. Después de eso, el show queda guardado en tu teléfono, así que funciona en el ensayo sin señal. Revísalo antes del ensayo: arriba en **Mis puntos** debe decir **Listo sin internet** (mira el paso 5). Si no lo dice, abre el show otra vez donde tengas señal.
 
 Si el enlace se abre dentro de otra app (Instagram, Snapchat o una app del equipo), usa el menú de esa app para abrirlo en Safari o Chrome. Esos navegadores internos no siempre pueden guardar el show.
 

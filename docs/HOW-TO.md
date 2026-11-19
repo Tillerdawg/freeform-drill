@@ -229,7 +229,7 @@ FreeFORM decides who goes to which spot by keeping total travel from the previou
 
 ![The winds and battery spelling GO](img/letters.png)
 
-**Tracing a picture.** To copy a logo or a sketch onto the field, open **Picture to trace** in the sidebar (or click **Picture to trace…** at the bottom of the **Shape** menu) and click **Add a picture…**. It shows under the field, see-through. Set how **Wide** it is in steps, where it sits (**Across** is steps from the 50, **Up** is steps from the front sideline), and how strong it shows with **See-through**. Then place performers on it by hand or with the shapes. The picture stays in the browser you added it in: it isn't saved in the ordinary show file (only in a **Full backup…**), printed, or sent to phones. **Remove** takes it away.
+**Tracing a picture.** To copy a logo or a sketch onto the field, open **Picture to trace** in the sidebar (or click **Picture to trace…** at the bottom of the **Shape** menu) and click **Add a picture…**. It shows under the field, see-through. Set how **Wide** it is in steps, where it sits (**Across** is steps from the 50, **Up** is steps from the front sideline), and how strong it shows with **See-through**. Then place performers on it by hand or with the shapes. The picture stays in the browser you added it in: it isn't saved in the ordinary show file (only in a **Full backup…**), printed, or sent to phones. **Remove** takes it away, and Undo (or an earlier version) brings it back.
 
 ![A picture to trace under the field](img/trace.png)
 
@@ -420,7 +420,7 @@ It takes a few seconds. The first time, FreeFORM downloads the instrument sounds
 
 When the counts are in, Play follows the music, rubato and all, and the recording's waveform shows along the bottom of the timeline. Uncheck **Play with music** to go back to the Tempo setting.
 
-The recording stays in your browser. It isn't saved in the ordinary `.freeform` file, but the counts are, so on another computer you can add the same recording again and everything lines up. To take the recording along, use **Full backup…** (see [Saving, backing up, and opening files](#saving-backing-up-and-opening-files)).
+The recording stays in your browser. It isn't saved in the ordinary `.freeform` file, but the counts are, so on another computer you can add the same recording again and everything lines up. To take the recording along, use **Full backup…** (see [Saving, backing up, and opening files](#saving-backing-up-and-opening-files)). **Remove music** takes the recording off the show, and Undo (or an earlier version) brings it back.
 
 ## Print dot sheets and drill charts
 
@@ -499,7 +499,17 @@ FreeFORM's service keeps published shows for free. A show nobody has opened or u
 - **Full backup…** carries it (along with the recording and tracing picture). **Import…** the file on the new device, and **Publish update** keeps the same link.
 - **Use on another device**, under the link in the Share dialog, shows a **recovery code**, with the steps to use it written right above it. Click **Email it to yourself** (or **Copy recovery code** and keep it somewhere safe), so the steps travel with the code. On the new device, click **Open from a link or recovery code…** on the blank field (or **Shows… → Open from a link or recovery code…**) and paste the whole message. You can also paste it under **Published this show from another device?** in the Share dialog. **Keep the code private:** like the link, it's a password, and it can also change the show.
 
-If the old device is gone and you have no file, the drill isn't lost: paste the link students use into **Shows… → Open from a link or recovery code…**, and the whole show comes back, names and music included. (The link holds the key that unlocks it.) Without the recovery code, though, publishing from there makes a new link.
+If the old device is gone and you have no file, the drill isn't lost: paste a link students use, or the recovery code, into **Shows… → Open from a link or recovery code…**. (The link holds the key that unlocks the show.) How much comes back depends on what you have:
+
+| What you have | Performers' names | Recording | Tracing picture | Keeps updating the same phone link |
+|---|---|---|---|---|
+| A file from **Save** | Yes | No | No | No |
+| A **Full backup…** file | Yes | Yes (up to 25 MB) | Yes (up to 10 MB) | Yes |
+| A **Send this version** link | No: drill numbers only (B5, P1) | No | No | No |
+| A **Keep phones up to date** link | Yes | If you checked the music box | No | No |
+| The recovery code | Yes | If you checked the music box | No | Yes |
+
+Without the recovery code (or a Full backup), publishing from the new device makes a new link, so send students the new one. To check a copy before you need it, **Import…** it (or open it from the link) and look for the names, play the music, and see whether **Share…** says **Publish update**.
 
 **Other ways to host it**, at the bottom of the dialog, are for directors who'd rather keep the file themselves. It's the same locked file either way:
 
@@ -579,7 +589,7 @@ With a keyboard attached, the [keyboard shortcuts](#keyboard-shortcuts) work too
 
 ## Saving, backing up, and opening files
 
-**Get a show back.** Lost something? **Help**, then **Get a show back**, asks what happened and has the button for each case: **Undo** for a mistake you just made, **See earlier versions** (below), **Open Shows…** for another show missing from the screen, **Import a file…** when it's gone from this browser (a new computer, or cleared history) and you saved a file, and **Open from a link or recovery code…** for anything else (if you published the show to phones, its link brings the whole show back). It also says when you last saved the open show to a file.
+**Get a show back.** Lost something? **Help**, then **Get a show back**, asks what happened and has the button for each case: **Undo** for a mistake you just made, **See earlier versions** (below), **Open Shows…** for another show missing from the screen, **Import a file…** when it's gone from this browser (a new computer, or cleared history) and you saved a file, and **Open from a link or recovery code…** for anything else (if you published the show to phones, its link brings the drill back; [the table under A new computer or iPad mid-season](#send-the-show-to-your-performers) says what each kind of copy carries). It also says when you last saved the open show to a file.
 
 ![Get a show back](img/recover.png)
 
@@ -612,7 +622,9 @@ When something isn't saved somewhere it could be, the box also gets a dashed out
 
   If a show with performers has changes you haven't saved to a file for a week, a note over the field reminds you, with a **Save** button (and **Full backup…** if the show has a recording or a tracing picture). **Later** asks again tomorrow. In **Shows…**, **Backup due** stays beside each show that needs a file copy, even while it's closed or the field reminder is snoozed. Saving a file clears the label.
 - **Full backup…** (next to **Save As…**) saves a `.freeform` file that also holds the show's recording and tracing picture, and its publishing if you published it to phones from here, so the show moves to another computer complete and keeps updating the same phone link. Keep a full backup private, since it can change the published show. It's much bigger than an ordinary save (a 4-minute mp3 adds about 8 MB), so keep using **Save** for everyday backups. It always asks where to save, and ⌘S never writes over it. **Import…** on the other computer brings the show in with its recording and picture. Share links never carry the recording.
-- **If the autosave fails.** If the browser refuses to save (its storage is full, or it's a private window), a note over the field says so, with **Save now**. Until it's fixed, your work is only in that open tab and any file you save.
+
+  A Full backup can carry a recording up to 25 MB and a picture up to 10 MB. A long WAV file is often bigger than that, so use an MP3 of the same music. FreeFORM tells you when you add a recording or picture that's too big, and again when you click **Full backup…**: it names what has to stay out (too big, or no longer in this browser) and asks before saving the backup without it. That way, a backup that saves always opens again.
+- **If the autosave fails.** If the browser refuses to save (its storage is full, or it's a private window), a note over the field says so, with **Save now**. Until it's fixed, your work is only in that open tab and any file you save. If you try to open another show then (**New**, **Open**, **Import…**, the sample, or a link), FreeFORM doesn't switch yet. It asks first: **Save a file, then continue**, **Continue without saving** (the latest changes that didn't save are lost), or **Stay here**.
 - **Import…** opens a `.freeform` file (older `.freeform.json` files too) as a new show; the one you had open stays under **Shows…**. A file of a show that's already in this browser comes in as a copy beside it, never over it. A file from before November 7, 2026 with facings or guard equipment set opens with them as performer notes on the same set ("Face Side 2," "Flag").
 - **Pyware 3D files (`.3dj`)**: Import… also opens these, from Pyware 8 and older. You get the sets with their counts and names (kept as they are when you add or delete sets), measures and notes, sections from Pyware's symbols, label positions, and the roster names. Moves that aren't straight in Pyware (follow-the-leader, rotations, delayed step-offs) come in count by count, with even steps. If a follow-the-leader was only described in the set's note, Pyware saved it as straight lines that run through each other; FreeFORM rebuilds it as a follow-the-leader group when the two sets fit one exactly, and you can change its leader or turns with **Path**. Check which end leads: when the file could have turned at either end, FreeFORM picks the leader nearest the front. Drawn markup and the 3D figures don't come over.
 

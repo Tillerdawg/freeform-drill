@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { secondsAt, type Midi } from '../engine/midi';
 import { parseScore } from '../engine/musicxml';
 import { synced } from '../engine/music';
-import { newId, showLength, type Show } from '../engine/show';
+import { newId, showLength, tooBigForBackup, type Show } from '../engine/show';
 import type { RehearsalSource } from '../engine/scoreMidi';
 import { deleteAudio, getAudio, putAudio } from './audioStore';
 import { makeRehearsalTrack } from './rehearsalTrack';
@@ -65,7 +65,8 @@ export function MusicMenu({ show, setShow, audio, onAudio, useMusic, setUseMusic
       const keep = active.music?.name === f.name;
       setShow((s) => ({ ...s, music: { name: f.name, audioId: id, taps: keep ? s.music?.taps ?? [] : [] } }));
       onAudio(id);
-      setNote(keep ? 'Loaded. Your counts still apply.' : `Loaded ${f.name}. Now add its score, or tap the counts.`);
+      const big = tooBigForBackup('audio', f.size); // said now, not discovered when the show moves to another computer
+      setNote(`${keep ? 'Loaded. Your counts still apply.' : `Loaded ${f.name}. Now add its score, or tap the counts.`}${big ? ` ${big}` : ''}`);
     } finally {
       setWorking('');
     }
@@ -163,7 +164,7 @@ export function MusicMenu({ show, setShow, audio, onAudio, useMusic, setUseMusic
             title="For a band or studio recording that wasn't made from the score: tap beat 1 of each bar, and FreeFORM places the rest from the score">Line up the downbeats…</button>}
           {m && <button disabled={!audio || !!working} onClick={() => { setTapping(true); close(); }}>Tap counts…</button>}
           {m && synced(m) && <label style={{ fontSize: 13 }}><input type="checkbox" checked={useMusic} onChange={(e) => setUseMusic(e.target.checked)} /> Play with music (off: use Tempo)</label>}
-          {m && <button disabled={!!working} className="danger" onClick={() => { deleteAudio(m.audioId); setShow((s) => { const { music: _, ...rest } = s; return rest; }); setNote(''); }}>Remove music</button>}
+          {m && <button disabled={!!working} className="danger" onClick={() => { setShow((s) => { const { music: _, ...rest } = s; return rest; }); setNote(''); }}>Remove music</button>}{/* the recording stays until nothing can bring it back (Undo, a version): see sweepFiles */}
           {note && <p role="status" style={{ margin: 0, fontSize: 12, maxWidth: 320 }}>{note}</p>}
         </>}
       </Menu>

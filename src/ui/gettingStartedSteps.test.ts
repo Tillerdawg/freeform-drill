@@ -43,5 +43,7 @@ describe('send it to your band', () => {
     expect(m).toContain('https://freeformdrill.org/students/');
     expect(m).toContain('https://freeformdrill.org/es/students/');
     expect(bandMessage('', null)).toContain('(paste the link from Share here)');
+    expect(m).toContain('your name or your drill number'); // a share link has no names, only drill numbers
+    expect(m).toContain('Ready offline'); // the phone's own word for "works with no signal", not a promise
   });
 });

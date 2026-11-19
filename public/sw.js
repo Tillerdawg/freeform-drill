@@ -27,11 +27,12 @@ self.addEventListener('fetch', (e) => {
     // so a new version could take that long to appear). Offline, the cached page; /app/?sample and the like count as /app/.
     const page = url.pathname.includes('/app/') ? './app/' : './';
     e.respondWith(fetch(new Request(req, { cache: 'no-cache' })).then((res) => { save(res); refresh(); return res; })
-      .catch(() => caches.match(req, { ignoreSearch: true }).then((r) => r || caches.match(page))));
+      .catch(() => caches.match(req, { ignoreSearch: true, ignoreVary: true }).then((r) => r || caches.match(page, { ignoreVary: true }))));
     return;
   }
-  // Built files have content hashes in their names, so a cached copy is always the right one.
-  e.respondWith(caches.match(req).then((hit) => hit || fetch(req).then(save)));
+  // Built files have content hashes in their names, so a cached copy is always the right one. ignoreVary: a server that
+  // sends "Vary: Origin" (vite preview does) would otherwise make the page's module requests miss the cached copies offline.
+  e.respondWith(caches.match(req, { ignoreVary: true }).then((hit) => hit || fetch(req).then(save)));
 });
 
 // After an update: fetch what the new version needs (the view not opened yet included) and drop built files it no longer

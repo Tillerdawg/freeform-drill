@@ -4,7 +4,7 @@ Your director writes the drill in FreeFORM Drill and sends you a link. This page
 
 ## 1. Open the link
 
-Tap the link your director sent, or scan the QR code with your camera. The show opens in your phone's web browser. There's no app to install and no account. The show is saved on your phone after that, so it works at rehearsal with no signal.
+Tap the link your director sent, or scan the QR code with your camera. The show opens in your phone's web browser. There's no app to install and no account. The show is saved on your phone after that, so it works at rehearsal with no signal. Check before rehearsal: the top of **My dots** should say **Ready offline** (see step 5). If it doesn't, open the show again where you have signal.
 
 If the link opens inside another app (Instagram, Snapchat, or a team app), use that app's menu to open it in Safari or Chrome instead. Those built-in browsers can't always save the show.
 

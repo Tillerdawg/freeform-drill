@@ -13,7 +13,8 @@ describe('the save status chip', () => {
     const s = saveStatus({ ...base, fileSavedAt: 1, revision: 6 });
     expect(s.label).toBe('Browser ✓ · File: 2:14 PM · Phones: rev 6');
     expect(s.attention).toBe(false);
-    expect(s.phones).toMatch(/revision 6, the drill as it is now/);
+    expect(s.phones).toMatch(/Revision 6 is the last one you sent out .*the drill as it is now/);
+    expect(s.phones).toMatch(/may still have an older one/); // the editor can't know what an offline phone has
   });
   it('says what needs saving, in words', () => {
     const s = saveStatus({ ...base, unexported: 1, fileSavedAt: 1, revision: 6, changedSincePublish: true });

@@ -8,7 +8,7 @@ export interface SaveState {
   unexported: number | null;
   /** When the show was last saved to a file from here, if ever. */
   fileSavedAt: number | null;
-  /** The revision phones have, if the show has been published. */
+  /** The last revision sent out (published, or a locked file downloaded to post), if any. Phones that haven't been online since may have an older one. */
   revision?: number;
   /** The drill changed after that revision went out (revisionLabel's "+ changes"). */
   changedSincePublish: boolean;
@@ -41,7 +41,7 @@ export function saveStatus(s: SaveState): SaveStatus {
     phones: !s.revision
       ? 'Not published to phones yet. Share sends it to your performers.'
       : s.changedSincePublish
-        ? `Phones have revision ${s.revision}, and you've changed the drill since. Publish again to send the changes.`
-        : `Phones have revision ${s.revision}, the drill as it is now.`,
+        ? `Revision ${s.revision} is the last one you sent out, and you've changed the drill since. Publish again to send the changes.`
+        : `Revision ${s.revision} is the last one you sent out (published, or downloaded for you to post), and it's the drill as it is now. Each phone shows which revision it has: one that hasn't been online since may still have an older one.`,
   };
 }
