@@ -70,6 +70,8 @@ From the app's palette (`src/ui/palette.ts`):
 | Off-white | `#e9f0ea` | "FORM" and the dots, on dark |
 | Turf | `#357842` | "Free" and the first dot on white; the FF badge tile |
 | Field | `#1d2a1f` | "FORM" and the dots on white; dark backgrounds |
+| White | `#ffffff` | Light backgrounds; the check and dot on green controls in light mode |
+| Black | `#000000` | Not in the logo: ink on printed charts and dot sheets |
 
 ## Type
 

@@ -19,8 +19,8 @@
     <meta property="og:image" content="https://freeformdrill.org/og-image.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <style>
-      :root { --bg: #1d2a1f; --bg-deep: #182419; --surface: #22302a; --surface-2: #2b3b2f; --line: #33443a; --line-strong: #44594a; --muted: #6b8270; --green: #3d6b4a; --green-line: #7cc08b; --text: #e9f0ea; --gold: #ffd166; --gold-fill: #ffd166; --on-gold: #182419; --warn: #f5c518; --warn-line: #5a4a1a; --danger: #ff756b; --step-red: #ff4d4d; --danger-bg: #5a2b2b; --danger-line: #a04848; --blue: #5ad1ff; --turf: #357842; --on-turf: #ffffff; --floor: #8a6a45; } /* = src/ui/palette.ts */
-      :root[data-theme=light] { --bg: #eef3ef; --bg-deep: #ffffff; --surface: #e3ebe5; --surface-2: #d5e0d8; --line: #bfcdc3; --line-strong: #8ea596; --muted: #5f7564; --green: #c4e3cc; --green-line: #2a6e3b; --text: #14201a; --gold: #1d2a1f; --gold-fill: #ffd166; --on-gold: #14201a; --warn: #7a5200; --warn-line: #c9a447; --danger: #bd1c3a; --step-red: #c41e1e; --danger-bg: #f6d5d3; --danger-line: #c96a64; --blue: #075f85; --turf: #357842; --on-turf: #ffffff; --floor: #8a6a45; } /* = LIGHT in src/ui/palette.ts */
+      :root { --bg: #1d2a1f; --bg-deep: #182419; --surface: #22302a; --surface-2: #2b3b2f; --line: #33443a; --line-strong: #44594a; --muted: #6b8270; --green: #3d6b4a; --green-line: #7cc08b; --text: #e9f0ea; --gold: #ffd166; --gold-fill: #ffd166; --on-gold: #182419; --warn: #f5c518; --warn-line: #5a4a1a; --danger: #ff756b; --step-red: #ff4d4d; --danger-bg: #5a2b2b; --danger-line: #a04848; --blue: #5ad1ff; --turf: #357842; --floor: #8a6a45; --white: #ffffff; --black: #000000; } /* = src/ui/palette.ts */
+      :root[data-theme=light] { --bg: #eef3ef; --bg-deep: #ffffff; --surface: #e3ebe5; --surface-2: #d5e0d8; --line: #bfcdc3; --line-strong: #8ea596; --muted: #5f7564; --green: #c4e3cc; --green-line: #2a6e3b; --text: #14201a; --gold: #1d2a1f; --gold-fill: #ffd166; --on-gold: #14201a; --warn: #7a5200; --warn-line: #c9a447; --danger: #bd1c3a; --step-red: #c41e1e; --danger-bg: #f6d5d3; --danger-line: #c96a64; --blue: #075f85; --turf: #357842; --floor: #8a6a45; --white: #ffffff; --black: #000000; } /* = LIGHT in src/ui/palette.ts */
       :root { --shadow: rgba(0,0,0,0.45); --shadow-strong: rgba(0,0,0,0.55); --backdrop: rgba(0,0,0,0.55); --dim: rgba(0,0,0,0.45); --overlay: rgba(24,36,25,0.88); --raise: 0 6px 18px var(--shadow); --lift: 0 12px 40px var(--shadow-strong); } /* = EFFECTS in src/ui/palette.ts, and the two shadow sizes */
       :root[data-theme=light] { --shadow: rgba(20,32,26,0.2); --shadow-strong: rgba(20,32,26,0.3); --backdrop: rgba(20,32,26,0.4); --dim: rgba(20,32,26,0.2); --overlay: rgba(255,255,255,0.92); } /* = EFFECTS_LIGHT */
       html { touch-action: manipulation; } /* no double-tap page zoom on buttons; the field has its own pinch */
@@ -65,8 +65,8 @@
       input[type=radio]:hover { border-color: var(--gold-fill); }
       input[type=radio]:checked { background: radial-gradient(circle, var(--on-gold) 0 3.5px, var(--gold-fill) 4px); border-color: var(--gold-fill); }
       :root[data-theme=light] input[type=radio] { border-color: var(--turf); }
-      :root[data-theme=light] input[type=radio]:checked { background: radial-gradient(circle, var(--on-turf) 0 3.5px, var(--turf) 4px); }
-      /* Light-mode checkboxes match the light-mode radio buttons (Jason): a green border, filled green with a white check (the on-turf white). */
+      :root[data-theme=light] input[type=radio]:checked { background: radial-gradient(circle, var(--white) 0 3.5px, var(--turf) 4px); }
+      /* Light-mode checkboxes match the light-mode radio buttons (Jason): a green border, filled green with a white check (the palette's white, written out inside the check's picture). */
       :root[data-theme=light] input[type=checkbox] { border-color: var(--turf); }
       :root[data-theme=light] input[type=checkbox]:hover { border-color: var(--gold-fill); }
       :root[data-theme=light] input[type=checkbox]:checked, :root[data-theme=light] input[type=checkbox]:indeterminate { background-color: var(--turf); border-color: var(--turf); }

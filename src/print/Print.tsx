@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useDialog } from '../ui/useDialog';
+import { FIELD } from '../ui/palette';
 import { colorOf, fieldOf, mark, moveSegments, parseShow, revisionLabel, type Show } from '../engine/show';
 import { changedForPrint } from '../perform/changes';
 import { listVersions, loadPublished } from '../ui/showStore';
@@ -24,7 +25,7 @@ function chartImage(show: Show, i: number, paths: boolean): string {
   drawProps(ctx, v, show.props ?? [], show.sets[i].props ?? {}, null, 'print', 1.4 * v.scale);
   const s = v.scale, pos = show.sets[i].pos;
   if (paths && i > 0) { // where everyone came from: thin dashed lines, under the dots
-    ctx.save(); ctx.strokeStyle = '#000'; ctx.lineWidth = 0.1 * s; ctx.setLineDash([0.5 * s, 0.35 * s]);
+    ctx.save(); ctx.strokeStyle = FIELD.black; ctx.lineWidth = 0.1 * s; ctx.setLineDash([0.5 * s, 0.35 * s]);
     for (const seg of moveSegments(show, i)) { const a = toScreen(v, seg.from), b = toScreen(v, seg.to); ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
     ctx.restore();
   }
@@ -33,13 +34,13 @@ function chartImage(show: Show, i: number, paths: boolean): string {
   for (const p of here) {
     const q = toScreen(v, pos[p.id]);
     const color = colorOf(show, p);
-    if (letters) { drawGlyph(ctx, q, mark(show, p).glyph!, 1.7 * s, color ?? '#000', undefined, color ? '#000' : '#fff'); continue; } // white edge on plain black letters keeps lines from running through
-    ctx.fillStyle = color ?? '#000';
+    if (letters) { drawGlyph(ctx, q, mark(show, p).glyph!, 1.7 * s, color ?? FIELD.black, undefined, color ? FIELD.black : FIELD.white); continue; } // white edge on plain black letters keeps lines from running through
+    ctx.fillStyle = color ?? FIELD.black;
     ctx.beginPath(); ctx.arc(q.x, q.y, 0.5 * s, 0, Math.PI * 2); ctx.fill();
-    if (color) { ctx.lineWidth = 0.12 * s; ctx.strokeStyle = '#000'; ctx.stroke(); } // outlined, so pale colors still show on white
+    if (color) { ctx.lineWidth = 0.12 * s; ctx.strokeStyle = FIELD.black; ctx.stroke(); } // outlined, so pale colors still show on white
   }
   // White halo so yard lines and grid don't run through the labels.
-  drawLabels(ctx, here.map((p) => ({ id: p.id, label: mark(show, p).label, at: pos[p.id], pin: show.sets[i].labels?.[p.id] })), v, letters ? 0.65 * s : 0.5 * s, 1.5 * s, '#000', '#fff', true); // on paper every label shows
+  drawLabels(ctx, here.map((p) => ({ id: p.id, label: mark(show, p).label, at: pos[p.id], pin: show.sets[i].labels?.[p.id] })), v, letters ? 0.65 * s : 0.5 * s, 1.5 * s, FIELD.black, FIELD.white, true); // on paper every label shows
   drawMarks(ctx, v, show.sets[i].marks ?? [], 'print');
   return c.toDataURL('image/png');
 }
@@ -69,7 +70,7 @@ function dotPictures(show: Show, cards: Card[]): Map<string, string> {
     if (!at) continue;
     ctx.drawImage(base(r.index), 0, 0);
     const p = toScreen(v, at);
-    ctx.fillStyle = '#000'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5;
+    ctx.fillStyle = FIELD.black; ctx.strokeStyle = FIELD.white; ctx.lineWidth = 2.5;
     ctx.beginPath(); ctx.arc(p.x, p.y, 9, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     out.set(`${card.id}:${r.index}`, c.toDataURL('image/png'));
   }

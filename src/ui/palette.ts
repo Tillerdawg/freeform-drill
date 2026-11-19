@@ -25,8 +25,9 @@ export const PALETTE = {
   'danger-line': '#a04848',
   blue: '#5ad1ff', // shape guides, links
   turf: '#357842', // the field, and radio buttons in light mode (the green dot in the light FreeFORM Drill logo, Jason)
-  'on-turf': '#ffffff', // the dot in a chosen radio button, in light mode
   floor: '#8a6a45', // an indoor floor or tarp, under white lines and labels
+  white: '#ffffff', // pure white, the same in both modes: the check and dot on green (light-mode checkboxes and radio buttons), the white field, paper
+  black: '#000000', // pure black, the same in both modes: ink on paper
 } as const;
 
 export type PaletteName = keyof typeof PALETTE;
@@ -59,8 +60,9 @@ export const LIGHT: Record<PaletteName, string> = {
   'danger-line': '#c96a64',
   blue: '#075f85',
   turf: '#357842',
-  'on-turf': '#ffffff',
   floor: '#8a6a45',
+  white: '#ffffff',
+  black: '#000000',
 };
 
 /**
@@ -91,8 +93,8 @@ export const EFFECTS_LIGHT: Record<EffectName, string> = {
  * letters, and the phone's quieter dots. Paper (black on white) uses some of them too.
  */
 export const FIELD = {
-  white: '#ffffff',
-  black: '#000000',
+  white: PALETTE.white, // the palette's own white and black
+  black: PALETTE.black,
   ink: '#111111', // letters on the white field, and on a gold badge
   'paper-number': '#555555', // yard numbers on paper
   'guide-edge': '#0b2a36', // the dark edge of a blue shape handle on turf

@@ -640,3 +640,9 @@ Recent decisions are here. Older ones are in [docs/decisions/](docs/decisions/),
 ## 2026-11-19 14:30 EST: Light-mode checkboxes match the light-mode radio buttons
 - **Who:** Jason: checkboxes stay as they are in dark mode, and in light mode turn green with a white check, to match the light-mode radio buttons. The empty box's green border is Claude's, to match the radio buttons' green ring (*Jason can veto*).
 - **Decision:** In light mode a checkbox has a green (`turf`) border, and when checked it fills green with a white check (the `on-turf` white; the same goes for the "some" dash). Hover is still gold. Dark mode is unchanged: a dark box that turns gold with a dark check. The guide's screenshots are all in dark mode, so none change.
+
+## 2026-11-19 14:35 EST: White and black join the official palette
+- **Who:** Jason asked to add black and white to FreeFORM's official palette if they weren't there. The details are Claude's (*Jason can veto*).
+- **Context:** They were only in `FIELD`, the field's canvas ink, with no CSS variables and no place in the brand colors. Today's light-mode checkboxes and radio buttons needed a white, so it had been added as `on-turf`. Print drew with loose `'#000'` and `'#fff'`.
+- **Decision:** `white` (#ffffff) and `black` (#000000) are in `PALETTE` and `LIGHT`, the same in both modes, with `--white` and `--black` CSS variables in the editor and both front pages. `on-turf` is gone: the light-mode dot and check use the palette's white. `FIELD.white` and `FIELD.black` now point at the palette's, and Print draws with them instead of loose values. The brand colors table (`brand/README.md`) lists both, and CLAUDE.md's palette rule mentions them. No colors on screen or paper changed.
+- **Other options:** keep a separate `on-turf` name for "white on green" (two names for one color); leave black out until something on screen uses it (it already inks every printed page).
