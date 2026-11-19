@@ -626,3 +626,9 @@ Recent decisions are here. Older ones are in [docs/decisions/](docs/decisions/),
 - **Context:** Checkboxes were already styled (a dark box that turns gold with a dark check), but radio buttons were still the browser's own blue, so the Print dialog mixed the two looks.
 - **Other options:** style only the Print dialog's radios (the shape menu's **Even** / **Every** would still be blue); use `accent-color` (it tints the browser's own control, which still looks different from the checkboxes and varies by browser).
 - **Decision:** Every radio button (Print, and the shape menu's spacing) is the same dark box as the checkboxes, round, turning gold with a dark dot in the middle when chosen, so the dot says it, not just the color. Same size, hover, and disabled look as the checkboxes. Screenshots that show them were retaken.
+
+## 2026-11-19 14:20 EST: Radio buttons in the logo's green, with a white dot
+- **Who:** Jason: radio buttons in the green of the dot in the light FreeFORM Drill logo (#357842), with a white dot to show the one chosen. The rest is Claude's (*Jason can veto*).
+- **Context:** An hour earlier they'd been made gold like the checkboxes. In light mode, gold on the pale page was soft (about 1.3:1).
+- **Decision:** An unchosen radio button is a green ring around the usual box (dark, or white in light mode). A chosen one is filled green with a white dot in the middle. The green is the palette's `turf` (already the logo's and the field's green), the same in both modes, and the white is a new palette color, `on-turf`. `palette.test.ts` checks the white dot on green (5.4:1) and the ring against its box (3:1 in dark mode, 5.4:1 in light). Checkboxes stay gold.
+- **Other options:** fill every radio button green, chosen or not (the dot would be the only difference); a lighter green in dark mode so the ring stands out more against the dark dialog (about 2.8:1 there) (not the logo's green).
