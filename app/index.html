@@ -212,6 +212,17 @@
       .menu-head { font-size: 11px; font-weight: 600; opacity: 0.75; margin-top: 4px; text-transform: none; }
       .menu-two { display: flex; flex-direction: column; align-items: flex-start; text-align: left; gap: 1px; }
       .menu-two > span { font-size: 12px; opacity: 0.85; font-weight: 400; }
+      /* Sliders (the phone's count, the tracing picture's strength): the palette's, not the browser's blue. A track in the
+         panel colors that fills with gold up to the thumb (--fill, set where the value is known), and a gold thumb with a
+         dark edge, so it reads on both the dark and the light page. */
+      input[type=range] { -webkit-appearance: none; appearance: none; background: transparent; min-height: 32px; cursor: pointer; --fill: 0%; }
+      input[type=range]::-webkit-slider-runnable-track { height: 8px; border-radius: 4px; border: 1px solid var(--line-strong); background: linear-gradient(to right, var(--gold) var(--fill), var(--surface-2) var(--fill)); }
+      input[type=range]::-moz-range-track { height: 8px; border-radius: 4px; border: 1px solid var(--line-strong); background: var(--surface-2); }
+      input[type=range]::-moz-range-progress { height: 8px; border-radius: 4px; background: var(--gold); }
+      input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -9px; border-radius: 50%; background: var(--gold-fill); border: 2px solid var(--on-gold); box-shadow: var(--raise); }
+      input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: var(--gold-fill); border: 2px solid var(--on-gold); box-shadow: var(--raise); }
+      input[type=range]:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; }
+      input[type=range]:disabled { opacity: 0.5; cursor: default; }
       button.link { background: none; border: 0; padding: 4px 0; color: var(--blue); text-decoration: underline; text-underline-offset: 3px; } /* a quieter choice, worded as a link */
       .save-short { font-size: 13px; white-space: nowrap; opacity: 0.85; } /* the top bar's save status, beside the show's name */
       .save-short.attention { opacity: 1; color: var(--warn); text-decoration: underline dotted; text-underline-offset: 3px; } /* not saved somewhere: the words say what, the underline isn't color alone */

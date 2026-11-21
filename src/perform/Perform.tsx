@@ -638,7 +638,7 @@ export function Perform() {
             <button key={x.id} aria-pressed={i === onSet} onClick={() => { setPlaying(false); setT(starts[i]); }}>{x.name}</button>
           ))}
         </div>
-        <input type="range" aria-label={tr('Count')} min={0} max={total} step={1} value={t} onChange={(e) => { setPlaying(false); setT(Number(e.target.value)); }} disabled={!total} />
+        <input type="range" aria-label={tr('Count')} min={0} max={total} step={1} value={t} style={{ '--fill': `${total ? (t / total) * 100 : 0}%` } as React.CSSProperties} onChange={(e) => { setPlaying(false); setT(Number(e.target.value)); }} disabled={!total} />
         <div className="perform-buttons">
           <button style={btn} aria-label={tr('Previous count')} onClick={() => { setPlaying(false); setT(Math.max(0, Math.ceil(t) - 1)); }}><IconPrev /></button>
           <button style={btn} aria-label={playing || counting ? tr('Pause') : tr('Play')} disabled={!total || (!playing && !counting && t >= total && !loop)} title={t >= total && !loop ? tr('End of the show: tap set 1 (or another set) to play from there') : undefined} onClick={togglePlay}>{playing || counting ? <IconPause /> : <IconPlay />}</button>

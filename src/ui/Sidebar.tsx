@@ -533,7 +533,7 @@ function TraceEditor({ show, setShow, onTrace, ask }: { show: Show; setShow: Pro
           <label title="Steps from the front sideline">Up <NumberField aria-label="Picture center, steps from the front sideline" min={-20} max={104} step={1} value={tr.y} style={{ width: 52 }} onValue={(n) => set({ y: n })} /></label>
         </div>
         <div style={row}>
-          <label>See-through <input type="range" aria-label="Picture strength" min={10} max={100} value={Math.round(tr.opacity * 100)} onChange={(e) => set({ opacity: Number(e.target.value) / 100 })} /></label>
+          <label>See-through <input type="range" aria-label="Picture strength" min={10} max={100} value={Math.round(tr.opacity * 100)} style={{ '--fill': `${((tr.opacity * 100 - 10) / 90) * 100}%` } as React.CSSProperties} onChange={(e) => set({ opacity: Number(e.target.value) / 100 })} /></label>
         </div>
         <p style={{ fontSize: 12, opacity: 0.75, margin: '4px 0 0' }}>{show.surface ? 'Across is steps from the center line (minus toward Side 1). Up is steps from the front edge.' : `Across is steps from the 50 (minus toward Side 1). Up is steps from the front sideline; the front hash is ${HASHES[show.hash]} up.`}</p>
       </>}

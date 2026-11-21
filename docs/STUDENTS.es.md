@@ -16,30 +16,30 @@ Toca el cuadro de arriba y búscate. Puedes buscar por tu nombre o por tu punto,
 
 ## 3. Lee tus puntos
 
-Sostén el teléfono vertical. **Mis puntos** muestra una tarjeta para cada set, como una hoja de puntos impresa. Cada tarjeta tiene:
+Sostén el teléfono vertical. **Mis puntos** muestra un set a la vez, en una tarjeta, como una línea de una hoja de puntos impresa. La tarjeta tiene:
 
 - el set, sus tiempos y sus compases
 - tu lugar: primero de lado a lado, después de adelante hacia atrás
-- cómo llegar: tu tamaño de paso y hacia dónde vas, como si miraras al frente
+- cómo llegar: tu tamaño de paso y hacia dónde vas, como si miraras al frente (un ⚠ quiere decir que el paso es grande)
 - tus notas y las notas del conjunto
 
-El set en el que estás tiene un borde dorado. Toca una tarjeta para ir a ese set. En un show largo, usa **Ir a** arriba de la lista: elige un set (cada uno muestra también sus compases) y su tarjeta sube al principio.
+Los números de set de arriba van directo a un set. También **Set 2 ▾** en la tarjeta: tócalo para ver la lista de sets de tu teléfono. **‹ Set anterior** y **Set siguiente ›** se quedan abajo en la pantalla. **Todos los sets** muestra todos los sets a la vez, como toda la hoja de puntos, con **Ir a** arriba; toca un set ahí para ver su tarjeta.
 
 ![Mis puntos en un teléfono vertical](img/phone.png)
 
-**"No es en línea recta (mira el movimiento)"** quiere decir que tu camino se curva o gira: un follow-the-leader, un giro o un camino que dibujó tu director. No camines derecho al nuevo lugar. Toca **▶ Ver el movimiento** debajo de esa tarjeta para ver el camino.
+**"No es en línea recta (mira el movimiento)"** quiere decir que tu camino se curva o gira: un follow-the-leader, un giro o un camino que dibujó tu director. No camines derecho al nuevo lugar. Toca **▶ Ver el movimiento** en esa tarjeta para ver el camino.
 
 **"Mantener (mismo lugar que en el set 3)"** quiere decir que no te desplazas. Tus notas dicen qué hacer ahí, como marcar el paso o un visual.
 
 ## 4. Míralo en el campo
 
-Pon el teléfono de lado, o toca **Campo**, para ver toda la banda.
+Pon el teléfono de lado, o toca **Campo**, para ver toda la banda. **Campo** siempre está de lado: si tu teléfono está vertical (o tiene bloqueada la rotación), muestra el campo girado, así que solo gira el teléfono para leerlo.
 
 ![El campo en un teléfono de lado](img/phone-field.png)
 
 - **Reproducir** corre el drill. Toca el número de un set para ir a él.
 - **Seguir mi punto** te mantiene en el centro de la pantalla.
-- **Desde el palco** gira el campo a **Mirando al frente**, como lo ves en el campo.
+- **Vista del director** gira el campo a **Mi vista**, como lo ves mirando al frente.
 - **Repetir** repite unos sets, para practicar.
 - **Clic** hace un clic en cada tiempo. Si tu director agregó la música, **♪ Música** la toca en su lugar.
 

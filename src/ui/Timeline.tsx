@@ -339,7 +339,7 @@ export function SetControls({ show, setShow, t, setT }: { show: Show; setShow: (
     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
       {mid ? <button onClick={() => setT(setStarts(show)[cur])} title={`The field shows count ${Math.floor(count)} of the move into set ${show.sets[cur].name}. Performers are moved and added on a set: click to go to set ${show.sets[cur].name}.`}
         aria-label={`Previewing count ${Math.floor(count)} of ${show.sets[cur].counts}. Go to set ${show.sets[cur].name}`}>
-        Ct {Math.floor(count)} of {show.sets[cur].counts}<span className="tb-long-sm"> · Go to</span> Set {show.sets[cur].name}</button>
+        Ct {Math.floor(count)} of {show.sets[cur].counts}<span className="tb-long-sm">, go to</span> Set {show.sets[cur].name}</button>
         : <SetNameMenu show={show} setShow={setShow} i={cur} />}
       <label title={cur > 0 ? `Counts in the move into set ${show.sets[cur].name}, from set ${show.sets[cur - 1].name}` : undefined}>Counts{' '}
         <NumberField min={1} integer whenDone aria-label="Counts" disabled={cur === 0} title={cur === 0 ? 'The opening set has no move into it' : undefined}

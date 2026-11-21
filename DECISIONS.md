@@ -657,3 +657,23 @@ Recent decisions are here. Older ones are in [docs/decisions/](docs/decisions/),
 - **Context:** A UI mockup typed out a look-alike of the FreeFORM Drill wordmark instead of using the real logo file.
 - **Other options:** none; Jason asked for the rule.
 - **Decision:** A new house rule in CLAUDE.md: the logo always comes from the files in `public/` and `brand/`, unchanged, and is recreated or restyled only when Jason specifically asks.
+
+## 2026-11-21 17:30 EST: A simpler screen, editor and phone
+- **Who:** Jason, after a Reddit comment ("it loves putting explainers and • • • all over the place"), a review by Claude and one by ChatGPT, and a mockup he went over piece by piece. The details marked *(Claude)* are Claude's (*Jason can veto*).
+- **Context:** The editor had three rows of bars, nine file buttons at the top of the sidebar, seven grayed-out tools with nothing picked, three always-on instructions, and dot separators everywhere. The phone listed every set at once.
+- **Decision, editor:**
+  - The show's name is a menu: **My shows…**, **New show…**, **Import…**, **Show settings…**, Save, Save As, Full backup, and **Get a show back…**, with the save status in a word or two beside the name (**✓ Saved**, **Unsaved changes**, **Phones behind**, **⚠ Not saved**; the menu has the rest). **Share…** sits by **Review**; **Print…** and **Video…** are under **Export**.
+  - **Show settings…** holds the show's name, field, hashes, and letters or dots.
+  - One tool row. **Select** and **Add Performer** stay put; the rest follows what's picked. **Add Performer** always adds performers (it no longer turns into Add Set or Add Prop).
+  - The sidebar follows the selection: picked performers first, then the set (name, counts, measures, notes, **Delete set**).
+  - The timeline shows "16 counts, m. 1–4" and the biggest step on every move ("Max 6.5-to-5"), with ⚠ only when it's too big. **+ Set** is on the timeline.
+  - No pan-and-zoom hint (it's on the Keyboard shortcuts page) and no always-on selection instructions. The notes box's explanation is its placeholder.
+  - A blank show offers **Enter section counts** (new: rows of up to 8 on the front hash, 2 steps apart, centered on the 50), **Import a roster**, or **Or place them one at a time**, then **Open the sample show** or **Import drill…**.
+- **Decision, phone:**
+  - **My dots** shows one set at a time: the set buttons, a card with **Set N ▾** (the phone's own picker, listing just the set names, with "Set" on the button), and **‹ Previous set**, **All sets**, **Next set ›** pinned to the bottom so they never move. **All sets** is the old list.
+  - The step reads "Step: 10.4-to-5, moving forward", with ⚠ only when it's too big.
+  - **Field** is always laid out sideways. On an upright phone it's drawn a quarter turn round, so turning the phone reads it, rotation lock or not *(Claude: a web page can't turn the phone)*.
+  - The view switch says **Director view** and **My view** (it said From the press box and Facing the front).
+  - Sliders use the palette: a gold thumb with a dark edge, and the track fills with gold (the dark field green on a light page) up to it.
+- **Other options:** ChatGPT's mockup (a cream look, a panel that changes completely with the selection); keeping two tool rows (Jason had asked for two when one scrolling row hid tools; with only the tools for what's picked, one row fits a 1440-wide window, *Claude*); a "Turn your phone sideways" message instead of drawing the field turned.
+- **Left for later *(Claude)*:** keeping the step format "6.5-to-5" (the mockup said "6.5 to 5"; the app, print, and Spanish all use the hyphens); the Loop panel stays at the top rather than beside the controls; the phone's More menu (Click, White field, Follow my dot) wasn't built, since those still fit; the field's **Written on** menu left the blank-show note (it's in **Show settings…**).

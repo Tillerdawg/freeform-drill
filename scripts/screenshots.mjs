@@ -55,6 +55,13 @@ const menu = (page, name) => page.getByRole('button', { name: new RegExp(`^${nam
 const W = 1440, H = 900;
 const sidebar = { x: 1095, y: 125, width: W - 1095, height: 600 };
 /** Clip around an element, padded. */
+const showMenu = (page) => page.getByRole('button', { name: /^Show: / }).first().click().then(() => page.waitForTimeout(250));
+/** Clip around a menu's button and its open panel together. */
+const withPanel = async (page, button, pad = 12) => {
+  const a = await button.boundingBox(), b = await page.locator('.tb-menu-panel').boundingBox();
+  const x = Math.min(a.x, b.x) - pad, y = Math.min(a.y, b.y) - pad;
+  return { x, y, width: Math.max(a.x + a.width, b.x + b.width) + pad - x, height: Math.max(a.y + a.height, b.y + b.height) + pad - y };
+};
 const around = async (loc, pad = 16) => { const b = await loc.boundingBox(); return { x: b.x - pad, y: b.y - pad, width: b.width + 2 * pad, height: b.height + 2 * pad }; };
 /** From an element's top down to the bottom of the window, in the sidebar. */
 const fromHere = async (loc) => { // down to the save status pinned at the sidebar's bottom (it's pictured on its own)
@@ -64,8 +71,8 @@ const fromHere = async (loc) => { // down to the save status pinned at the sideb
     el?.scrollBy(0, h.getBoundingClientRect().top - el.getBoundingClientRect().top - 24);
   });
   await loc.page().waitForTimeout(200);
-  const b = await loc.boundingBox(), st = await loc.page().locator('.side-status').boundingBox();
-  return { ...sidebar, y: b.y - 12, height: (st ? st.y : H) - b.y + 12 };
+  const b = await loc.boundingBox(); // the sidebar runs to the bottom of the window (the save status is in the top bar now)
+  return { ...sidebar, y: b.y - 12, height: H - b.y + 12 };
 };
 const bottom = { x: 0, y: 700, width: W, height: H - 700 };
 
@@ -141,7 +148,7 @@ shot('start', async () => {
 shot('new-show', async () => {
   // New: the title and the surface come first. A custom floor, so its size shows too.
   const page = await editor();
-  await page.getByRole('button', { name: 'New', exact: true }).click(); await page.waitForTimeout(300);
+  await showMenu(page); await page.getByRole('button', { name: 'New show…' }).click(); await page.waitForTimeout(300);
   await page.getByLabel('New show title').fill('Winter Guard 2027');
   await page.getByRole('dialog').getByRole('combobox', { name: 'Field' }).selectOption('floor');
   await page.waitForTimeout(200);
@@ -153,8 +160,8 @@ shot('getting-started', async () => {
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.waitForTimeout(500);
-  await page.getByRole('button', { name: 'Getting started, step by step' }).click();
-  await page.getByRole('button', { name: 'Place performers' }).click();
+  await menu(page, 'Help'); await page.getByRole('button', { name: 'Getting started checklist' }).click();
+  await page.getByRole('button', { name: 'Or place them one at a time' }).click();
   for (const x of [-6, -2, 2, 6]) { const q = await spot(page, { x, y: 30 }); await page.mouse.click(q.x, q.y); await page.waitForTimeout(80); }
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: /: choose$/ }).first().click(); await page.waitForTimeout(200);
@@ -163,7 +170,7 @@ shot('getting-started', async () => {
   await save(page, 'getting-started', await around(page.locator('.getting-started'), 12));
 });
 shot('save-status', async () => {
-  // Published as revision 6, then edited: the save status at the bottom of the sidebar says what isn't saved, opened.
+  // Published as revision 6, then edited: the save status beside the show's name says what isn't saved; the show menu, opened.
   const page = await editor();
   await page.evaluate(async () => {
     const { sampleShow } = await import('/src/engine/sample.ts');
@@ -174,12 +181,9 @@ shot('save-status', async () => {
   });
   await page.reload();
   await page.waitForTimeout(500);
-  await page.locator('.save-chip button').first().click();
-  await page.waitForTimeout(300);
-  const chip = await page.locator('.save-chip').boundingBox(), panel = await page.locator('.tb-menu-panel').boundingBox();
-  const x = Math.min(chip.x, panel.x) - 12, r = Math.max(chip.x + chip.width, panel.x + panel.width) + 12;
-  const y = Math.min(chip.y, panel.y) - 12, b = Math.max(chip.y + chip.height, panel.y + panel.height) + 12;
-  await save(page, 'save-status', { x, y, width: r - x, height: b - y });
+  await showMenu(page);
+  const clip = await withPanel(page, page.locator('.save-short').locator('..'));
+  await save(page, 'save-status', clip);
 });
 shot('send-band', async () => {
   // Help, then Send it to your band, on the sample (Review clean), after opening Share: the message step.
@@ -217,8 +221,10 @@ shot('shows', async () => {
     await keepShow(closer, t - BACKUP_AGE - DAY);
     writeTime(unexportedKey(closer.id), t - BACKUP_AGE - DAY);
   });
+  await showMenu(page); await page.getByRole('button', { name: 'Show settings…' }).click();
   await page.getByLabel('Show title').fill('Opener');
-  await page.getByRole('button', { name: 'Shows…' }).click();
+  await page.getByRole('button', { name: 'Done' }).click();
+  await showMenu(page); await page.getByRole('button', { name: 'My shows…' }).click();
   await page.getByText('Backup due', { exact: true }).waitFor();
   await page.waitForTimeout(400);
   await save(page, 'shows', await around(page.locator('[role=dialog] > div').first()));
@@ -230,7 +236,7 @@ shot('version-preview', async () => {
     const show = JSON.parse(localStorage.getItem(AUTOSAVE));
     await addVersion(show, Date.now() - 15 * 60_000);
   });
-  await page.getByRole('button', { name: 'Shows…' }).click();
+  await showMenu(page); await page.getByRole('button', { name: 'My shows…' }).click();
   await page.getByRole('button', { name: /^Versions of/ }).click();
   await page.getByRole('button', { name: /^Preview version saved/ }).first().click();
   const preview = page.getByRole('dialog', { name: 'Preview earlier version' });
@@ -402,7 +408,7 @@ shot('set-name', async () => { // Set 2 ▾: renaming a set, and Renumber sets
   await goSet(page, 2);
   await page.getByRole('button', { name: /^Set 2: rename or renumber/ }).click(); await page.waitForTimeout(300);
   await page.getByRole('textbox', { name: 'Set name' }).fill('12');
-  await save(page, 'set-name', { x: 0, y: 40, width: 760, height: 280 });
+  await save(page, 'set-name', await withPanel(page, page.getByRole('button', { name: /^Set 2: rename or renumber/ })));
 });
 shot('music', async () => {
   const page = await editor();
@@ -460,7 +466,7 @@ shot('movements', async () => {
 });
 shot('print', async () => {
   const page = await editor();
-  await page.getByRole('button', { name: 'Print…' }).click();
+  await menu(page, 'Export'); await page.getByRole('button', { name: 'Print…' }).click();
   await page.waitForTimeout(400);
   await save(page, 'print', await around(page.locator('[role=dialog] > div').first()));
 });
@@ -478,7 +484,7 @@ shot('print-changed', async () => {
   });
   await page.reload();
   await page.waitForTimeout(500);
-  await page.getByRole('button', { name: 'Print…' }).click();
+  await menu(page, 'Export'); await page.getByRole('button', { name: 'Print…' }).click();
   await page.getByLabel(/Only what changed since/).check();
   await page.waitForTimeout(300);
   await save(page, 'print-changed', await around(page.locator('[role=dialog] > div').first()));
@@ -522,7 +528,7 @@ shot('import-summary', async () => {
 });
 shot('video', async () => {
   const page = await editor();
-  await page.getByRole('button', { name: 'Video…' }).click();
+  await menu(page, 'Export'); await page.getByRole('button', { name: 'Video…' }).click();
   await page.waitForTimeout(400);
   await save(page, 'video', await around(page.locator('[role=dialog] > div').first()));
 });
@@ -619,7 +625,7 @@ shot('phone-changed', async () => {
 async function printed(kind, name, opts = {}) {
   const page = await editor();
   await page.evaluate(() => { window.print = () => {}; });
-  await page.getByRole('button', { name: 'Print…' }).click();
+  await menu(page, 'Export'); await page.getByRole('button', { name: 'Print…' }).click();
   if (kind === 'charts') await page.getByLabel(/Drill charts/).check();
   if (opts.single) await page.getByLabel(/1 per page, bigger/).check();
   if (opts.pics) await page.getByLabel(/small field picture/).check();

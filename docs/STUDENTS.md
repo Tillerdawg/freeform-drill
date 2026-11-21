@@ -16,30 +16,30 @@ Tap the box at the top and find yourself. You can search by your name or your do
 
 ## 3. Read your dots
 
-Hold the phone upright. **My dots** shows a card for every set, like a printed dot sheet. Each card has:
+Hold the phone upright. **My dots** shows one set at a time, as a card, like one line of a printed dot sheet. The card has:
 
 - the set, its counts, and its measures
 - your spot: side to side first, then front to back
-- how to get there: your step size and which way you go, as if you're facing the front
+- how to get there: your step size and which way you go, as if you're facing the front (a ⚠ means the step is a big one)
 - your own notes and the ensemble notes
 
-The set you're on has a gold outline. Tap a card to go to that set. In a long show, use **Jump to** at the top of the list: pick a set (each one shows its measures too) and its card comes to the top.
+The set numbers along the top go straight to a set. So does **Set 2 ▾** on the card: tap it for your phone's list of sets. **‹ Previous set** and **Next set ›** stay at the bottom of the screen. **All sets** shows every set at once, like the whole dot sheet, with **Jump to** at the top; tap a set there to see its card.
 
 ![My dots on an upright phone](img/phone.png)
 
-**"Not a straight line (watch the move)"** means your route curves or turns: a follow-the-leader, a turn, or a path your director drew. Don't just walk straight to the new spot. Tap **▶ Watch the move** under that card to see the route.
+**"Not a straight line (watch the move)"** means your route curves or turns: a follow-the-leader, a turn, or a path your director drew. Don't just walk straight to the new spot. Tap **▶ Watch move** on that card to see the route.
 
 **"Hold (same spot as set 3)"** means you don't travel. Your notes say what to do there, like mark time or a visual.
 
 ## 4. Watch it on the field
 
-Turn the phone sideways, or tap **Field**, to see the whole band.
+Turn the phone sideways, or tap **Field**, to see the whole band. **Field** is always sideways: if your phone is upright (or rotation lock is on), it shows the field turned, so just turn the phone to read it.
 
 ![The field on a phone held sideways](img/phone-field.png)
 
 - **Play** runs the drill. Tap a set number to jump to it.
 - **Follow my dot** keeps you in the middle of the screen.
-- **From the press box** turns the field around to **Facing the front**, the way you see it on the field.
+- **Director view** turns the field around to **My view**, the way you see it facing the front.
 - **Loop** repeats a few sets, for practice.
 - **Click** clicks on every count. If your director added the music, **♪ Music** plays with it instead.
 
