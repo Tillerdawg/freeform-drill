@@ -3,20 +3,18 @@ import { coarse } from '../perform/device';
 import { PREVIEW } from '../perform/Perform';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { FIELD } from './palette';
-import { getPublishing } from './publishing';
 import { RosterImport } from './RosterImport';
 import { putAudio } from './audioStore';
 import { IconGrip } from './icons';
 import { Menu } from './Toolbar';
+import { SetControls } from './Timeline';
 import { STEP_IN, HASHES, distance, fieldDepth, readout, type HashPreset } from '../engine/coords';
 import type { Shape, ShapeKind } from '../engine/shapes';
 import {
-  fieldOf, withField, addProp, newPropSpot, MAX_PROPS, placeProp, removeProp, updateProp, propShape, shapePatch, triangleSides, triangleFromSides, MAX_PROP_SIZE, type PropShape, MAX_NAME, tooBigForBackup, scoreOrder, setCue, setMarks, setNames, setNote, label, locate, newId, moveToSection, removeSection, duplicateLetters, renumberSection, placeInSet, remapHash, positionsAt, xFrom, yFrom,
+  fieldOf, addProp, removeSet, setStarts, newPropSpot, MAX_PROPS, placeProp, removeProp, updateProp, propShape, shapePatch, triangleSides, triangleFromSides, MAX_PROP_SIZE, type PropShape, MAX_NAME, tooBigForBackup, scoreOrder, setCue, setMarks, setNames, setNote, label, locate, newId, moveToSection, removeSection, duplicateLetters, renumberSection, placeInSet, positionsAt, xFrom, yFrom,
   type FrontDir, type FrontRef, type Section, type Show, type SideDir,
 } from '../engine/show';
 import { NumberField } from './NumberField';
-import { FieldSelect, FieldDetails, PRESETS } from './FieldPicker';
-import { useDialog } from './useDialog';
 
 export type Tool = 'select' | 'add' | 'text' | 'arrow' | 'draw' | 'turn'; // turn: click to add an FTL leader's turning points
 export type Snap = 1 | 0.5 | 0.25 | 0;
@@ -39,16 +37,6 @@ interface Props {
   snap: Snap;
   setSnap: (s: Snap) => void;
   starts: number[];
-  onNew: () => void;
-  onOpen: () => void;
-  onSave: () => void | Promise<boolean>;
-  onSaveAs: () => void | Promise<boolean>;
-  onShows: () => void; // the shows kept in this browser, and versions
-  onFullBackup: () => void | Promise<boolean>;
-  onPrint: () => void;
-  onShare: () => void;
-  onVideo: () => void;
-  fileError: string;
   onUndo: () => void;
   onRedo: () => void;
   canUndo: boolean;
@@ -69,7 +57,6 @@ interface Props {
   traceAsk?: number; // bumped by the Shape menu's link: open Picture to trace and scroll to it
   look: Record<string, 'dim' | 'hide'>; // sections dimmed or hidden in the editor
   setLook: (l: Record<string, 'dim' | 'hide'>) => void;
-  status?: React.ReactNode; // the save status, pinned to the bottom
 }
 
 const LINES = [50, 45, 40, 35, 30, 25, 20, 15, 10, 5, 0];
@@ -80,81 +67,9 @@ export function Sidebar(p: Props) {
   const { show, setShow, onSet, selected } = p;
   const cur = onSet >= 0 ? onSet : locate(show, p.t).to;
   const one = selected.size === 1 ? show.performers.find((x) => selected.has(x.id)) : undefined;
-  const [pendingHash, setPendingHash] = useState<HashPreset | null>(null);
-  const hashDialog = useDialog(() => setPendingHash(null), !!pendingHash);
   const ids = [...selected];
 
-  return (
-    <aside style={{ width: 300, padding: '8px 14px 0', overflowY: 'auto', fontSize: 14, display: 'flex', flexDirection: 'column' }}>
-      <div style={row}>
-        <button onClick={p.onShows} title="The shows kept in this browser: open, rename, duplicate, or delete one, and earlier versions of this one">Shows…</button>
-        <button onClick={p.onNew} title="Start a new show (this one stays under Shows…)">New</button>
-        <button onClick={p.onOpen} title="Open a .freeform show file (or an older .freeform.json), a Pyware 3D .3dj drill, or an OpenMarch .dots show as a new show (this one stays under Shows…)">Import…</button>
-        <button onClick={p.onSave} title="Save this show as a .freeform file (⌘S): the first time you choose where, then it saves to that same file">Save</button>
-        <button onClick={p.onSaveAs} title="Save a copy as a new .freeform file, choosing the folder and name">Save As…</button>
-        <button onClick={p.onFullBackup} disabled={!show.music && !show.trace && !getPublishing(show.id ?? show.title, show.title)} title="Save a .freeform file that also holds the recording, the tracing picture, and the show's publishing (so a new computer keeps updating the same phone link), to move the show to another computer complete">Full backup…</button>
-      </div>
-      {/* Getting the drill to the band is the payoff, so it gets its own row, apart from the file buttons. */}
-      <div role="group" aria-label="Get it to the band" style={{ ...row, flexWrap: 'nowrap' }}>
-        <button className="primary" onClick={p.onPrint} disabled={!show.performers.length} title="Dot sheets and drill charts (print or save as PDF)" style={{ flex: 1 }}>Print…</button>
-        <button className="primary" onClick={p.onShare} disabled={!show.performers.length} title="A link that opens this show on performers' and staff phones" style={{ flex: 1 }}>Share…</button>
-        <button className="primary" onClick={p.onVideo} disabled={!show.performers.length} title="An MP4 video of the show, with the music, for a group chat or the boosters" style={{ flex: 1 }}>Video…</button>
-      </div>
-      {p.fileError && <div role="alert" style={{ color: 'var(--danger)', marginTop: 6 }}>{p.fileError}</div>}
-      <div style={{ ...row, marginBottom: 10 }}>
-        <input aria-label="Show title" value={show.title} onChange={(e) => setShow((s) => ({ ...s, title: e.target.value }))} style={{ flex: 1 }} />
-        <FieldSelect value={fieldOf(show)} outside={show.hash} onChange={(f) => {
-          setShow((s) => withField(s, f)); // onto or off a floor: spots stay put in steps
-        }} />
-        <select aria-label="Draw performers as" title="On the field, printed charts, and phones: the section letter labeled with the number, or a dot labeled P4"
-          value={show.symbols ?? 'letters'} onChange={(e) => setShow((s) => { const { symbols: _, ...rest } = s, v = e.target.value; return v === 'dots' ? { ...rest, symbols: v } : rest; })}>
-          <option value="letters">Letters</option>
-          <option value="dots">Dots</option>
-        </select>
-      </div>
-      {show.surface?.kind !== 'court' && (
-        <div style={{ ...row, marginTop: -4, marginBottom: 10 }}>
-          <FieldDetails value={fieldOf(show)} onChange={(f) => {
-            // Other hashes under written drill: ask what should happen to it.
-            if (typeof f === 'string' && show.performers.length) setPendingHash(f);
-            else setShow((s) => withField(s, f));
-          }} />
-        </div>
-      )}
-      {show.surface && show.performers.some((x) => show.sets.some((st) => { const q = st.pos[x.id]; return q && (Math.abs(q.x) > show.surface!.w / 2 || q.y < 0 || q.y > show.surface!.d); })) && (
-        <p role="status" style={{ color: 'var(--warn)', fontSize: 12, margin: '-4px 0 10px' }}>Some performers are off the floor in some sets. They kept their spots in steps from the center and the front.</p>
-      )}
-      {pendingHash && (
-        <div ref={hashDialog} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Change hash marks" style={{ position: 'fixed', inset: 0, background: 'var(--backdrop)', display: 'grid', placeItems: 'center', zIndex: 10 }}>
-          <div style={{ background: 'var(--bg)', border: '1px solid var(--line)', padding: 20, width: 420, maxWidth: 'calc(100vw - 32px)' }}>
-            <h2 style={{ margin: '0 0 8px', fontSize: 18 }}>Change to {PRESETS.find(([k]) => k === pendingHash)![1]} hashes</h2>
-            <p style={{ margin: '0 0 12px' }}>What should happen to the drill?</p>
-            <div style={{ display: 'grid', gap: 8 }}>
-              <button onClick={() => { setShow((s) => remapHash(s, pendingHash)); setPendingHash(null); }} style={{ textAlign: 'left', padding: 8 }}>
-                <strong>Keep positions relative to the hashes</strong><br />
-                <span style={{ fontSize: 12 }}>On the hash stays on the hash; the field stretches to fit. Use this if the show was started with the wrong hashes.</span>
-              </button>
-              <button onClick={() => { setShow((s) => ({ ...s, hash: pendingHash })); setPendingHash(null); }} style={{ textAlign: 'left', padding: 8 }}>
-                <strong>Keep spots on the field</strong><br />
-                <span style={{ fontSize: 12 }}>Dots stay where they are; only the hashes move, so coordinates change.</span>
-              </button>
-              <button onClick={() => setPendingHash(null)}>Cancel</button>
-            </div>
-            <p style={{ margin: '10px 0 0', fontSize: 12, opacity: 0.75 }}>Changes every set. Undo reverses it.</p>
-          </div>
-        </div>
-      )}
-
-      <section style={box}>
-        <strong>Set {show.sets[cur].name}</strong>
-        <label style={{ display: 'block', marginTop: 6 }}>Ensemble notes
-          <textarea aria-label="Ensemble notes" aria-describedby="ensemble-help" value={show.sets[cur].note ?? ''} rows={2} placeholder="e.g. Guard: flag toss on 9"
-            style={{ display: 'block', width: '100%', boxSizing: 'border-box', marginTop: 2, font: 'inherit' }}
-            onChange={(e) => setShow((s) => setNote(s, cur, e.target.value))} />
-        </label>
-        <span id="ensemble-help" style={{ display: 'block', fontSize: 12, opacity: 0.75, marginTop: 2 }}>For everyone: printed under set {show.sets[cur].name}'s drill chart.</span>
-      </section>
-
+  const selectionPanel = (
       <section style={box}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
           <strong>Selection</strong>
@@ -163,7 +78,6 @@ export function Sidebar(p: Props) {
             <button aria-pressed={p.adding} onClick={() => p.setAdding(!p.adding)} title="While on, tapping or boxing performers adds to the selection (like shift-click)">Add to selection</button>
           </span>
         </div>
-        {selected.size === 0 && <p style={{ opacity: 0.7, margin: '6px 0 0' }}>{coarse() ? 'Tap a performer or drag a box around several (with Lasso on, draw around them). Turn on Add to selection to pick more.' : 'Click a performer, shift-click to add, drag a box, or Option/Alt-drag a lasso.'}</p>}
         {selected.size > 1 && <p style={{ margin: '6px 0 0' }}>{selected.size} performers selected</p>}
         {selected.size === 2 && (() => {
           const [x, y] = ids.map((id) => show.performers.find((q) => q.id === id)!), pos = onSet >= 0 ? show.sets[onSet].pos : positionsAt(show, p.t);
@@ -266,12 +180,34 @@ export function Sidebar(p: Props) {
           </>
         )}
       </section>
+  );
 
+  return (
+    <aside style={{ width: 300, padding: '8px 14px 0', overflowY: 'auto', fontSize: 14, display: 'flex', flexDirection: 'column' }}>
+      {/* The panel follows the selection (Jason): with performers picked, they come first; otherwise the set does. */}
+      {selected.size > 0 && selectionPanel}
+      <section style={box} aria-label={`Set ${show.sets[cur].name}`}>
+        <SetControls show={show} setShow={setShow} t={p.t} setT={p.setT} />
+        <label style={{ display: 'block', marginTop: 8 }}>Ensemble notes
+          <textarea aria-label="Ensemble notes" value={show.sets[cur].note ?? ''} rows={2} placeholder="Printed under this set's drill chart"
+            style={{ display: 'block', width: '100%', boxSizing: 'border-box', marginTop: 2, font: 'inherit' }}
+            onChange={(e) => setShow((s) => setNote(s, cur, e.target.value))} />
+        </label>
+        {onSet >= 0 && show.sets.length > 1 && <div style={row}>
+          <button className="danger" onClick={() => {
+            const name = show.sets[onSet].name;
+            if (!window.confirm(`Delete set ${name}? Performers will move straight from the set before it to the set after it.`)) return;
+            const starts = setStarts(show);
+            setShow((s) => removeSet(s, onSet)); p.setT(starts[Math.max(0, onSet - 1)]);
+          }} title={`Delete set ${show.sets[onSet].name} (Undo brings it back)`}>Delete set {show.sets[onSet].name}…</button>
+        </div>}
+      </section>
+
+      {selected.size === 0 && selectionPanel}
       <SectionsEditor show={show} setShow={setShow} cur={cur} look={p.look} setLook={p.setLook} />
       <PropsEditor show={show} setShow={setShow} onSet={onSet} selected={p.selectedProp} setSelected={p.setSelectedProp} />
       <TraceEditor show={show} setShow={setShow} onTrace={p.onTrace} ask={p.traceAsk} />
       <Roster show={show} setShow={setShow} selected={selected} setSelected={p.setSelected} />
-      {p.status && <div className="side-status">{p.status}</div>}
     </aside>
   );
 }

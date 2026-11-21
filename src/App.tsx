@@ -35,6 +35,7 @@ import { usePlayback } from './ui/usePlayback';
 import { clickWanted, setClickWanted, wakeClick } from './ui/click';
 import { VideoDialog } from './ui/VideoExport';
 import { FeedbackDialog } from './ui/Feedback';
+import { ShowSettingsDialog } from './ui/ShowSettings';
 import { readPublishing, readPublishingCode, type Publishing } from './engine/cloud';
 import { getPublishing, setPublishing } from './ui/publishing';
 import { saveStatus } from './ui/saveStatus';
@@ -1088,6 +1089,7 @@ export function App() {
   const [recovering, setRecovering] = useState(false); // Help, then Get a show back
   const [video, setVideo] = useState(false); // the Make a video dialog
   const [feedback, setFeedback] = useState(false); // the Send feedback form
+  const [settingsOpen, setSettingsOpen] = useState(false); // Show settings, from the show menu
   const act: ShowActions = {
     flush,
     fresh: async () => { setLibrary(false); setNewing(true); },
@@ -1164,15 +1166,53 @@ export function App() {
       {/* The logo, a hint, and the theme button; the hint gives up space first. */}
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '0 12px', height: coarse() ? 56 : 40, flexShrink: 0, whiteSpace: 'nowrap', overflowX: 'auto', overflowY: 'hidden', scrollbarWidth: 'none' }}>
         {/* The small logo; just the curve when the window is narrow. */}
-        <span className="tb-long-sm" style={{ flex: '1 1 0', minWidth: 0, display: 'flex' }}>
+        <span className="tb-long-sm" style={{ flex: 'none', display: 'flex' }}>
           <picture><source media="(max-width: 1000px)" srcSet={theme === 'light' ? '../mark-light.svg' : '../mark.svg'} />
             <img src={theme === 'light' ? '../logo-small-light.svg' : '../logo-small.svg'} alt="FreeFORM Drill" style={{ height: coarse() ? 30 : 24, display: 'block' }} /></picture>
         </span>
-        <span style={{ flex: '1 1 0', fontSize: 12, opacity: tool === 'turn' ? 1 : 0.7, color: tool === 'turn' ? 'var(--gold)' : undefined, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'right', paddingLeft: 8, whiteSpace: 'nowrap' }}>{tool === 'turn' ? (coarse() ? "Tap the field for each of the leader's turns, in marching order · then tap Select" : "Click the field for each of the leader's turns, in marching order · Esc when done")
-          : coarse() ? 'Two fingers: drag to move around, pinch to zoom' : 'Scroll to pan · pinch or ⌘/Ctrl+scroll to zoom · right-drag pans'}</span>
+        {/* The show menu: the show's name, and everything you do to the whole show (open, save, settings). Its save
+            status says the most urgent thing in a word or two; the menu says the rest. */}
+        <span style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Menu label={<strong>{show.title || 'Untitled show'}</strong>} name={`Show: ${show.title || 'Untitled show'}`} panelName="Show" title="Open, save, and set up this show">{(close) => (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch', width: 300 }}>
+              <button onClick={() => { close(); setLibrary(true); }} title="The shows kept in this browser: open, rename, duplicate, or delete one, and earlier versions of this one">My shows…</button>
+              <button onClick={() => { close(); setNewing(true); }} title="Start a new show (this one stays under My shows)">New show…</button>
+              <button onClick={() => { close(); fileRef.current?.click(); }} title="Open a .freeform show file (or an older .freeform.json), a Pyware 3D .3dj drill, or an OpenMarch .dots show as a new show (this one stays under My shows)">Import…</button>
+              <button onClick={() => { close(); setSettingsOpen(true); }} title="The show's name, the field it's written on, its hash marks, and letters or dots">Show settings…</button>
+              <span className="menu-head">Save</span>
+              <span style={{ fontSize: 13, whiteSpace: 'normal' }}><strong>This browser:</strong> {saved.browser}</span>
+              <span style={{ fontSize: 13, whiteSpace: 'normal' }}><strong>File:</strong> {saved.file}</span>
+              <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <button onClick={() => { close(); save(); }} title="Save this show as a .freeform file (⌘S): the first time you choose where, then it saves to that same file">Save</button>
+                <button onClick={() => { close(); saveAs(); }} title="Save a copy as a new .freeform file, choosing the folder and name">Save As…</button>
+                <button onClick={() => { close(); fullBackup(); }} disabled={!show.music && !show.trace && !getPublishing(show.id ?? show.title, show.title)} title="A file that also holds the recording, the tracing picture, and the show's publishing, to move the show to another computer complete">Full backup…</button>
+              </span>
+              <span style={{ fontSize: 13, whiteSpace: 'normal' }}><strong>Phones:</strong> {saved.phones}</span>
+              <span className="menu-head">Lost something?</span>
+              <button onClick={() => { close(); setRecovering(true); }} title="Undo, earlier versions, a missing show, a new computer, or a show you published: what happened, and the button that fixes it">Get a show back…</button>
+            </div>
+          )}</Menu>
+          <span className={saved.attention ? 'save-short attention' : 'save-short'} title={saved.label}>{saved.short}</span>
+        </span>
+        <span style={{ flex: '1 1 0', fontSize: 12, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'right', paddingLeft: 8, whiteSpace: 'nowrap' }}>
+          {fileError ? <span role="alert" style={{ color: 'var(--danger)' }}>{fileError}</span>
+            : tool === 'turn' && <span style={{ color: 'var(--gold)' }}>{coarse() ? "Tap the field for each of the leader's turns, in marching order, then tap Select" : "Click the field for each of the leader's turns, in marching order. Esc when done"}</span>}
+        </span>
         <span style={{ flex: 'none' }}>
           <button aria-pressed={reviewing} onClick={() => setReviewing(!reviewing)} title="Every problem in the show: steps over the limit, performers too close, imported paths gone straight, missing spots, and counts not written">
             Review{issues.length ? ` (${issues.length})` : ''}</button>
+        </span>
+        {/* Getting the drill to the band is the payoff: Share in reach, printing and video under Export. */}
+        <span style={{ flex: 'none' }}>
+          <button className="primary" onClick={() => setSharing(true)} disabled={!show.performers.length} title="A link that opens this show on performers' and staff phones">{show.revision ? 'Publish update…' : 'Share…'}</button>
+        </span>
+        <span style={{ flex: 'none' }}>
+          <Menu label="Export" title="Print dot sheets and drill charts, or make a video" disabled={show.performers.length ? undefined : 'Add performers first'}>{(close) => (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch' }}>
+              <button onClick={() => { close(); setPrinting(true); }} title="Dot sheets and drill charts (print or save as PDF)">Print…</button>
+              <button onClick={() => { close(); setVideo(true); }} title="An MP4 video of the show, with the music, for a group chat or the boosters">Video…</button>
+            </div>
+          )}</Menu>
         </span>
         <span style={{ flex: 'none' }}>
           <Menu label="Help" title="The how-to guide, step-by-step checklists, getting a show back, and the sample and practice shows">{(close) => (
@@ -1321,33 +1361,11 @@ export function App() {
         show={show} setShow={setShow} t={t} setT={(x) => { setPlaying(false); setT(x); }} onSet={onSet}
         selected={selected} setSelected={setSelected} tool={tool} setTool={setTool}
         section={section} setSection={setSection} snap={snap} setSnap={setSnap} starts={starts}
-        onNew={() => setNewing(true)} onOpen={() => fileRef.current?.click()} onSave={save} onSaveAs={saveAs} onShows={() => setLibrary(true)} onFullBackup={fullBackup} onPrint={() => setPrinting(true)} onShare={() => setSharing(true)} onVideo={() => setVideo(true)} fileError={fileError}
         selectedMark={selectedMark} setSelectedMark={setSelectedMark} adding={adding} setAdding={setAdding} lassoOn={lassoOn} setLassoOn={setLassoOn}
         look={look} setLook={setLook}
         clip={clip ? Object.keys(clip).length : 0} onCopy={copySpots} onPaste={pasteSpots} selectedProp={selectedProp} setSelectedProp={setSelectedProp} onTrace={() => setTraceTick((n) => n + 1)} traceAsk={traceAsk}
         onUndo={() => step('undo')} onRedo={() => step('redo')} canUndo={!!hist.past.length} canRedo={!!hist.future.length}
         onFit={fit} shape={shapeEdit?.shape ?? null} startShape={startShape} updateShape={updateShape} endShape={() => setShapeEdit(null)}
-        status={<>
-        {/* Is my work safe: this browser, a file, and the phones, a line each, pinned to the bottom of the sidebar (Jason). */}
-        <span className={saved.attention ? 'save-chip attention' : 'save-chip'}>
-          <Menu label={<span className="save-chip-text">{saved.label.split(' · ').map((l) => <span key={l}>{l}</span>)}</span>} panelName="Save status" title={`${saved.label}. Click for what each part means, and to save or publish.`}>{(close) => (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'stretch', maxWidth: 320, fontSize: 13 }}>
-              <strong style={{ fontSize: 14 }}>This browser</strong>
-              <span>{saved.browser}</span>
-              <strong style={{ fontSize: 14 }}>File</strong>
-              <span>{saved.file}</span>
-              <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                <button onClick={() => { close(); save(); }} title="Save to a .freeform file (⌘S)">Save</button>
-                <button onClick={() => { close(); saveAs(); }} title="Save to a new file">Save As…</button>
-                {(show.music || show.trace || getPublishing(show.id ?? show.title, show.title)) && <button onClick={() => { close(); fullBackup(); }} title="A file that also holds the recording, the tracing picture, and the show's publishing, to move the show to another computer complete">Full backup…</button>}
-              </span>
-              <strong style={{ fontSize: 14 }}>Phones</strong>
-              <span>{saved.phones}</span>
-              <span><button onClick={() => { close(); setSharing(true); }} title="Send the show to performers' phones, or publish an update">{show.revision ? 'Publish update…' : 'Share…'}</button></span>
-            </div>
-          )}</Menu>
-        </span>
-        </>}
       />
       </div>
       </div>
@@ -1363,6 +1381,7 @@ export function App() {
         importFile: () => fileRef.current?.click(), fromLink: () => setLibrary('link'), feedback: () => setFeedback(true),
       }} />}
       {feedback && <FeedbackDialog onClose={() => setFeedback(false)} />}
+      {settingsOpen && <ShowSettingsDialog show={show} setShow={setShow} onClose={() => setSettingsOpen(false)} />}
       {video && <VideoDialog show={show} bpm={bpm} onClose={() => setVideo(false)} />}
       {printing && <PrintDialog show={show} selected={selected} onClose={() => setPrinting(false)} />}
       <input ref={fileRef} type="file" accept=".freeform,.json,application/json,.3dj,.dots" hidden

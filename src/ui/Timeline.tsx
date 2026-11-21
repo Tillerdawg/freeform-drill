@@ -333,7 +333,7 @@ export function SetControls({ show, setShow, t, setT }: { show: Show; setShow: (
   const { to, count } = locate(show, t), cur = onSet >= 0 ? onSet : to;
   const mid = onSet < 0 && t < totalCounts(show); // between two sets: what's on the field is a preview, and edits go to a set
   return (
-    <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
       {mid ? <button onClick={() => setT(setStarts(show)[cur])} title={`The field shows count ${Math.floor(count)} of the move into set ${show.sets[cur].name}. Performers are moved and added on a set: click to go to set ${show.sets[cur].name}.`}
         aria-label={`Previewing count ${Math.floor(count)} of ${show.sets[cur].counts}. Go to set ${show.sets[cur].name}`}>
         Ct {Math.floor(count)} of {show.sets[cur].counts}<span className="tb-long-sm"> · Go to</span> Set {show.sets[cur].name}</button>

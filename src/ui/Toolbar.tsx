@@ -12,7 +12,6 @@ import { LabelCompass } from './LabelCompass';
 import type { Snap, Tool } from './Sidebar';
 import { NumberField } from './NumberField';
 import { useSettled } from './useSettled';
-import { SetControls } from './Timeline';
 
 export interface ToolbarProps {
   show: Show;
@@ -92,135 +91,125 @@ export function Toolbar(p: ToolbarProps) {
   const markup = MARKUP.find(([t]) => t === p.tool);
   const needs = (ok: boolean, why: string) => (ok ? undefined : why);
   const pick = onASet ? 'Select performers first' : 'Scrub to a set first';
-  const [last, setLast] = useState<AddKind>('section'); // what the Add button repeats (Jason): the last thing picked in its menu
-  useEffect(() => { if (p.tool === 'add') setLast('section'); }, [p.tool]); // A, New, or a section from the menu
   const letter = show.sections.find((s) => s.id === p.section)?.letter ?? '?';
   const props = show.props ?? [];
-  const addSet = (at: number | null) => { const r = addSetHere(show, p.t, at); setShow(() => r.show); p.setT(r.t); p.setTool('select'); setLast('set'); }; // one click, not a mode: back to Select
+  const addSet = (at: number | null) => { const r = addSetHere(show, p.t, at); setShow(() => r.show); p.setT(r.t); p.setTool('select'); }; // one click, not a mode: back to Select
   const addPropNow = () => {
     const r = addProp(show, `Prop ${props.length + 1}`, 8, 8, false, newPropSpot(show)); // an 8 by 8 square in the middle (Jason)
-    setShow(() => r.show); p.setSelected(new Set()); p.setSelectedMark(null); p.setSelectedProp(r.id); p.setTool('select'); p.showSidebar(); setLast('prop');
+    setShow(() => r.show); p.setSelected(new Set()); p.setSelectedMark(null); p.setSelectedProp(r.id); p.setTool('select'); p.showSidebar();
   };
-  const addMain = last === 'set' ? { label: 'Add Set', title: 'Add a set after this one (or at the count you clicked). ▾ to choose something else', onClick: () => addSet(null) }
-    : last === 'prop' ? { label: 'Add Prop', title: 'Add another 8 by 8 prop in the middle of the field. ▾ to choose something else', onClick: addPropNow, disabled: props.length >= MAX_PROPS }
-    : { label: <>Add<span className="tb-long"> Performer</span> ({letter})</>, name: `Add Performer (${letter})`, title: `Place ${show.sections.find((s) => s.id === p.section)?.name ?? 'performers'}: click the field for each one (A). ▾ for another section, a set, or a prop`, onClick: () => p.setTool('add') };
+  const addMain = { label: <>Add<span className="tb-long"> Performer</span> ({letter})</>, name: `Add Performer (${letter})`, title: `Place ${show.sections.find((s) => s.id === p.section)?.name ?? 'performers'}: click the field for each one (A). ▾ for another section, a set, or a prop`, onClick: () => p.setTool('add') };
 
   return (
     <>
-    {/* Two fixed rows (Jason: one scrolling row hid tools): picking and deleting performers, with Undo at the end; then
-        placing and moving them. */}
-    <div className="toolbar" role="toolbar" aria-label="Performers">
+    {/* One fixed row (Jason: the bar shouldn't change height): Select and Add stay put; what's after them follows the
+        selection. Nothing picked: the grid and markup. Performers picked: the tools that change them. Undo and the
+        panel buttons are pinned to the right end, so they stay in reach if a narrow window makes the row scroll. */}
+    <div className="toolbar" role="toolbar" aria-label="Drill tools">
       <div role="radiogroup" aria-label="Performer tool" style={{ display: 'inline-flex', gap: 4 }}>{/* separate buttons, like Delete (Jason) */}
         <button role="radio" aria-checked={p.tool === 'select'} onClick={() => p.setTool('select')} title="Select and move performers, markup, and props (V)">Select</button>
-        <Menu label={addMain.label} name={'name' in addMain ? addMain.name : addMain.label} openNow={p.openAdd} pressed={p.tool === 'add'} main={addMain}
+        <Menu label={addMain.label} name={addMain.name} openNow={p.openAdd} pressed={p.tool === 'add'} main={addMain}
           title="Choose what Add adds: a set, a section's performers, or a prop">
           {(close) => <AddPanel {...p} close={close} addSet={addSet} addProp={addPropNow} />}
         </Menu>
       </div>
       <DeleteButton {...p} />
       <span className="tb-sep" />
-      <SetControls show={show} setShow={setShow} t={p.t} setT={p.setT} />
-
-      {/* Pinned to the right edge: if the row is ever too narrow and scrolls sideways, Undo stays in reach. */}
-      <span className="tb-pinned">
-      <button onClick={p.onUndo} disabled={!p.canUndo} title="Undo (⌘Z / Ctrl+Z)" aria-label="Undo" className="icon"><IconUndo /></button>
-      <button onClick={p.onRedo} disabled={!p.canRedo} title="Redo (⇧⌘Z / Ctrl+Y)" aria-label="Redo" className="icon"><IconRedo /></button>
-      </span>
-    </div>
-    <div className="toolbar" role="toolbar" aria-label="Placement and movement">
-      <label className="tb-field" title="Snap to grid: the grid performers stick to as you drag or add them">Snap<span className="tb-long-md"> to grid</span>
-        <select value={p.snap} onChange={(e) => p.setSnap(Number(e.target.value) as Snap)}>
-          <option value={1}>Whole step</option>
-          <option value={0.5}>Half step</option>
-          <option value={0.25}>Quarter step</option>
-          <option value={0}>Free</option>
-        </select>
-      </label>
-      <button disabled={!any} onClick={snapSel}
-        title={any ? `Round the selected performers onto ${snapUnit === 1 ? 'whole' : snapUnit === 0.5 ? 'half' : 'quarter'} steps${p.snap ? '' : ' (Free has no grid, so whole steps)'}, for dots left off the grid by a rotate, a shape, or an import` : `Rounds selected performers onto the grid (${pick.toLowerCase()})`} >Snap selected</button>
-      {snapNote && <span role="alert" className="tb-note" title={snapNote}>{snapNote}</span>}
-      <span className="tb-sep" />
-      {/* Markup (instructions on the page) is a separate kind of tool from placing performers. */}
-      <Menu label={markup ? markup[1].replace(' (T)', '') : 'Markup'} pressed={!!markup} title="Notes, arrows, and drawing on this set's page">
-        {(close) => MARKUP.map(([t, l]) => (
-          <button key={t} role="menuitemradio" aria-checked={p.tool === t} onClick={() => { p.setTool(t); close(); }}>{l}</button>
-        ))}
-      </Menu>
-      <span className="tb-sep" />
-
-      <Menu label="Shape" disabled={needs(many, ids.length === 1 ? 'Select 2 or more performers' : pick)} keepOpen={!!p.shape} collapsible={p.shape?.kind === 'bezier'} pressed={!!p.shape}
-        title="Shape the selection into a line, arc, curve, Bézier, circle, polygon, star, spiral, block, or letters">
-        {() => <ShapePanel {...p} />}
-      </Menu>
-      <Menu label="Mirror" disabled={needs(any, pick)} title="Flip the selection across the 50 or front to back, or copy one side onto the other">
-        {() => <>
-          <button onClick={() => { setShow((s) => flip(s, onSet, ids, 'x')); setNote(''); }} title="Swap sides: Side 1 ↔ Side 2">Flip across the 50</button>
-          <button onClick={() => { setShow((s) => flip(s, onSet, ids, 'y')); setNote(''); }} title="Swap front and back">Flip front ↔ back</button>
-          {ids.length > 1 && <>
-            <button onClick={() => mirror(1)} title="Side 2 performers take the mirror image of Side 1">Copy Side 1 → 2</button>
-            <button onClick={() => mirror(2)} title="Side 1 performers take the mirror image of Side 2">Copy Side 2 → 1</button>
+      {any ? <>
+        <Menu label="Shape" disabled={needs(many, ids.length === 1 ? 'Select 2 or more performers' : pick)} keepOpen={!!p.shape} collapsible={p.shape?.kind === 'bezier'} pressed={!!p.shape}
+          title="Shape the selection into a line, arc, curve, Bézier, circle, polygon, star, spiral, block, or letters">
+          {() => <ShapePanel {...p} />}
+        </Menu>
+        <Menu label="Mirror" disabled={needs(any, pick)} title="Flip the selection across the 50 or front to back, or copy one side onto the other">
+          {() => <>
+            <button onClick={() => { setShow((s) => flip(s, onSet, ids, 'x')); setNote(''); }} title="Swap sides: Side 1 ↔ Side 2">Flip across the 50</button>
+            <button onClick={() => { setShow((s) => flip(s, onSet, ids, 'y')); setNote(''); }} title="Swap front and back">Flip front ↔ back</button>
+            {ids.length > 1 && <>
+              <button onClick={() => mirror(1)} title="Side 2 performers take the mirror image of Side 1">Copy Side 1 → 2</button>
+              <button onClick={() => mirror(2)} title="Side 1 performers take the mirror image of Side 2">Copy Side 2 → 1</button>
+            </>}
+            {note && <p role="alert" style={{ ...help, color: 'var(--danger)', opacity: 1 }}>{note}</p>}
           </>}
-          {note && <p role="alert" style={{ ...help, color: 'var(--danger)', opacity: 1 }}>{note}</p>}
-        </>}
-      </Menu>
-      {/* On a narrow iPad the label shortens to "Rotate"; the name stays "Rotate & Scale" for screen readers. */}
-      <Menu label={<>Rotate<span className="tb-long-md"> &amp; Scale</span></>} name="Rotate & Scale" disabled={needs(many, ids.length === 1 ? 'Select 2 or more performers' : pick)}
-        title="Rotate the selection by a number of degrees, or expand or contract it">
-        {() => <>
-          <label style={{ fontSize: 12 }}>Around{' '}
-            <select aria-label="Rotate around" value={ids.includes(pivot) ? pivot : ''} onChange={(e) => setPivot(e.target.value)}
-              title="The point the group turns around: its center, or one performer's spot (a gate turn on the end of a line)">
-              <option value="">The center</option>
-              {byName.map((id) => <option key={id} value={id}>{label(show, show.performers.find((x) => x.id === id)!)}</option>)}
-            </select>
-          </label>
-          <div style={{ ...row, marginTop: 0 }}>
-            <NumberField aria-label="Rotation in degrees" min={1} max={180} integer value={deg} style={{ width: 52 }} onValue={setDeg} />°
-            <button onClick={() => turn(deg, 1)} title="Rotate counterclockwise">↺</button>
-            <button onClick={() => turn(-deg, 1)} title="Rotate clockwise">↻</button>
-          </div>
-          <div style={{ ...row, marginTop: 0 }}>
-            <NumberField aria-label="Scale percent" min={101} max={400} integer value={pct} style={{ width: 52 }} onValue={setPct} />%
-            <button onClick={() => turn(0, pct / 100)}>Expand</button>
-            <button onClick={() => turn(0, 100 / pct)}>Contract</button>
-          </div>
-          {note && <p role="alert" style={{ ...help, color: 'var(--danger)', opacity: 1 }}>{note}</p>}
-        </>}
-      </Menu>
-      <Menu label="Path" disabled={needs(any && onSet > 0, onSet === 0 ? 'Set 1 has no move into it' : pick)}
-        title="How the selected performers get to their spots in this set: straight, follow the leader, or a custom path">
-        {(close) => <FtlPanel {...p} ids={ids} close={close} />}
-      </Menu>
+        </Menu>
+        {/* On a narrow iPad the label shortens to "Rotate"; the name stays "Rotate & Scale" for screen readers. */}
+        <Menu label={<>Rotate<span className="tb-long-md"> &amp; Scale</span></>} name="Rotate & Scale" disabled={needs(many, ids.length === 1 ? 'Select 2 or more performers' : pick)}
+          title="Rotate the selection by a number of degrees, or expand or contract it">
+          {() => <>
+            <label style={{ fontSize: 12 }}>Around{' '}
+              <select aria-label="Rotate around" value={ids.includes(pivot) ? pivot : ''} onChange={(e) => setPivot(e.target.value)}
+                title="The point the group turns around: its center, or one performer's spot (a gate turn on the end of a line)">
+                <option value="">The center</option>
+                {byName.map((id) => <option key={id} value={id}>{label(show, show.performers.find((x) => x.id === id)!)}</option>)}
+              </select>
+            </label>
+            <div style={{ ...row, marginTop: 0 }}>
+              <NumberField aria-label="Rotation in degrees" min={1} max={180} integer value={deg} style={{ width: 52 }} onValue={setDeg} />°
+              <button onClick={() => turn(deg, 1)} title="Rotate counterclockwise">↺</button>
+              <button onClick={() => turn(-deg, 1)} title="Rotate clockwise">↻</button>
+            </div>
+            <div style={{ ...row, marginTop: 0 }}>
+              <NumberField aria-label="Scale percent" min={101} max={400} integer value={pct} style={{ width: 52 }} onValue={setPct} />%
+              <button onClick={() => turn(0, pct / 100)}>Expand</button>
+              <button onClick={() => turn(0, 100 / pct)}>Contract</button>
+            </div>
+            {note && <p role="alert" style={{ ...help, color: 'var(--danger)', opacity: 1 }}>{note}</p>}
+          </>}
+        </Menu>
+        <Menu label="Path" disabled={needs(any && onSet > 0, onSet === 0 ? 'Set 1 has no move into it' : pick)}
+          title="How the selected performers get to their spots in this set: straight, follow the leader, or a custom path">
+          {(close) => <FtlPanel {...p} ids={ids} close={close} />}
+        </Menu>
+        <Menu label="Labels" disabled={needs(any, pick)} title="Where the selected performers' labels sit in this set">
+          {() => <>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <LabelCompass value={sides.size === 1 ? ([...sides][0] as LabelSide | '') : 'mixed'} onPick={(side) => { setShow((s) => setLabelSide(s, onSet, ids, side)); setNote(''); }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'stretch' }}>
+                {ids.length > 2 && <>
+                  <button onClick={() => pinCurve(false)} title="Labels on the inside of the curve the dots form">Inside curve</button>
+                  <button onClick={() => pinCurve(true)} title="Labels on the outside of the curve the dots form">Outside curve</button>
+                </>}
+                <button aria-pressed={sides.size === 1 && sides.has('hidden')} onClick={() => { setShow((s) => setLabelSide(s, onSet, ids, 'hidden')); setNote(''); }}
+                  title="No label for these dots in this set">Hide</button>
+              </div>
+            </div>
+            <p style={help}>Set {show.sets[onSet]?.name}. Center <strong>A</strong> = automatic: a free side, hidden when there's no room (zoom in to see it).</p>
+            {note && <p role="status" style={help}>{note}</p>}
+          </>}
+        </Menu>
+        <button disabled={!any} onClick={snapSel}
+          title={any ? `Round the selected performers onto ${snapUnit === 1 ? 'whole' : snapUnit === 0.5 ? 'half' : 'quarter'} steps${p.snap ? '' : ' (Free has no grid, so whole steps)'}, for dots left off the grid by a rotate, a shape, or an import` : `Rounds selected performers onto the grid (${pick.toLowerCase()})`} >Snap selected</button>
+        {snapNote && <span role="alert" className="tb-note" title={snapNote}>{snapNote}</span>}
+        <button disabled={!(any && onSet > 0)} onClick={() => setShow((s) => placeInSet(s, onSet, Object.fromEntries(ids.map((id) => [id, s.sets[onSet - 1].pos[id]]))))}
+          title={onSet > 0 ? `Put the selected performers back where they were in set ${show.sets[onSet - 1].name} (Undo reverses it)` : onSet === 0 ? 'Set 1 has no set before it' : pick} aria-label={`Reset to set ${onSet > 0 ? show.sets[onSet - 1].name : '…'}`}>
+          Reset<span className="tb-long-sm"> to set {onSet > 0 ? show.sets[onSet - 1].name : '…'}</span>
+        </button>
+      </> : <>
+        <label className="tb-field" title="Snap to grid: the grid performers stick to as you drag or add them">Snap<span className="tb-long-md"> to grid</span>
+          <select value={p.snap} onChange={(e) => p.setSnap(Number(e.target.value) as Snap)}>
+            <option value={1}>Whole step</option>
+            <option value={0.5}>Half step</option>
+            <option value={0.25}>Quarter step</option>
+            <option value={0}>Free</option>
+          </select>
+        </label>
+      </>}
+      {(!any || markup) && <>
+        <Menu label={markup ? markup[1].replace(' (T)', '') : 'Markup'} pressed={!!markup} title="Notes, arrows, and drawing on this set's page">
+          {(close) => MARKUP.map(([t, l]) => (
+            <button key={t} role="menuitemradio" aria-checked={p.tool === t} onClick={() => { p.setTool(t); close(); }}>{l}</button>
+          ))}
+        </Menu>
+      </>}
       <Menu label="Move" disabled={needs(onSet > 0, onSet === 0 ? 'Set 1 has no move into it' : 'Scrub to a set first')}
         title="The move into this set: when the selected performers step off, whether they turn, and anyone who comes too close">
         {() => <MovePanel {...p} ids={ids} />}
       </Menu>
-      <Menu label="Labels" disabled={needs(any, pick)} title="Where the selected performers' labels sit in this set">
-        {() => <>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <LabelCompass value={sides.size === 1 ? ([...sides][0] as LabelSide | '') : 'mixed'} onPick={(side) => { setShow((s) => setLabelSide(s, onSet, ids, side)); setNote(''); }} />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'stretch' }}>
-              {ids.length > 2 && <>
-                <button onClick={() => pinCurve(false)} title="Labels on the inside of the curve the dots form">Inside curve</button>
-                <button onClick={() => pinCurve(true)} title="Labels on the outside of the curve the dots form">Outside curve</button>
-              </>}
-              <button aria-pressed={sides.size === 1 && sides.has('hidden')} onClick={() => { setShow((s) => setLabelSide(s, onSet, ids, 'hidden')); setNote(''); }}
-                title="No label for these dots in this set">Hide</button>
-            </div>
-          </div>
-          <p style={help}>Set {show.sets[onSet]?.name}. Center <strong>A</strong> = automatic: a free side, hidden when there's no room (zoom in to see it).</p>
-          {note && <p role="status" style={help}>{note}</p>}
-        </>}
-      </Menu>
-      <button disabled={!(any && onSet > 0)} onClick={() => setShow((s) => placeInSet(s, onSet, Object.fromEntries(ids.map((id) => [id, s.sets[onSet - 1].pos[id]]))))}
-        title={onSet > 0 ? `Put the selected performers back where they were in set ${show.sets[onSet - 1].name} (Undo reverses it)` : onSet === 0 ? 'Set 1 has no set before it' : pick} aria-label={`Reset to set ${onSet > 0 ? show.sets[onSet - 1].name : '…'}`}>
-        Reset<span className="tb-long-sm"> to set {onSet > 0 ? show.sets[onSet - 1].name : '…'}</span>
-      </button>
-      {/* Show and hide the panels: pinned to the right end of this row, like Undo above. */}
-      {(p.timeline || p.sidebar) && <span className="tb-pinned">
+      <span className="tb-pinned">
+      <button onClick={p.onUndo} disabled={!p.canUndo} title="Undo (⌘Z / Ctrl+Z)" aria-label="Undo" className="icon"><IconUndo /></button>
+      <button onClick={p.onRedo} disabled={!p.canRedo} title="Redo (⇧⌘Z / Ctrl+Y)" aria-label="Redo" className="icon"><IconRedo /></button>
       {p.timeline && <button onClick={p.timeline.toggle} aria-pressed={p.timeline.open} aria-label="Timeline" title={p.timeline.open ? 'Hide the timeline (more room for the field)' : 'Show the timeline (play, tempo, music, sets)'} className="icon">{p.timeline.top ? <IconTimelineTop /> : <IconTimeline />}</button>}
       {p.sidebar && <button onClick={p.sidebar.toggle} aria-pressed={p.sidebar.open} aria-label="Sidebar" title={p.sidebar.open ? 'Hide the sidebar' : 'Show the sidebar (show, set notes, selection, sections, roster)'} className="icon">{p.sidebar.left ? <IconSidebarLeft /> : <IconSidebar />}</button>}
-      </span>}
+      </span>
     </div>
     </>
   );
@@ -539,7 +528,6 @@ function NewSection({ show, setShow, setSection, setTool, close }: ToolbarProps 
 }
 
 /** Add ▾: performers (pick a section, or make one), a prop in the middle of the field, or a set. */
-type AddKind = 'section' | 'set' | 'prop';
 
 function AddPanel(p: ToolbarProps & { close: () => void; addSet: (at: number | null) => void; addProp: () => void }) {
   const { show, close } = p;
@@ -588,18 +576,8 @@ function DeleteButton(p: ToolbarProps) {
     what = 'the selected markup';
     short = 'markup';
     run = () => { setShow((s) => setMarks(s, onSet, (ms) => ms.filter((m) => m.id !== p.selectedMark))); p.setSelectedMark(null); };
-  } else if (onSet >= 0 && show.sets.length > 1) {
-    const name = show.sets[onSet].name;
-    what = `set ${name} (nothing is selected)`;
-    short = `Set ${name}`;
-    run = () => {
-      if (!window.confirm(`Delete set ${name}? Performers will move straight from the set before it to the set after it.`)) return;
-      const starts = setStarts(show);
-      setShow((s) => removeSet(s, onSet)); p.setT(starts[Math.max(0, onSet - 1)]);
-    };
   } else {
-    what = onSet >= 0 ? 'nothing: a show needs at least one set' : 'nothing (scrub to a set, or select something)';
-    run = null;
+    return null; // nothing picked: nothing to delete here (a set is deleted from the sidebar, beside its name)
   }
   return <button disabled={!run} className="danger" onClick={() => run?.()} title={`Delete ${what}`} aria-label={`Delete ${what}`}
     style={{ maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis' }}>Delete{short && <span className="tb-long-sm"> {short}</span>}</button>;

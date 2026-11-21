@@ -21,6 +21,8 @@ export interface SaveStatus {
   label: string;
   /** True when something isn't saved somewhere it could be (the box gets an outline as well as its words). */
   attention: boolean;
+  /** A word or two for the top bar, next to the show's name: the most urgent thing, or "Saved". The menu has the rest. */
+  short: string;
   browser: string;
   file: string;
   phones: string;
@@ -32,6 +34,7 @@ export function saveStatus(s: SaveState): SaveStatus {
   return {
     label: `${s.browserOk ? 'Browser ✓' : 'Browser: not saved'} · File: ${file} · Phones: ${phones}`,
     attention: !s.browserOk || !!s.unexported || s.changedSincePublish,
+    short: !s.browserOk ? '⚠ Not saved' : s.unexported ? 'Unsaved changes' : s.changedSincePublish ? 'Phones behind' : '✓ Saved',
     browser: s.browserOk
       ? 'Saved in this browser as you work. It stays here until this browser\'s data is cleared, and only this computer has it.'
       : "This browser couldn't save your last changes (its storage may be full or turned off). Save a file now so you don't lose them.",

@@ -29,4 +29,10 @@ describe('the save status chip', () => {
     expect(s.attention).toBe(true);
     expect(s.browser).toMatch(/Save a file now/);
   });
+  it('gives the top bar a word or two: the most urgent thing first', () => {
+    expect(saveStatus(base).short).toBe('✓ Saved');
+    expect(saveStatus({ ...base, revision: 3, changedSincePublish: true }).short).toBe('Phones behind');
+    expect(saveStatus({ ...base, unexported: 5, revision: 3, changedSincePublish: true }).short).toBe('Unsaved changes');
+    expect(saveStatus({ ...base, browserOk: false, unexported: 5 }).short).toBe('⚠ Not saved');
+  });
 });
