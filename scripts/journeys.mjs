@@ -1,4 +1,4 @@
-// Browser checks of the things a director trusts FreeFORM Drill with: that a draft survives Shows…, that removed music
+// Browser checks of the things a director trusts FreeFORM Drill with: that a draft survives My shows, that removed music
 // comes back with Undo, and that a phone keeps working with no signal. They run against the production build (offline
 // use only works there), each in a fresh browser profile.
 // Run after a build:  npm run build && npm run journeys
@@ -61,12 +61,13 @@ const stored = (page, id) => page.evaluate((id) => new Promise((ok) => {
   r.onsuccess = () => { const q = r.result.transaction('audio').objectStore('audio').get(id); q.onsuccess = () => { r.result.close(); ok(!!q.result); }; };
 }), id);
 
-await journey('A draft with a prop and no performers stays in Shows… after opening the list and another show', async (ctx) => {
+await journey('A draft with a prop and no performers stays in My shows after opening the list and another show', async (ctx) => {
   const page = await editorWith(ctx, draft);
   check((await shows(page)).includes('journey-draft'), 'the draft never reached the library');
-  await page.getByRole('button', { name: 'Shows…' }).first().click();
+  await page.getByRole('button', { name: /^Show: / }).first().click(); // the show menu, under the show's name
+  await page.getByRole('button', { name: 'My shows…' }).click();
   await page.waitForTimeout(800);
-  check((await shows(page)).includes('journey-draft'), 'opening Shows… deleted the draft');
+  check((await shows(page)).includes('journey-draft'), 'opening My shows deleted the draft');
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Help' }).first().click();
   await page.getByRole('button', { name: /^Try the sample show/ }).first().click();
@@ -80,14 +81,17 @@ await journey("When this browser can't save, opening another show waits for the 
     const put = IDBObjectStore.prototype.put;
     IDBObjectStore.prototype.put = function (...a) { if (this.name === 'shows') throw new DOMException('full', 'QuotaExceededError'); return put.apply(this, a); };
   });
+  await page.getByRole('button', { name: /^Show: / }).first().click();
+  await page.getByRole('button', { name: 'Show settings…' }).click();
   await page.getByLabel('Show title').fill('Prop draft, edited'); // a change the library hasn't got
+  await page.getByRole('button', { name: 'Done' }).click();
   await page.waitForTimeout(1200);
   await page.getByRole('button', { name: 'Help' }).first().click();
   await page.getByRole('button', { name: /^Try the sample show/ }).first().click();
   await page.getByText("This browser couldn't save").waitFor({ timeout: 5000 });
   if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT });
   await page.getByRole('button', { name: 'Stay here' }).click();
-  check(await page.getByLabel('Show title').inputValue() === 'Prop draft, edited', 'the show switched even though it could not be saved');
+  check(await page.getByRole('button', { name: 'Show: Prop draft, edited' }).count() === 1, 'the show switched even though it could not be saved');
 });
 
 await journey('Remove music, then Undo: the recording is still there to play', async (ctx) => {
