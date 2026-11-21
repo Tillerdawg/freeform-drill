@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { wakeClick } from './click';
 import { peakBetween, timeAt } from '../engine/music';
 import { chrome, useTheme } from './palette';
-import { biggestStep, closeCallsMemo, locate, MAX_MOVEMENT, movementAt, movementOfSet, movementStarts, moveSetTo, newId, numberSetsInOrder, renameSet, MAX_SET_NAME, setAt, setCounts, setMeasures, playPlan, setStarts, showLength, totalCounts, type Show } from '../engine/show';
+import { addSetHere, biggestStep, closeCallsMemo, locate, MAX_MOVEMENT, movementAt, movementOfSet, movementStarts, moveSetTo, newId, numberSetsInOrder, renameSet, MAX_SET_NAME, setAt, setCounts, setMeasures, playPlan, setStarts, showLength, totalCounts, type Show } from '../engine/show';
 import { Menu } from './Toolbar';
 import { STEP_TEXT } from '../field/drawField';
 import { fmtStep } from './format';
@@ -57,11 +57,11 @@ export function Timeline({ show, checked = show, setShow, t, setT, playing, setP
     </span>
   );
   // A move's biggest step; over the show's limit (red), it's a button that goes to the set and picks who takes those steps.
-  const maxStep = (i: number, per5: number, tier: keyof typeof STEP_TEXT) => tier !== 'red' ? <span style={{ color: STEP_TEXT[tier] }}>max {fmtStep(per5)}</span> : (
+  const maxStep = (i: number, per5: number, tier: keyof typeof STEP_TEXT) => tier !== 'red' ? <span style={{ color: STEP_TEXT[tier] }}>{tier === 'yellow' ? '⚠ ' : ''}Max {fmtStep(per5)}</span> : (
     <span role="button" tabIndex={0} style={{ color: STEP_TEXT.red, textDecoration: 'underline', cursor: 'pointer' }}
       title="Steps bigger than the show's step limit: click to go to the set and select who takes them"
       onPointerDown={(e) => e.stopPropagation()} onClick={() => onOverLimit?.(i)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOverLimit?.(i); } }}>
-      max {fmtStep(per5)}
+      ⚠ Max {fmtStep(per5)}
     </span>
   );
   const past = t > written; // in the part not written yet: performers hold on the last set
@@ -73,9 +73,9 @@ export function Timeline({ show, checked = show, setShow, t, setT, playing, setP
   };
 
   const mv = onSet >= 0 ? movementOfSet(show, onSet) : movementAt(show, t);
-  const status = (mv ? `${mv.name} · ` : '') + (onSet >= 0 ? `Set ${show.sets[onSet].name}`
-    : past ? `After set ${show.sets.at(-1)!.name} · not written yet`
-    : `Set ${show.sets[to - 1].name} → ${show.sets[to].name} · count ${Math.floor(count)} of ${show.sets[to].counts}`);
+  const status = (mv ? `${mv.name}, ` : '') + (onSet >= 0 ? `Set ${show.sets[onSet].name}`
+    : past ? `After set ${show.sets.at(-1)!.name}, not written yet`
+    : `Set ${show.sets[to - 1].name} to ${show.sets[to].name}, count ${Math.floor(count)} of ${show.sets[to].counts}`);
 
   const strip = useRef<HTMLDivElement>(null);
   // Which edges of the control row have controls scrolled past them (for the fade).
@@ -193,7 +193,9 @@ export function Timeline({ show, checked = show, setShow, t, setT, playing, setP
           </>
         )}
         </div>
-        <span title={`${status} · ${Math.floor(t)} / ${total} counts`} style={{ flex: '0 1 auto', minWidth: '8em', maxWidth: '45%', fontVariantNumeric: 'tabular-nums', overflow: 'hidden', textOverflow: 'ellipsis' }}>{status} · {Math.floor(t)} / {total} counts</span>
+        {/* Just the count: which set you're on shows on the timeline itself. The full position is in the tooltip. */}
+        <span title={`${status}. Count ${Math.floor(t)} of ${total}`} style={{ flex: 'none', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }} aria-label={`Count ${Math.floor(t)} of ${total}`}>{Math.floor(t)} / {total}</span>
+        <button onClick={() => { const r = addSetHere(show, t, null); setShow(() => r.show); setT(r.t); }} title="Add a set after this one (or at this count, between sets or past the last one)" style={{ flex: 'none' }}>+ Set</button>
       </div>
       {/* Set buttons sit above the line where each set lands. */}
       {/* Click a set to go to it; drag it (not set 1) to land it on a different count. Its neighbors stay put. */}
@@ -271,10 +273,11 @@ export function Timeline({ show, checked = show, setShow, t, setT, playing, setP
             return (
               <div key={s.id} style={{ ...box(starts[i - 1], s.counts), background: i === to && onSet < 0 && !past ? 'var(--surface-2)' : 'var(--surface)', boxShadow: i === to && onSet < 0 && !past ? 'inset 0 -3px 0 var(--gold)' : undefined }}>
                 <div style={{ padding: '2px 6px' }}>
-                  <div>{show.sets[i - 1].name} → {s.name} · {s.counts} cts{s.measures ? ` · m. ${s.measures}` : ''}{s.ftl?.some((g) => g.order.length > 1) ? ' · FTL' : s.ftl?.length ? ' · custom path' : ''}
-                    {big && short && <> · {maxStep(i, big.per5, big.tier)}</>}
-                    {!!close[i] && short && <> · {tooClose(i)}</>}</div>
-                  {big && !short && <div>{maxStep(i, big.per5, big.tier)}{!!close[i] && <> · {tooClose(i)}</>}</div>}
+                  {/* Counts and measures; then the biggest step, on every move, with ⚠ only when it's too big. No dots between. */}
+                  <div title={`Set ${show.sets[i - 1].name} to set ${s.name}`}>{s.counts} counts{s.measures ? `, m. ${s.measures}` : ''}{s.ftl?.some((g) => g.order.length > 1) ? ', FTL' : s.ftl?.length ? ', custom path' : ''}
+                    {big && short && <>, {maxStep(i, big.per5, big.tier)}</>}
+                    {!!close[i] && short && <>, {tooClose(i)}</>}</div>
+                  {big && !short && <div>{maxStep(i, big.per5, big.tier)}{!!close[i] && <>, {tooClose(i)}</>}</div>}
                 </div>
               </div>
             );
@@ -282,7 +285,7 @@ export function Timeline({ show, checked = show, setShow, t, setT, playing, setP
           {written < total && (
             <div title="Not written yet: click a count, then Add, Set" style={{ ...box(written, total - written), color: 'var(--text)',
               background: 'repeating-linear-gradient(135deg, var(--bg-deep) 0 6px, var(--bg) 6px 12px)', boxShadow: past ? 'inset 0 -3px 0 var(--gold)' : undefined }}>
-              <div style={{ padding: '2px 6px' }}>Not written yet · counts {written + 1}–{total}</div>
+              <div style={{ padding: '2px 6px' }}>Not written yet: counts {written + 1}–{total}</div>
             </div>
           )}
           {/* Where each movement starts: a dashed line (after the first) and its name, below the moves' own text. */}
