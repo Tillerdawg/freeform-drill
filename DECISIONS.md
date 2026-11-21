@@ -651,3 +651,9 @@ Recent decisions are here. Older ones are in [docs/decisions/](docs/decisions/),
 - **Who:** Jason found both (the Layout menu floated away from its button, and "Green field" made no sense on a basketball court or custom floor). The fixes are Claude's (*Jason can veto*).
 - **Menus:** a menu near the right edge was pushed left as if every menu were as wide as the widest (340 px), so a narrow one like **Layout** floated well left of its button. Now each menu is measured: it opens under its button's left edge, and if that would run off the window, it lines up with the button's right edge instead, so it always hangs from its button.
 - **White floor:** on a basketball court or a custom floor, **Layout** offers **White floor** and **Colored floor** in place of **White field** and **Green field** (the same setting: white with black lines, or the floor's own color). The phone's button says **White floor** there too (Spanish: **Piso blanco**). *Other options:* hide the choice for floors (some directors want white on a floor too); "Wood floor" (a tarp or gym floor isn't always wood).
+
+## 2026-11-21 16:15 EST: Use the logo files as they are
+- **Who:** Jason.
+- **Context:** A UI mockup typed out a look-alike of the FreeFORM Drill wordmark instead of using the real logo file.
+- **Other options:** none; Jason asked for the rule.
+- **Decision:** A new house rule in CLAUDE.md: the logo always comes from the files in `public/` and `brand/`, unchanged, and is recreated or restyled only when Jason specifically asks.
