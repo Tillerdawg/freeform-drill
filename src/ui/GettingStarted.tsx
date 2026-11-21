@@ -1,5 +1,5 @@
 // A step-by-step checklist card: Getting started, and Send it to your band (see gettingStarted.ts for the steps). On a
-// blank field, Getting started is the "Start your show" card in the middle of the field, with step 1's ways to begin as
+// blank field, Getting started is the "Add performers" card in the middle of the field, with step 1's ways to begin as
 // buttons; otherwise a card sits in the bottom-right corner, out of the way of the drill.
 import { useState, type ReactNode } from 'react';
 import type { Step } from './gettingStartedSteps';
@@ -14,10 +14,10 @@ export function GettingStarted({ steps, onHide, start, dock = 'center', logo, ti
   const n = steps.filter((s) => s.done).length, next = steps.findIndex((s) => !s.done);
   const center = !!start && next === 0; // a blank field: the card is where you start
   return (
-    <section className={center ? `getting-started ${dock}` : 'getting-started'} aria-label={center ? 'Start your show' : title}>
+    <section className={center ? `getting-started ${dock}` : 'getting-started'} aria-label={center ? 'Add performers' : title}>
       {center && logo}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <strong style={{ flex: 1, fontSize: center ? 16 : undefined }}>{center ? 'Start your show' : `${title}: ${n} of ${steps.length}`}</strong>
+        <strong style={{ flex: 1, fontSize: center ? 16 : undefined }}>{center ? 'Add performers' : `${title}: ${n} of ${steps.length}`}</strong>
         {!center && <button onClick={() => setSmall(!small)} aria-expanded={!small} title={small ? 'Show the steps' : 'Fold the list down to this line'}>{small ? 'Show' : 'Fold'}</button>}
         <button onClick={onHide} title="Close this checklist for this show (Help brings it back)">Close</button>
       </div>

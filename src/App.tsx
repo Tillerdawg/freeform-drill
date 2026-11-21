@@ -7,9 +7,9 @@ import { addInk, hitMark, moveMark, type Mark } from './engine/marks';
 import { assign, fitShape, fitText, handleName, isControl, moveHandle, samplePath, slots, type Shape, type ShapeKind } from './engine/shapes';
 import { colorOf,
   addPerformer, closeCalls, setFtlTurns, locate, label, mark, newId, setMarks, moveSegments, fieldOf,  hitProp, placeProp, propsAt, removeProp, normalizeFtl, overLimit, snapPoint, playRange, newShow, parseShow, placeInSet, positionsAt, removePerformers,
-  rotateScale, setAt, setStarts, withShowId, withField, type Show, newShowId, parseShowFile, type Attached, isBlankShow, planBackup,
+  rotateScale, setAt, setStarts, withShowId, type Show, newShowId, parseShowFile, type Attached, isBlankShow, planBackup,
   showLength,
-  revisionLabel, addProp, newPropSpot,
+  revisionLabel,
 } from './engine/show';
 import { pinchView } from './perform/gestures';
 import { coarse } from './perform/device';
@@ -20,7 +20,6 @@ import { Timeline } from './ui/Timeline';
 import { startingSections } from './ui/startingSections';
 import { saveStartingField, startingField } from './ui/startingField';
 import { NewShowDialog } from './ui/NewShow';
-import { FieldSelect, FieldDetails } from './ui/FieldPicker';
 import { MusicMenu } from './ui/Music';
 import { getAudio, putAudio } from './ui/audioStore';
 import { addVersion, filesUsed, forgetShow, keepPublished, keepShow, listShows, loadShow, readAutosave, sweepFiles, writeAutosave } from './ui/showStore';
@@ -36,6 +35,7 @@ import { clickWanted, setClickWanted, wakeClick } from './ui/click';
 import { VideoDialog } from './ui/VideoExport';
 import { FeedbackDialog } from './ui/Feedback';
 import { ShowSettingsDialog } from './ui/ShowSettings';
+import { SectionCountsDialog } from './ui/SectionCounts';
 import { readPublishing, readPublishingCode, type Publishing } from './engine/cloud';
 import { getPublishing, setPublishing } from './ui/publishing';
 import { saveStatus } from './ui/saveStatus';
@@ -454,29 +454,22 @@ export function App() {
     </>,
     rehearsal: <button onClick={() => noteSb({ rehearsal: true })}>Got it</button>,
   }[x.id] })) : null;
-  // A prop before any performers (a stage, a backdrop): as Add, then Prop does.
-  const placePropFirst = () => {
-    const r = addProp(show, `Prop ${(show.props?.length ?? 0) + 1}`, 8, 8, false, newPropSpot(show));
-    setShow(() => r.show); setSelected(new Set()); setSelectedMark(null); setSelectedProp(r.id); setTool('select'); setSideChoice(true);
-  };
   // Where the blank field's note sits: the middle of an empty field; the top once there's a prop to see under it.
   const startDock = (show.props?.length ?? 0) > 0 ? 'top' : 'center';
   // In the middle of an empty field the note is the welcome screen, so it carries the full logo (Jason); docked at the top, it stays short.
   const startLogo = startDock === 'center' && <img className="start-logo" src={theme === 'light' ? '../logo-light.svg' : '../logo.svg'} alt="FreeFORM Drill" />;
-  // The ways to begin a blank show: the Start note, and step 1 of the checklist when it's on.
-  // A blank field can still switch surfaces (a first visit lands on one): nobody's on it yet, so nothing moves.
-  const pickField = (f: FieldSpec) => { setShow((s) => withField(s, f)); saveStartingField(f); };
+  // The ways to begin a blank show: the Add performers note, and step 1 of the checklist when it's on.
+  // A blank show offers one thing: get performers on the field (Jason, 2026-11-21). The field and hashes are in Show
+  // settings; a show from a link or recovery code is under the show menu's Get a show back.
   const startOptions = <>
-    <span style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 6 }}>
-      Written on <FieldSelect value={fieldOf(show)} outside={show.hash} onChange={pickField} /> <FieldDetails value={fieldOf(show)} onChange={pickField} />
+    <span className="gs-start" style={{ display: 'grid', gap: 8 }}>
+      <button className="primary menu-two" onClick={() => setCounting(true)}>Enter section counts<span>How many in each section, and they're placed in rows to start from</span></button>
+      <button className="menu-two" onClick={() => setRoster(true)}>Import a roster<span>Names and parts from a spreadsheet</span></button>
+      <button className="link" style={{ justifySelf: 'start' }} onClick={() => { setTool('add'); setOpenAdd((n) => n + 1); }}>Or place them one at a time</button>
     </span>
-    <span>Place performers on the field (or props first, like a stage or a backdrop), bring in a roster from Excel, or look around the sample show first. On a new computer? Open your show from its phone link or recovery code.</span>
-    <span style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
-      <button className="primary" onClick={() => { setTool('add'); setOpenAdd((n) => n + 1); }}>Place performers</button>
-      <button onClick={placePropFirst} title="An 8 by 8 prop in the middle of the field, picked, with its size and name in the sidebar">Place a prop</button>
-      <button onClick={() => setRoster(true)}>Import a roster…</button>
-      <button onClick={() => trySample()}>Try the sample show</button>
-      <button onClick={() => setLibrary('link')} title="Open a show from the link students use, or from a recovery code from your other computer">Open from a link or recovery code…</button>
+    <span style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--line)' }}>
+      <button onClick={() => trySample()}>Open the sample show</button>
+      <button onClick={() => fileRef.current?.click()}>Import drill…</button>
     </span>
   </>;
   const today = (ms: number) => new Date(ms).toDateString() === new Date().toDateString();
@@ -1077,7 +1070,7 @@ export function App() {
     saveStartingField(field); // the next new show starts on the same surface
     await leave(async () => {
       openShow({ ...newShow(startingSections(), field), title }); // nothing to back up yet
-      setTool('select'); // the blank field's note leads: Place performers, Import a roster, or the sample (Jason, 2026-11-11)
+      setTool('select'); // the blank field's note leads: Enter section counts, Import a roster, or the sample (Jason, 2026-11-21)
     });
   };
   const [openAdd, setOpenAdd] = useState(0);
@@ -1090,6 +1083,7 @@ export function App() {
   const [video, setVideo] = useState(false); // the Make a video dialog
   const [feedback, setFeedback] = useState(false); // the Send feedback form
   const [settingsOpen, setSettingsOpen] = useState(false); // Show settings, from the show menu
+  const [counting, setCounting] = useState(false); // Enter section counts, from the first-run screen
   const act: ShowActions = {
     flush,
     fresh: async () => { setLibrary(false); setNewing(true); },
@@ -1223,7 +1217,7 @@ export function App() {
               <button onClick={() => { close(); hideGs(); startSb(); }} disabled={!!sbDid} title={sbDid ? 'The checklist is already on for this show' : 'A short checklist for getting this show onto your performers\' phones, with a message to send them'}>Send it to your band</button>
               <button onClick={() => { close(); setShowKeys(true); }} title="Every keyboard shortcut on one page (or press ? anywhere in the editor)">Keyboard shortcuts</button>
               <button onClick={() => { close(); setRecovering(true); }} title="Undo, earlier versions, a missing show, a new computer, or a show you published: what happened, and the button that fixes it">Get a show back</button>
-              <span className="menu-head">Examples (each opens as its own show; yours stays under Shows…)</span>
+              <span className="menu-head">Examples (each opens as its own show; yours stays in My shows)</span>
               <button className="menu-two" onClick={() => { close(); trySample(); }}>Try the sample show<span>A finished 47-performer show to look around in</span></button>
               <button className="menu-two" onClick={() => { close(); trySample(true); }}>Try the practice show<span>The same show with 3 problems to find and fix, explained in its notes</span></button>
               <span className="menu-head">FreeFORM Drill</span>
@@ -1282,13 +1276,10 @@ export function App() {
         {show.performers.length === 0 && !otherTab && (gsSteps
           ? <GettingStarted steps={gsSteps} onHide={hideGs} start={tool === 'select' ? startOptions : undefined} dock={startDock} logo={startLogo || undefined} />
           : tool === 'select' && (
-            <section className={`getting-started ${startDock}`} aria-label="Start your show">
+            <section className={`getting-started ${startDock}`} aria-label="Add performers">
               {startLogo}
-              <strong style={{ display: 'block', fontSize: 16, marginBottom: 6 }}>Start your show</strong>
+              <strong style={{ display: 'block', fontSize: 18, marginBottom: 10 }}>Add performers</strong>
               {startOptions}
-              <p style={{ margin: '12px 0 0', paddingTop: 10, borderTop: '1px solid var(--line)' }}>
-                New to writing drill in FreeFORM? <button onClick={startGs} title="A short checklist that walks you from a blank field to your first move, and ticks itself off as you go">Getting started, step by step</button>
-              </p>
             </section>))}
         {otherTab && (
           <div role="alert" className="backup-note">
@@ -1381,6 +1372,7 @@ export function App() {
         importFile: () => fileRef.current?.click(), fromLink: () => setLibrary('link'), feedback: () => setFeedback(true),
       }} />}
       {feedback && <FeedbackDialog onClose={() => setFeedback(false)} />}
+      {counting && <SectionCountsDialog show={show} setShow={setShow} onPlaced={(ids) => { setSelected(new Set(ids)); setTool('select'); }} onClose={() => setCounting(false)} />}
       {settingsOpen && <ShowSettingsDialog show={show} setShow={setShow} onClose={() => setSettingsOpen(false)} />}
       {video && <VideoDialog show={show} bpm={bpm} onClose={() => setVideo(false)} />}
       {printing && <PrintDialog show={show} selected={selected} onClose={() => setPrinting(false)} />}

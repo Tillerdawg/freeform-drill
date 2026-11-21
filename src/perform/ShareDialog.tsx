@@ -212,7 +212,7 @@ export function ShareDialog({ show, onClose, published }: { show: Show; onClose:
               <p style={small}>
                 Got a new computer or iPad? This code lets it keep updating this same link, so students don't need a new one. Email it to
                 yourself, or copy it somewhere safe: the instructions travel with it. On the new device, click <strong>Open from a link or recovery code…</strong>
-                (on a blank field, or under <strong>Shows…</strong>) and paste the whole message. <strong>Keep it private:</strong> like the link, it's a
+                (click the show's name, then <strong>My shows…</strong>) and paste the whole message. <strong>Keep it private:</strong> like the link, it's a
                 password, and it can also change the show. A <strong>Full backup</strong> file carries it too.
               </p>
               <textarea aria-label="Recovery code" readOnly rows={5} value={codeMessage} onFocus={(e) => e.currentTarget.select()}

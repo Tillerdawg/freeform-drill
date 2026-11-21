@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { COURT, DEFAULT_FLOOR, HASHES, readout } from './coords';
 import {
   nextRevision, revisionLabel,
-  addPerformer, addSetAfter, advance, biggestStep, chainOrder, clearFtl, ftlTrail, moveSteps, normalizeFtl, flip, mirrorSides, moveSetTo, remapHash, rotateScale, setFtl, newShowId, parseShowFile, snapSelection, playRange, playPlan, label, locate, newShow, parseShow, placeInSet, positionsAt,
+  addPerformer, placeSectionCounts, addSetAfter, advance, biggestStep, chainOrder, clearFtl, ftlTrail, moveSteps, normalizeFtl, flip, mirrorSides, moveSetTo, remapHash, rotateScale, setFtl, newShowId, parseShowFile, snapSelection, playRange, playPlan, label, locate, newShow, parseShow, placeInSet, positionsAt,
   removePerformers, renumberSets, scoreOrder, DEFAULT_SECTIONS, removeSet, setAt, setCounts, setStarts, totalCounts, xFrom, yFrom, insertSetAt, showLength, movementAt, movementOfSet, setFtlTurns,
   addSetHere, setCue, newPropSpot, setFtlSmooth, routeTurns, leaderDistance, setTiming, timingOf, fitTurn, setTurning, turnRoute, groupTurn, counterMarch, closeCalls, addProp, placeProp, propsAt, hitProp, removeProp, updateProp, propShape, shapePatch, triangleCorners, triangleSides, triangleFromSides, triangleWidth, fieldOf, moveSegments, withShowId, withField, validField, isBlankShow,
 } from './show';
@@ -1069,6 +1069,29 @@ describe('parseShow with built-in object names as ids', () => {
     const s = plain();
     s.hash = 'toString';
     expect(() => parseShow(JSON.stringify(s))).toThrow(/hash/);
+  });
+});
+
+describe('a first formation from section counts', () => {
+  it('puts each section in rows of up to 8, 2 steps apart, from the front hash back, centered on the 50', () => {
+    const base = newShow([{ name: 'Brass', letter: 'B' }, { name: 'Guard', letter: 'G' }]);
+    const [b, g] = base.sections.map((x) => x.id);
+    const { show, ids } = placeSectionCounts(base, [{ section: b, n: 10 }, { section: g, n: 3 }]);
+    expect(ids).toHaveLength(13);
+    expect(show.performers.filter((p) => p.section === b).map((p) => p.number)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    const at = (k: number) => show.sets[0].pos[ids[k]];
+    expect(at(0)).toEqual({ x: -7, y: HASHES.highSchool }); // the first row: 8 across, centered
+    expect(at(7)).toEqual({ x: 7, y: HASHES.highSchool });
+    expect(at(8)).toEqual({ x: -1, y: HASHES.highSchool + 2 }); // the rest of the brass, 2 steps behind
+    expect(at(10)).toEqual({ x: -2, y: HASHES.highSchool + 4 }); // the guard starts its own row
+    const spots = new Set(ids.map((id) => `${show.sets[0].pos[id].x},${show.sets[0].pos[id].y}`));
+    expect(spots.size).toBe(13); // nobody shares a spot
+  });
+  it('skips sections with none, and rounds a part-count down', () => {
+    const base = newShow([{ name: 'Brass', letter: 'B' }]);
+    const b = base.sections[0].id;
+    expect(placeSectionCounts(base, [{ section: b, n: 0 }]).ids).toHaveLength(0);
+    expect(placeSectionCounts(base, [{ section: b, n: 2.7 }]).ids).toHaveLength(2);
   });
 });
 

@@ -73,7 +73,7 @@ export const publishingCode = (p: Publishing) => PREFIX + b64url(JSON.stringify(
 export const publishingMessage = (p: Publishing, title: string) => [
   `FreeFORM Drill recovery code for "${title || 'Untitled show'}"`,
   '',
-  'To keep updating the same phone link from a new computer or iPad: open https://freeformdrill.org/app/, click Open from a link or recovery code… (on a blank field, or under Shows…), and paste this whole message. The show opens, and Publish update keeps the link your students already have.',
+  'To keep updating the same phone link from a new computer or iPad: open https://freeformdrill.org/app/, click Open from a link or recovery code… (click the show name at the top, then My shows…), and paste this whole message. The show opens, and Publish update keeps the link your students already have.',
   '',
   'Keep this private: like the show’s link, it’s a password, and it can also change the show on your students’ phones.',
   '',

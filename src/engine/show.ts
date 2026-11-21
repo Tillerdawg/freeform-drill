@@ -241,6 +241,29 @@ const mapSet = (show: Show, i: number, f: (s: DrillSet) => DrillSet): Show => ({
 });
 
 /** Adds a performer; it gets `at` in every set so it exists for the whole show. */
+/**
+ * A first formation from section counts (the first-run screen's "Enter section counts", borrowed from the other
+ * Freeform repo's setup): each section in its own rows of up to 8, 2 steps apart, sections in the order given from
+ * the front, starting on the front hash (a floor: 8 steps from the front edge), centered on the 50. Every set gets the
+ * same spots, like Add. Returns the new performers' ids.
+ */
+export function placeSectionCounts(show: Show, counts: { section: string; n: number }[], perRow = 8): { show: Show; ids: string[] } {
+  const ids: string[] = [];
+  let y = show.surface ? 8 : HASHES[show.hash];
+  for (const { section, n } of counts) {
+    const k = Math.max(0, Math.floor(n));
+    for (let i = 0; i < k; i += perRow) {
+      const inRow = Math.min(perRow, k - i);
+      for (let j = 0; j < inRow; j++) {
+        const r = addPerformer(show, section, { x: (j - (inRow - 1) / 2) * 2, y });
+        show = r.show; ids.push(r.id);
+      }
+      y += 2;
+    }
+  }
+  return { show, ids };
+}
+
 export function addPerformer(show: Show, section: string, at: Point): { show: Show; id: string } {
   const id = newId('p');
   const number = Math.max(0, ...show.performers.filter((p) => p.section === section).map((p) => p.number)) + 1;

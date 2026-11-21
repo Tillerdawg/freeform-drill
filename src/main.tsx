@@ -20,7 +20,7 @@ class Crash extends Component<{ children: ReactNode }, { error?: Error }> {
     };
     const reset = () => {
       if (!confirm('Clear the autosaved show and start fresh? Download it first if you want to keep it.')) return;
-      try { localStorage.removeItem(AUTOSAVE); localStorage.removeItem(AUTOSAVE_ID); } catch { /* nothing to clear */ } // the show stays in the library (Shows…)
+      try { localStorage.removeItem(AUTOSAVE); localStorage.removeItem(AUTOSAVE_ID); } catch { /* nothing to clear */ } // the show stays in the library (My shows)
       location.reload();
     };
     return (
