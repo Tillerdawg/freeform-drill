@@ -173,4 +173,17 @@ export const ES: Record<string, string> = {
   'how you get there': 'cómo llegas',
   'your notes': 'tus notas',
   'the ensemble notes': 'las notas para todos',
+  // My dots one set at a time, and the field's view names (2026-11-21)
+  'Set': 'Set',
+  'Step': 'Paso',
+  'Watch move': 'Ver el movimiento',
+  'Previous set': 'Set anterior',
+  'Set {name}, m. {m}': 'Set {name}, c. {m}',
+  'Next set': 'Set siguiente',
+  'All sets': 'Todos los sets',
+  'One set at a time': 'Un set a la vez',
+  'Director view': 'Vista del director',
+  'My view': 'Mi vista',
+  'Field view: my view, facing the front. Tap for the director view.': 'Vista del campo: mi vista, mirando al frente. Toca para la vista del director.',
+  'Field view: the director view, from the press box. Tap for my view.': 'Vista del campo: la vista del director, desde el palco. Toca para mi vista.',
 };

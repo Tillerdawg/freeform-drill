@@ -17,7 +17,7 @@ import { COUNT_IN, countInBeat } from './countIn';
 import { synced } from '../engine/music';
 import { deleteAudio, getAudio, putAudio } from '../ui/audioStore';
 import { IconNext, IconPause, IconPlay, IconPrev } from '../ui/icons';
-import { nearest, stepWords, yardLabel } from './neighbors';
+import { nearest, yardLabel } from './neighbors';
 import { panCenter, pinchZoom, ZOOM_MAX } from './gestures';
 import { WhoPicker } from './WhoPicker';
 import { myDots, paneFor } from './myDots';
@@ -302,6 +302,11 @@ export function Perform() {
     return () => m.removeEventListener('change', turn);
   }, []);
   const pane = paneFor(!me, chosen, portrait);
+  // The field is always laid out sideways (Jason, 2026-11-21): held upright, the page is drawn turned a quarter turn, so
+  // turning the phone reads it, rotation lock on or off. (A web page can't turn the phone itself.)
+  const sideways = pane === 'field' && portrait;
+  // My dots shows one set at a time, as a card; All sets is the whole list, like the printed dot sheet.
+  const [allSets, setAllSets] = useState(false);
   const rows = useMemo(() => (show && me ? myDots(show, me.id, lang) : []), [show, me]);
   const listRef = useRef<HTMLOListElement>(null);
   // What the last update changed for me, until Got it: a box at the top of My dots, and a line on each changed card.
@@ -342,7 +347,7 @@ export function Perform() {
     if (pane !== 'dots') return;
     (listRef.current?.querySelector('[aria-current]') as HTMLElement | null)?.scrollIntoView({ block: jumped.current ? 'start' : 'nearest' });
     jumped.current = false;
-  }, [pane, cur]);
+  }, [pane, cur, allSets]);
   const jumpTo = (i: number) => { setPlaying(false); jumped.current = true; setT(starts[i]); };
 
   // My path into the next set, sampled count by count (so follow-the-leader trails come out right).
@@ -476,8 +481,47 @@ export function Perform() {
   const btn: React.CSSProperties = { fontSize: 18, minWidth: 44, minHeight: 44, display: 'grid', placeItems: 'center' };
 
 
+  // A set's card below its heading: what changed, the spot, the step, holds, and notes (the card, and each row of All sets).
+  const dotRest = (r: (typeof rows)[number]) => <>
+    {changedAt.has(show.sets[r.index].id) && <span className="dot-small dot-changed">{tr('Changed: {what}', { what: changedAt.get(show.sets[r.index].id)!.map(whatWords).join(', ') })}<span className="sr-only">. </span></span>}
+    <span className="dot-coord">{r.side}</span><span className="sr-only">. </span>
+    <span className="dot-coord">{r.front}</span><span className="sr-only">. </span>
+    {/* The move in plain words, with the step size in parentheses: "smaller step size than normal (10.4-to-5), moving forward". */}
+    {r.steps && <span className="dot-small">{r.steps.tier !== 'ok' && '⚠ '}{tr('Step')}: <span style={{ color: STEP_TEXT[r.steps.tier] }}>{fmtStep(r.steps.per5, lang)}</span>{r.way ? `, ${r.way}` : ''}<span className="sr-only">. </span></span>}
+    {r.held && <span className="dot-small">{tr('Hold (same spot as set {name})', { name: show.sets[r.index - 1].name })}<span className="sr-only">. </span></span>}
+    {r.hold && <span className="dot-small">{tr('hold {w}, move {m}', { w: r.hold.wait, m: r.hold.move })}{r.hold.after ? `, ${tr('hold {w}', { w: r.hold.after })}` : ''}<span className="sr-only">. </span></span>}
+    {r.cue && <span className="dot-small"><span className="perform-k">{tr('My notes')}<span className="sr-only">: </span></span>{r.cue}<span className="sr-only">. </span></span>}
+    {r.note && <span className="dot-small"><span className="perform-k">{tr('Ensemble')}<span className="sr-only">: </span></span>{r.note}</span>}
+  </>;
+  const go = (i: number) => { setPlaying(false); setT(starts[i]); };
+  const card = rows.find((x) => x.index === cur) ?? rows[0];
+  // My dots, one set at a time (Jason, 2026-11-21): the sets as buttons, then the set's card with its own picker, and
+  // Previous set and Next set pinned to the bottom so they never move with how much the card says.
+  const dotCard = card && <div className="perform-cardview">
+    {show.sets.length > 1 && <div className="perform-sets perform-card-sets" role="group" aria-label={tr('Go to set')}>
+      {show.sets.map((x, i) => <button key={x.id} aria-pressed={i === cur} onClick={() => go(i)}>{x.name}</button>)}
+    </div>}
+    <div className="dot-row dot-card" data-changed={changedAt.has(show.sets[card.index].id) || undefined}>
+      <span className="dot-head">
+        {/* Set N ▾: a picture of a button with the phone's own picker over it, so the list is just the set names. */}
+        <span className="set-picker"><span aria-hidden="true">{tr('Set {name}', { name: card.set })}</span>
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+          <select aria-label={tr('Set')} value={cur} onChange={(e) => go(Number(e.target.value))}>
+            {show.sets.map((x, i) => <option key={x.id} value={i}>{x.name}</option>)}
+          </select></span>
+        <span>{[card.counts != null ? tr('{n} counts', { n: card.counts }) : '', card.measures ? tr('m. {m}', { m: card.measures }) : ''].filter(Boolean).join(', ')}</span>
+      </span>
+      {dotRest(card)}
+      {card.index > 0 && <button className="primary dot-watch-card" onClick={() => watchMove(card.index)}>▶ {tr('Watch move')}</button>}
+    </div>
+    <nav className="perform-cardnav" aria-label={tr('Sets')}>
+      <button disabled={cur <= 0} onClick={() => go(cur - 1)}>‹ {tr('Previous set')}</button>
+      <button className="link" onClick={() => setAllSets(true)}>{tr('All sets')}</button>
+      <button disabled={cur >= show.sets.length - 1} onClick={() => go(cur + 1)}>{tr('Next set')} ›</button>
+    </nav>
+  </div>;
   return (
-    <main className="perform" data-pane={pane}>
+    <main className="perform" data-pane={pane} data-sideways={sideways || undefined}>
       {/* The header, readout, and controls: one scrolling column beside the field on a phone held sideways; on an upright
           phone this wrapper drops out of the layout (display: contents) and CSS order puts the field under the header. */}
       <div className="perform-side">
@@ -500,7 +544,7 @@ export function Perform() {
             )}</span>
           {!isPhone() && <button onClick={toEditor} title={tr('Back to the drill editor')} style={{ fontSize: 14 }}>{tr('← Editor')}</button>}
           {/* The view buttons sit up here, beside the title, so nothing covers the field (they used to float over it). */}
-          {pane === 'field' && <button className="perform-view" aria-label={state!.facingFront ? tr('Field orientation: facing the front. Tap to turn it around.') : tr('Field orientation: from the press box. Tap to turn it around.')} onClick={() => update({ facingFront: !state!.facingFront })}>{state!.facingFront ? tr('Facing the front') : tr('From the press box')}</button>}
+          {pane === 'field' && <button className="perform-view" aria-label={state!.facingFront ? tr('Field view: my view, facing the front. Tap for the director view.') : tr('Field view: the director view, from the press box. Tap for my view.')} onClick={() => update({ facingFront: !state!.facingFront })}>{state!.facingFront ? tr('My view') : tr('Director view')}</button>}
           <ThemeButton />
         </div>
         {adding && <div className="perform-add" role="dialog" aria-label={tr('Add a show')}><span>{tr("Open another show's link, or paste it or scan its QR code here. It's added to this phone's list.")}</span><PasteLink /><button onClick={() => setAdding(false)}>{tr('Cancel')}</button></div>}
@@ -543,40 +587,34 @@ export function Perform() {
             <button className="primary perform-gotit" onClick={() => update({ changed: undefined })}>{tr('Got it')}</button>{/* the one main button here: full width, so it reads as the way to finish */}
           </div>
         )}
-        {/* "Start at 12B": straight to a set (or its measures), instead of scrolling a long show. */}
-        {show.sets.length > 1 && <label className="perform-jump">{tr('Jump to')}
-          <select value={cur} onChange={(e) => jumpTo(Number(e.target.value))}>
-            {show.sets.map((x, i) => <option key={x.id} value={i}>{x.measures ? tr('Set {name} · m. {m}', { name: x.name, m: x.measures }) : tr('Set {name}', { name: x.name })}</option>)}
-          </select></label>}
-        <ol ref={listRef}>
-          {rows.map((r) => (
-            <li key={r.index}>
-              <button className="dot-row" aria-current={r.index === cur ? 'step' : undefined} data-changed={changedAt.has(show.sets[r.index].id) || undefined} onClick={() => { setPlaying(false); setT(starts[r.index]); }}>
-                {/* The hidden ". " and ": " give VoiceOver pauses between the card's parts; on screen they're laid out apart instead. */}
-                <span className="dot-head"><strong>{tr('Set {name}', { name: r.set })}</strong><span className="sr-only">. </span>
-                  <span><span aria-hidden="true">{[r.counts != null ? tr('{n} cts', { n: r.counts }) : '', r.measures ? tr('m. {m}', { m: r.measures }) : ''].filter(Boolean).join(' · ')}</span>
-                    <span className="sr-only">{[r.counts != null ? tr('{n} counts', { n: r.counts }) : '', r.measures ? tr('measures {m}', { m: r.measures.replace('–', ` ${tr('to')} `) }) : ''].filter(Boolean).join(', ')}{r.counts != null && '. '}</span></span></span>
-                {changedAt.has(show.sets[r.index].id) && <span className="dot-small dot-changed">{tr('Changed: {what}', { what: changedAt.get(show.sets[r.index].id)!.map(whatWords).join(', ') })}<span className="sr-only">. </span></span>}
-                <span className="dot-coord">{r.side}</span><span className="sr-only">. </span>
-                <span className="dot-coord">{r.front}</span><span className="sr-only">. </span>
-                {/* The move in plain words, with the step size in parentheses: "smaller step size than normal (10.4-to-5), moving forward". */}
-                {r.steps && <span className="dot-small">{stepWords(r.steps.per5)} (<span style={{ color: STEP_TEXT[r.steps.tier] }}>{fmtStep(r.steps.per5, lang)}</span>){r.way ? `, ${r.way}` : ''}<span className="sr-only">. </span></span>}
-                {r.held && <span className="dot-small">{tr('Hold (same spot as set {name})', { name: show.sets[r.index - 1].name })}<span className="sr-only">. </span></span>}
-                {r.hold && <span className="dot-small">{tr('hold {w}, move {m}', { w: r.hold.wait, m: r.hold.move })}{r.hold.after ? `, ${tr('hold {w}', { w: r.hold.after })}` : ''}<span className="sr-only">. </span></span>}
-                {r.cue && <span className="dot-small"><span className="perform-k">{tr('My notes')}<span className="sr-only">: </span></span>{r.cue}<span className="sr-only">. </span></span>}
-                {r.note && <span className="dot-small"><span className="perform-k">{tr('Ensemble')}<span className="sr-only">: </span></span>{r.note}</span>}
-              </button>
-              {r.bends && <button className="dot-watch" onClick={() => watchMove(r.index)}>▶ {tr('Watch the move into set {name}', { name: r.set })}</button>}
-            </li>
-          ))}
-        </ol>
+        {allSets ? <>
+          <button className="link perform-back" onClick={() => setAllSets(false)}>‹ {tr('One set at a time')}</button>
+          {/* "Start at 12B": straight to a set (or its measures), instead of scrolling a long show. */}
+          {show.sets.length > 1 && <label className="perform-jump">{tr('Jump to')}
+            <select value={cur} onChange={(e) => jumpTo(Number(e.target.value))}>
+              {show.sets.map((x, i) => <option key={x.id} value={i}>{x.measures ? tr('Set {name}, m. {m}', { name: x.name, m: x.measures }) : tr('Set {name}', { name: x.name })}</option>)}
+            </select></label>}
+          <ol ref={listRef}>
+            {rows.map((r) => (
+              <li key={r.index}>
+                <button className="dot-row" aria-current={r.index === cur ? 'step' : undefined} data-changed={changedAt.has(show.sets[r.index].id) || undefined} onClick={() => { setPlaying(false); setT(starts[r.index]); setAllSets(false); }}>
+                  {/* The hidden ". " and ": " give VoiceOver pauses between the card's parts; on screen they're laid out apart instead. */}
+                  <span className="dot-head"><strong>{tr('Set {name}', { name: r.set })}</strong><span className="sr-only">. </span>
+                    <span><span aria-hidden="true">{[r.counts != null ? tr('{n} counts', { n: r.counts }) : '', r.measures ? tr('m. {m}', { m: r.measures }) : ''].filter(Boolean).join(', ')}</span>
+                      <span className="sr-only">{[r.counts != null ? tr('{n} counts', { n: r.counts }) : '', r.measures ? tr('measures {m}', { m: r.measures.replace('–', ` ${tr('to')} `) }) : ''].filter(Boolean).join(', ')}{r.counts != null && '. '}</span></span></span>
+                  {dotRest(r)}
+                </button>
+                {r.bends && <button className="dot-watch" onClick={() => watchMove(r.index)}>▶ {tr('Watch the move into set {name}', { name: r.set })}</button>}
+              </li>
+            ))}
+          </ol>
+        </> : dotCard}
         <p className="perform-help"><a href={studentsLink} style={{ color: 'var(--blue)' }}>{tr('How it works for performers (2 minutes)')}</a></p>
         <LanguageButton />
       </section>
       <footer className="perform-controls">
         {picking && (
           <div ref={loopPanel} tabIndex={-1} className="perform-add" role="dialog" aria-label={tr('Loop sets')}>
-            <span>{tr('Practice a few sets over and over. Play starts on the first set and jumps back to it after the last one.')}</span>
             <span>{tr('Sets')}{' '}
               <select aria-label={tr('Loop from set')} value={picking[0]} onChange={(e) => { const v = Number(e.target.value); setPicking([v, Math.max(v + 1, picking[1])]); }} style={{ fontSize: 16 }}>
                 {show.sets.slice(0, -1).map((x, i) => <option key={x.id} value={i}>{x.name}</option>)}
@@ -636,7 +674,9 @@ export function Perform() {
             // With Follow my dot on, the camera stays on my dot; elsewhere, dragging (one finger or two) moves around the field.
             if (!(me && state!.follow) && viewRef.current) {
               const share = touches.current.size; // two fingers each move half the drag
-              setCenter((c) => panCenter(c, ((e.clientX - prev.x) * dpr) / share, ((e.clientY - prev.y) * dpr) / share, viewRef.current!.scale, state!.facingFront));
+              let dx = e.clientX - prev.x, dy = e.clientY - prev.y;
+              if (sideways) [dx, dy] = [dy, -dx]; // the page is turned a quarter turn: the screen's down is its right
+              setCenter((c) => panCenter(c, (dx * dpr) / share, (dy * dpr) / share, viewRef.current!.scale, state!.facingFront));
             }
           }}
           onPointerUp={(e) => { touches.current.delete(e.pointerId); if (touches.current.size < 2) pinch.current = null; }}

@@ -567,15 +567,20 @@ shot('phone', async () => {
   await page.waitForTimeout(200);
   await save(page, 'phone-who');
   await page.keyboard.press('Enter');
-  // Upright: My dots, with set 2 tapped.
-  await page.getByRole('region', { name: 'My dots' }).getByRole('button', { name: /^Set 2/ }).click();
+  // Upright: My dots, one set at a time, on set 2 (picked from the Set picker on the card).
+  await page.getByRole('combobox', { name: 'Set', exact: true }).selectOption({ label: '2' });
   await page.waitForTimeout(400);
   await save(page, 'phone');
+  // All sets: the whole list, like the printed dot sheet.
+  await page.getByRole('button', { name: 'All sets' }).click();
+  await page.waitForTimeout(400);
+  await save(page, 'phone-all');
+  await page.getByRole('button', { name: /One set at a time/ }).click();
   // On its side: the field and playback.
   await page.setViewportSize({ width: 844, height: 390 });
   await page.waitForTimeout(800);
   await save(page, 'phone-field');
-  // Back upright, the Field switch (a phone locked upright), then Loop.
+  // Back upright, the Field switch: the field is drawn sideways (turn the phone to read it), then Loop.
   await page.setViewportSize({ width: 393, height: 659 });
   await page.waitForTimeout(400);
   await page.getByRole('button', { name: 'Field', exact: true }).click();

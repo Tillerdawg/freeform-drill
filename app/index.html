@@ -215,6 +215,27 @@
       button.link { background: none; border: 0; padding: 4px 0; color: var(--blue); text-decoration: underline; text-underline-offset: 3px; } /* a quieter choice, worded as a link */
       .save-short { font-size: 13px; white-space: nowrap; opacity: 0.85; } /* the top bar's save status, beside the show's name */
       .save-short.attention { opacity: 1; color: var(--warn); text-decoration: underline dotted; text-underline-offset: 3px; } /* not saved somewhere: the words say what, the underline isn't color alone */
+      /* My dots, one set at a time: the card, its Set N ▾ picker (the phone's own picker, laid over a picture of a button, so
+         its list is just the set names), and Previous and Next pinned to the bottom (they don't move with the card's length). */
+      .perform-cardview { display: flex; flex-direction: column; gap: 12px; min-height: 100%; }
+      .dot-card { box-sizing: border-box; background: var(--surface); border-radius: 12px; gap: 6px; padding: 16px; }
+      .dot-card .dot-head { align-items: center; flex-wrap: wrap; }
+      .dot-head > .set-picker { opacity: 1; }
+      .set-picker { position: relative; display: inline-flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 10px 0 14px; border: 1px solid var(--muted); border-radius: 10px; background: var(--bg-deep); font-size: 24px; font-weight: 800; }
+      .set-picker select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; font-size: 16px; cursor: pointer; }
+      .dot-watch-card { align-self: flex-start; min-height: 44px; margin-top: 6px; }
+      .perform-cardnav { position: sticky; bottom: -16px; margin: auto -12px -16px; padding: 10px 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--bg); border-top: 1px solid var(--line); }
+      .perform-cardnav button { min-height: 44px; font-weight: 600; }
+      .perform-back { min-height: 44px; margin-bottom: 4px; }
+      /* The field held upright: the page is drawn a quarter turn round and laid out as it is sideways, so turning the phone
+         reads it (Jason, 2026-11-21). The same layout as the landscape rules below. */
+      .perform[data-sideways] { position: fixed; top: 0; left: 0; width: 100vh; width: 100dvh; height: 100vw; transform-origin: top left; transform: rotate(90deg) translateY(-100%);
+        display: grid; grid-template-columns: 1fr minmax(300px, 40%); grid-template-rows: minmax(0, 1fr); }
+      .perform[data-sideways] .perform-field { grid-column: 1; grid-row: 1; }
+      .perform[data-sideways] .perform-side { display: flex; flex-direction: column; grid-column: 2; grid-row: 1; min-height: 0; overflow-y: auto; }
+      .perform[data-sideways] .perform-bar { padding-top: 8px; }
+      .perform[data-sideways] .perform-line { height: auto; -webkit-line-clamp: 4; }
+      .perform[data-sideways] .perform-buttons { flex-wrap: wrap; justify-content: flex-start; }
       .dot-watch { width: 100%; min-height: 44px; margin-top: -2px; border: 2px solid var(--line-strong); font-size: 15px; } /* joined to its card, below it */
       .dot-head { display: flex; justify-content: space-between; gap: 8px; font-size: 15px; margin-bottom: 2px; }
       .dot-head > span { opacity: 0.8; }
