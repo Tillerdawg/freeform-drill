@@ -191,6 +191,19 @@ describe('mirroring', () => {
     expect(ids.map((id) => fy.sets[1].pos[id])).toEqual([{ x: -10, y: 64 }, { x: 4, y: 54 }]);
     expect(flip(fx, 1, ids, 'x').sets[1].pos).toEqual(show.sets[1].pos);
   });
+  it('flips front to back in place, across the middle of the form', () => {
+    const { show, ids } = build([[-10, 20], [4, 30], [0, 25]]);
+    const f = flip(show, 1, ids, 'y', true); // the form spans y 20..30, so it flips across 25
+    expect(ids.map((id) => f.sets[1].pos[id])).toEqual([{ x: -10, y: 30 }, { x: 4, y: 20 }, { x: 0, y: 25 }]);
+    expect(flip(f, 1, ids, 'y', true).sets[1].pos).toEqual(show.sets[1].pos);
+    const odd = build([[0, 20], [0, 23]]); // a half-step middle stays exact
+    expect(odd.ids.map((id) => flip(odd.show, 1, odd.ids, 'y', true).sets[1].pos[id])).toEqual([{ x: 0, y: 23 }, { x: 0, y: 20 }]);
+  });
+  it('flips left to right in place, without crossing the 50', () => {
+    const { show, ids } = build([[-20, 20], [-12, 30], [-14, 25]]);
+    const f = flip(show, 1, ids, 'x', true); // the form spans x -20..-12, so it flips across -16
+    expect(ids.map((id) => f.sets[1].pos[id])).toEqual([{ x: -12, y: 20 }, { x: -20, y: 30 }, { x: -18, y: 25 }]);
+  });
   it('mirrors Side 1 onto Side 2, pairing by least travel, ignoring anyone on the 50', () => {
     // Side 1 form: (-16, 10) and (-8, 40). Side 2 performers start near (20, 38) and (6, 12).
     const { show, ids } = build([[-16, 10], [-8, 40], [20, 38], [6, 12], [0, 50]]);

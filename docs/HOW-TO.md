@@ -252,7 +252,8 @@ Two menus do the same jobs with exact numbers.
 
 **Mirror** flips the selection or copies one side onto the other:
 
-- **Flip across the 50** swaps Side 1 and Side 2, and **Flip front ↔ back** swaps front and back.
+- **Flip across the 50** swaps Side 1 and Side 2, and **Flip front ↔ back** swaps front and back. Both flip across the middle of the field, so the form moves to the other side or the other half.
+- **Flip front ↔ back in place** and **Flip left ↔ right in place** turn the form over where it stands: they flip across the middle of the selection, so an arc that opens to the back now opens to the front, in the same spot, and a diagonal line that rises toward Side 2 now rises toward Side 1. They need 2 or more performers selected.
 - **Copy Side 1 → 2** (or 2 → 1) gives the other side the mirror image. FreeFORM pairs each performer with the one in the mirror-opposite spot. The other side moves the same way, too: a delayed step-off, a turning move, or a follow-the-leader group on the side you copy comes along, so each partner holds, turns, or follows just like its twin.
 
 **Rotate & Scale** turns the selection by a typed number of degrees (**↺** counterclockwise, **↻** clockwise), and **Expand** and **Contract** scale it evenly by a typed percent. **Around** picks what it turns around: the center, or one of the selected performers. Pick the performer on the end of a line for a gate turn. The knob and corners on the field use the same choice, with a blue cross on that performer, and the readout says who it turns around ("Rotate 90° counterclockwise around T1"). It needs 2 or more performers selected.

@@ -1140,10 +1140,16 @@ export function advance(t: number, counts: number, [lo, hi]: [number, number], l
 
 // ---- Mirroring.
 
-/** Flip performers in set i across the 50 ('x') or across the field's front-to-back center ('y'). */
-export function flip(show: Show, i: number, ids: string[], axis: 'x' | 'y'): Show {
+/**
+ * Flip performers in set i across the 50 ('x') or across the field's front-to-back center ('y').
+ * `inPlace` flips them across the middle of their own box instead, so the form turns over where it stands.
+ */
+export function flip(show: Show, i: number, ids: string[], axis: 'x' | 'y', inPlace = false): Show {
   const pos = show.sets[i].pos, pins = show.sets[i].labels;
-  const depth = fieldDepth(fieldOf(show)), f = (p: Point) => (axis === 'x' ? { x: -p.x, y: p.y } : { x: p.x, y: depth - p.y });
+  // `twice` is twice the line's coordinate (the low edge plus the high edge, for in place), so a half step stays exact.
+  const v = ids.map((id) => pos[id][axis]);
+  const twice = !inPlace ? (axis === 'x' ? 0 : fieldDepth(fieldOf(show))) : Math.min(...v) + Math.max(...v);
+  const f = (p: Point) => (axis === 'x' ? { x: twice - p.x, y: p.y } : { x: p.x, y: twice - p.y });
   const moved = mapTurns(placeInSet(show, i, Object.fromEntries(ids.map((id) => [id, f(pos[id])]))), i, ids, f);
   return withPins(moved, i, Object.fromEntries(ids.filter((id) => pins?.[id]).map((id) => [id, mirrorSide(pins![id], axis)])));
 }

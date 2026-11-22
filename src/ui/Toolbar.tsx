@@ -129,6 +129,8 @@ export function Toolbar(p: ToolbarProps) {
             <button onClick={() => { setShow((s) => flip(s, onSet, ids, 'x')); setNote(''); }} title="Swap sides: Side 1 ↔ Side 2">Flip across the 50</button>
             <button onClick={() => { setShow((s) => flip(s, onSet, ids, 'y')); setNote(''); }} title="Swap front and back">Flip front ↔ back</button>
             {ids.length > 1 && <>
+              <button onClick={() => { setShow((s) => flip(s, onSet, ids, 'y', true)); setNote(''); }} title="Swap front and back without moving the form: it turns over where it stands">Flip front ↔ back in place</button>
+              <button onClick={() => { setShow((s) => flip(s, onSet, ids, 'x', true)); setNote(''); }} title="Swap left and right without moving the form: it turns over where it stands">Flip left ↔ right in place</button>
               <button onClick={() => mirror(1)} title="Side 2 performers take the mirror image of Side 1">Copy Side 1 → 2</button>
               <button onClick={() => mirror(2)} title="Side 1 performers take the mirror image of Side 2">Copy Side 2 → 1</button>
             </>}

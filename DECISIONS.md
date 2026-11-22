@@ -688,3 +688,9 @@ Recent decisions are here. Older ones are in [docs/decisions/](docs/decisions/),
 - **Notes on the phone's Field screen:** the set's **My notes** and **Ensemble** notes show under the one-line readout, in the side column, so the field never changes size.
 - **Movement names:** Shubreet said the movement labels on the timeline were covered by the audio track. The waveform was drawn over them; now the names are drawn on top of it.
 
+## 2026-11-21 21:15 EST: Flip front to back in place
+- **Who:** Jason asked for a horizontal mirror and chose "in place." The details are Claude's (*Jason can veto*).
+- **Context:** **Flip front ↔ back** already flipped across the middle of the field, so a form near the front sideline landed near the back sideline. Drill writers also want to turn a form over where it stands, like an arc opening to the back that should open to the front.
+- **Other options:** copy front → back (like Copy Side 1 → 2); flipping across the center of mass instead of the middle of the box.
+- **Decision:** **Mirror → Flip front ↔ back in place**, shown when 2 or more performers are selected. It flips across the middle of the selection's box (halfway between the frontmost and backmost performer), so the form keeps the same space on the field. Pinned label sides and follow-the-leader turns flip with it, the same as the other flips.
+- **Left ↔ right in place (Jason, 21:12):** a matching **Flip left ↔ right in place**, across the middle of the selection's box side to side, so a form on Side 1 stays on Side 1.

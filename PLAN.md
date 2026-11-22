@@ -38,7 +38,7 @@
 ## Later milestones (rough order)
 - ✅ Shape tools: line, arc, curve, Bézier, circle, polygon, star, spiral, block (select, then shape; even or interval spacing; least-travel assignment).
 - ✅ Keyboard shortcuts for drill writing: one letter per shape, arrow-key nudges (1 step, Shift 4, Option/Alt half), ⌘/Ctrl +/− zoom the field, F or ⌘0 fit. ✅ A **?** cheat sheet (also **Help → Keyboard shortcuts**, 2026-11-16), kept in step with the guide by a test. Later: a customizable keymap.
-- ✅ Mirror: flip across the 50 or front to back; copy Side 1 → 2 (or 2 → 1) with least-travel pairing.
+- ✅ Mirror: flip across the 50 or front to back; flip front to back or left to right in place; copy Side 1 → 2 (or 2 → 1) with least-travel pairing.
 - ✅ Rotate and scale a selection around its center.
 - ✅ On-field rotate/stretch handles (a frame around a selection of 2+: knob rotates, corners stretch side to side and front to back, each on its own; works by touch). (Not planned: shapes that create performers. Jason: performers are defined when the show is first created.)
 - ✅ FTL transitions (leader + order, path-following; IDEA.md example is the acceptance test).
