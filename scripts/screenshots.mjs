@@ -145,6 +145,20 @@ shot('start', async () => {
   await page.waitForTimeout(500);
   await save(page, 'start', await around(page.locator('.getting-started')));
 });
+shot('section-counts', async () => {
+  // A blank show's Enter section counts: how many in each section, with each letter and name there to change. Clarinet
+  // is being given C, which Cymbals has, so the rule shows: a letter belongs to one section.
+  const page = await editor();
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.waitForTimeout(500);
+  await page.getByRole('button', { name: /Enter section counts/ }).click(); await page.waitForTimeout(300);
+  const d = page.getByRole('dialog', { name: 'Enter section counts' });
+  for (const [name, n] of [['Flute', 4], ['Clarinet', 6], ['Alto Saxophone', 3], ['Trumpet', 8]]) await d.getByLabel(`How many in ${name}`).fill(String(n));
+  await d.getByLabel('Letter for Clarinet').fill('C');
+  await page.waitForTimeout(200);
+  await save(page, 'section-counts', await around(d.locator('form'), 12));
+});
 shot('new-show', async () => {
   // New: the title and the surface come first. A custom floor, so its size shows too.
   const page = await editor();

@@ -19,6 +19,7 @@
 
 ## A simpler screen (2026-11-21, done)
 - [x] Editor: show menu, Show settings, one tool row, a sidebar that follows the selection, a quieter timeline, and Enter section counts on a blank show.
+- [x] The writer's own section letters from the start (2026-11-22, Jason): a **Sections** list in **New show…** and letters and names in **Enter section counts**, remembered for the next show; a letter belongs to one section everywhere (older files with a shared letter open flagged, and **Review** lists them); Pyware sections without instruments are named from the writer's own list.
 - [x] Phone: My dots one set at a time with Previous and Next pinned, the field always sideways, Director view and My view, palette sliders.
 - [ ] Try it with a director on an iPad: place 8 performers, add a 16-count set, make an arc, play it. Watch where they pause.
 - [ ] Phone: a More menu for Click, White field, and Follow my dot if the controls get crowded; Loop beside the controls instead of over the top.

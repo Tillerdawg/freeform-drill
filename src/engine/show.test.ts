@@ -1116,3 +1116,24 @@ describe('a first formation from section counts', () => {
   });
 });
 
+
+describe('section letters: one section each', async () => {
+  const { letterProblem, sectionListProblems, validSectionList, DEFAULT_SECTIONS } = await import('./show');
+  const list = [{ name: 'Trumpet', letter: 'T' }, { name: 'Tuba', letter: 'B' }];
+  it("refuses another section's letter (capitals don't matter), and an empty one, in words", () => {
+    expect(letterProblem(list, 't', 1)).toBe('"t" is already the letter for Trumpet. Each section needs its own.');
+    expect(letterProblem(list, ' ', 1)).toBe('Give it a letter.');
+    expect(letterProblem(list, 'U', 1)).toBeNull();
+    expect(letterProblem(list, 'T', 0)).toBeNull(); // its own letter
+    expect(letterProblem(list, 'B')).toMatch(/the letter for Tuba/); // a new section
+  });
+  it('checks a whole list as it is typed', () => {
+    expect(sectionListProblems([...list, { name: '', letter: 'Q' }, { name: 'Bass', letter: 'b' }]))
+      .toEqual([null, '"B" is already the letter for Bass. Each section needs its own.', 'Give it a name.', '"b" is already the letter for Tuba. Each section needs its own.']);
+    expect(sectionListProblems(DEFAULT_SECTIONS).every((x) => x === null)).toBe(true);
+  });
+  it("won't keep a saved starting list with a letter used twice", () => {
+    expect(validSectionList(list)).toEqual(list);
+    expect(validSectionList([...list, { name: 'Tenor', letter: 't' }])).toBeNull();
+  });
+});

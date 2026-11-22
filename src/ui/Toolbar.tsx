@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 're
 import { addBezierSegment, addCurvePoint, cleanText, coilGap, placeInner, type Shape, type ShapeKind } from '../engine/shapes';
 import { distance } from '../engine/coords';
 import {
-  addProp, addSetHere, newPropSpot, MAX_PROPS, removeProp, removeSet, setMarks, setStarts, chainOrder, clearFtl, closeCallsMemo, setFtlSmooth, newId, counterMarch, flip, groupTurn, setFtlTurns, setTiming, setTurning, timingOf, label, mirrorSides, placeInSet, removePerformers, rotateScale, setFtl, setLabelSide, snapSelection,
+  addProp, addSetHere, newPropSpot, MAX_PROPS, removeProp, removeSet, setMarks, setStarts, chainOrder, clearFtl, closeCallsMemo, setFtlSmooth, newId, letterProblem, MAX_LETTER, counterMarch, flip, groupTurn, setFtlTurns, setTiming, setTurning, timingOf, label, mirrorSides, placeInSet, removePerformers, rotateScale, setFtl, setLabelSide, snapSelection,
   type LabelSide, type Show,
 } from '../engine/show';
 import { curveSides } from '../field/labels';
@@ -514,9 +514,9 @@ function MovePanel({ show, setShow, onSet, ids, setSelected }: ToolbarProps & { 
 function NewSection({ show, setShow, setSection, setTool, close }: ToolbarProps & { close: () => void }) {
   const [open, setOpen] = useState(false); // the name and letter boxes only after Create New Section (Jason)
   const [name, setName] = useState(''), [letter, setLetter] = useState('');
-  const taken = show.sections.some((s) => s.letter.trim().toUpperCase() === letter.trim().toUpperCase());
+  const problem = letter.trim() ? letterProblem(show.sections, letter) : null; // a letter belongs to one section
   const add = () => {
-    if (!name.trim() || !letter.trim()) return;
+    if (!name.trim() || !letter.trim() || problem) return;
     const id = newId('s');
     setShow((sh) => ({ ...sh, sections: [...sh.sections, { id, name: name.trim(), letter: letter.trim() }] }));
     setSection(id); setTool('add'); close();
@@ -528,11 +528,11 @@ function NewSection({ show, setShow, setSection, setTool, close }: ToolbarProps 
       <div style={{ ...row, marginTop: 0 }}>
         <input aria-label="New section's name" placeholder="Name (Drum Major)" value={name} autoFocus maxLength={60} style={{ flex: 1, minWidth: 110 }}
           onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') add(); }} />
-        <input aria-label="New section's letter" placeholder="Letter" value={letter} maxLength={3} style={{ width: 56, textAlign: 'center' }}
+        <input aria-label="New section's letter" placeholder="Letter" value={letter} maxLength={MAX_LETTER} aria-invalid={!!problem} style={{ width: 56, textAlign: 'center' }}
           onChange={(e) => setLetter(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') add(); }} />
-        <button onClick={add} disabled={!name.trim() || !letter.trim()}>Add</button>
+        <button onClick={add} disabled={!name.trim() || !letter.trim() || !!problem}>Add</button>
       </div>
-      {taken && <p role="alert" style={{ ...help, color: 'var(--warn)', opacity: 1 }}>Another section already uses "{letter.trim()}": their labels would clash.</p>}
+      {problem && <p role="alert" style={{ ...help, color: 'var(--danger)', opacity: 1 }}>{problem}</p>}
     </>
   );
 }

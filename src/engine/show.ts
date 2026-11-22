@@ -181,12 +181,33 @@ export const DEFAULT_SECTIONS: SectionList = ([
   ['Color Guard', 'G'],
 ] as const).map(([name, letter]) => ({ name, letter }));
 
-/** A starting list saved from a file or storage: kept only if it's a non-empty list of names and letters. */
+/** A starting list saved from a file or storage: kept only if it's a non-empty list of names and letters, no letter used twice. */
 export function validSectionList(x: unknown): SectionList | null {
   if (!Array.isArray(x) || !x.length || x.length > 100) return null;
   return x.every((s) => typeof s?.name === 'string' && typeof s?.letter === 'string' && s.name.trim() && s.letter.trim()
     && (s.color === undefined || (typeof s.color === 'string' && COLOR_RE.test(s.color))))
+    && !sectionListProblems(x).some(Boolean)
     ? x.map((s) => ({ name: s.name, letter: s.letter, ...(s.color ? { color: s.color } : {}) })) : null;
+}
+
+/** The longest a section letter can be: one letter is usual, but a drill writer can use up to three (TP, SN). */
+export const MAX_LETTER = 3;
+
+/**
+ * Why a section can't take this letter, in words, or null if it can. A letter belongs to one section (Jason): two
+ * sections with the same letter would both have an A1. Capitals don't matter (a and A are the same letter).
+ * `except`: the index of the section being changed, so its own letter isn't counted against it.
+ */
+export function letterProblem(sections: readonly { name: string; letter: string }[], letter: string, except = -1): string | null {
+  const k = letter.trim().toUpperCase();
+  if (!k) return 'Give it a letter.';
+  const other = sections.find((x, i) => i !== except && x.letter.trim().toUpperCase() === k);
+  return other ? `"${letter.trim()}" is already the letter for ${other.name.trim() || 'another section'}. Each section needs its own.` : null;
+}
+
+/** For a list being typed (New show, Enter section counts): each row's problem in words, or null. */
+export function sectionListProblems(list: readonly { name: string; letter: string }[]): (string | null)[] {
+  return list.map((x, i) => (!x.name.trim() ? 'Give it a name.' : letterProblem(list, x.letter, i)));
 }
 
 /** A new show, on a football field (high school hashes unless `field` says otherwise) or the floor `field` names. */

@@ -45,6 +45,7 @@ A note on where the ideas came from: FreeFORM is modeled on Pyware and the Ultim
 - Text, arrows, and freehand markup on each set, plus ensemble notes and per-performer notes.
 - Undo for every edit, and every keyboard shortcut on one page (press **?**).
 - A simple screen: the show's name is a menu for opening, saving, and **Show settings…**; one tool row that shows the tools for what you've picked; and a blank show that starts with **Enter section counts** (placed in rows to start from), **Import a roster**, or placing performers one at a time.
+- Your own section letters from the start, in **New show…** and **Enter section counts**, remembered for the next show. Each section has its own letter: FreeFORM won't let two share one.
 - Sidebar on the left or right, and the timeline on the top or bottom (**Layout**, in the top bar).
 - Dark mode or light mode (the sun/moon button), following your computer's own setting until you choose.
 
@@ -118,7 +119,7 @@ node scripts/screenshots.mjs ftl print    # or just these
 |---|---|
 | `src/engine/` | The drill logic, with no UI: coordinates and readouts, the show model and the checks every show file goes through (`showFile.ts`), shapes, markup, undo, which versions to keep, music timing, share links and locked files, QR codes, the Pyware and OpenMarch readers (with a small SQLite reader), and the whole-show Review. Unit-tested. |
 | `src/field/` | Drawing the field, performers, shapes, and markup, plus dot-label placement and the rotate/stretch frame |
-| `src/ui/` | The toolbar, sidebar, the New show box and the field menu it shares (`FieldPicker.tsx`), Show settings (`ShowSettings.tsx`), Enter section counts (`SectionCounts.tsx`), timeline, Review list, music menu (with the rehearsal track's worker, `rehearsalWorker.ts`), show list, color palette, the keyboard handling every dialog shares (`useDialog`), where the sidebar and timeline sit (`layout.ts`), and browser storage (`audioStore.ts`, `showStore.ts`: recordings, pictures, the show library, and versions in IndexedDB, plus the autosave in localStorage) |
+| `src/ui/` | The toolbar, sidebar, the New show box and the field menu it shares (`FieldPicker.tsx`), Show settings (`ShowSettings.tsx`), Enter section counts (`SectionCounts.tsx`), the section list New show types (`SectionListEditor.tsx`), timeline, Review list, music menu (with the rehearsal track's worker, `rehearsalWorker.ts`), show list, color palette, the keyboard handling every dialog shares (`useDialog`), where the sidebar and timeline sit (`layout.ts`), and browser storage (`audioStore.ts`, `showStore.ts`: recordings, pictures, the show library, and versions in IndexedDB, plus the autosave in localStorage) |
 | `src/print/` | Dot sheets and drill charts |
 | `src/perform/` | The performer view, the Share dialog (with saving its QR code as a picture), and the QR scanner |
 | `index.html`, `app/index.html` | The front page (freeformdrill.org) and the app (freeformdrill.org/app/), which old links (`/#show=…`) are forwarded to |

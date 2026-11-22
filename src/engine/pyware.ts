@@ -30,7 +30,7 @@
 // like noise (encrypted or compressed) gets LOCKED_MESSAGE instead of "damaged" or "not a Pyware file".
 import { FIELD_WIDTH, ftlPositions } from './coords';
 import type { HashPreset } from './coords';
-import { MAX_NAME, evenPath, newId, parseShow, scoreOrder, type DrillSet, type LabelSide, type Performer, type Section, type SetColor, type Show } from './show';
+import { MAX_NAME, evenPath, newId, parseShow, scoreOrder, type DrillSet, type LabelSide, type Performer, type Section, type SectionList, type SetColor, type Show } from './show';
 import { isZip, readZip } from './zip';
 
 const UNIT = 120; // file units per step
@@ -72,7 +72,8 @@ export function looksScrambled(b: Uint8Array): boolean {
 
 /** Read a .3dj file into a FreeFORM show. Throws a readable error for anything it can't use. */
 /** `notes`: what came in approximated, in plain sentences, for the import summary (filled in when given). */
-export function parse3dj(data: ArrayBuffer, title = 'Imported show', notes?: string[]): Show {
+/** `own`: the drill writer's own section list (their letters), used to name sections the file gives no instrument for. */
+export function parse3dj(data: ArrayBuffer, title = 'Imported show', notes?: string[], own?: SectionList): Show {
   if (data.byteLength > MAX_BYTES) fail('That file is too big to be a Pyware show.');
   const b = new Uint8Array(data);
   const v = new DataView(data);
@@ -166,8 +167,10 @@ export function parse3dj(data: ArrayBuffer, title = 'Imported show', notes?: str
     return [...counts].sort((a, c) => c[1] - a[1])[0]?.[0] ?? '';
   };
   // A symbol's name: the letter scheme below when the file's 3D figure agrees with it (or there is no figure), else the figure.
+  const mine = (sym: string) => own?.find((x) => x.letter.trim().toUpperCase() === sym.toUpperCase())?.name.trim();
   const names = symbols.map((sym) => {
     const fig = figureOf(sym), known = LETTERS[sym];
+    if (!fig && mine(sym)) return mine(sym)!; // the writer's own letter for it (Jason, 2026-11-22)
     return known && (!fig || known[1].test(fig)) ? known[0] : fig;
   });
   const sections: Section[] = symbols.map((sym, i) => {
@@ -240,8 +243,8 @@ export function parse3dj(data: ArrayBuffer, title = 'Imported show', notes?: str
   });
 
   if (!figures.size && notes) {
-    const guessed = sections.filter((x) => LETTERS[x.letter]).map((x) => `${x.letter} = ${x.name}`);
-    if (guessed.length) notes.push(`This file doesn't say which instrument each dot symbol is, so FreeFORM named the sections from the letters: ${guessed.join(', ')}. Rename any that are wrong under Sections in the sidebar.`);
+    const guessed = sections.filter((x) => mine(x.letter) || LETTERS[x.letter]).map((x) => `${x.letter} = ${x.name}`);
+    if (guessed.length) notes.push(`This file doesn't say which instrument each dot symbol is, so FreeFORM named the sections from ${own ? 'your section letters' : "FreeFORM's letters"}: ${guessed.join(', ')}. Rename any that are wrong under Sections in the sidebar.`);
   }
   if (runs.some((r) => r.color)) notes?.push("The sets' colors came in as the nearest FreeFORM set color. FreeFORM saves red, yellow, and green for warnings, so red sets are Pink.");
   if (blocks.some((x) => x.tag === 'PRP7' && x.len > 2)) notes?.push("The file has props, which FreeFORM doesn't bring in from Pyware yet. Add them under Props in the sidebar.");
@@ -387,10 +390,10 @@ const MAX_TAPS = 20_000;
  * Open a Pyware file: a .3dj, or a Pyware 10 .3dz package (a zip). From a package the recording comes too, already
  * timed to the counts the way the writer synced it in Pyware. `notes` gets what to check, for the import summary.
  */
-export async function importPyware(data: ArrayBuffer, title = 'Imported show', notes: string[] = []): Promise<{ show: Show; audio?: Blob }> {
+export async function importPyware(data: ArrayBuffer, title = 'Imported show', notes: string[] = [], own?: SectionList): Promise<{ show: Show; audio?: Blob }> {
   if (data.byteLength > MAX_PACKAGE) fail('That file is too big to be a Pyware show.');
   if (!isZip(new Uint8Array(data))) {
-    const show = parse3dj(data, title, notes), sync = readSync(data);
+    const show = parse3dj(data, title, notes, own), sync = readSync(data);
     if (sync?.name) notes.push(`In Pyware this show was synced to a recording (${sync.name}). Open the .3dz package instead of the .3dj to bring the music in with its timing, or add it under Music.`);
     return { show };
   }
@@ -400,7 +403,7 @@ export async function importPyware(data: ArrayBuffer, title = 'Imported show', n
   const drill = paths.find((f) => /\.3dj$/i.test(f)) ?? fail("That package has no Pyware drill (.3dj) inside, so FreeFORM can't open it.");
   const raw = await files[drill]();
   const inner = raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength);
-  const show = parse3dj(inner, title, notes), sync = readSync(inner);
+  const show = parse3dj(inner, title, notes, own), sync = readSync(inner);
   if (!sync) return { show };
   const base = (f: string) => f.split('/').pop()!.toLowerCase();
   const file = paths.find((f) => base(f) === sync.name.toLowerCase()) ?? paths.filter((f) => AUDIO[f.split('.').pop()!.toLowerCase()]).find(() => true);

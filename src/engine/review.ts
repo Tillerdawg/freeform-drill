@@ -1,8 +1,8 @@
 // Review: every problem in the whole show, in show order, each pointing at a count and the performers to select.
-import { brokenPaths, closeCalls, closeCallsMemo, label, moveSteps, overLimit, setStarts, showLength, totalCounts, type Show } from './show';
+import { brokenPaths, closeCalls, closeCallsMemo, duplicateLetters, label, moveSteps, overLimit, setStarts, showLength, totalCounts, type Show } from './show';
 import { STEP_LIMIT } from './coords';
 
-export type IssueKind = 'steps' | 'close' | 'straight' | 'missing' | 'unwritten';
+export type IssueKind = 'steps' | 'close' | 'straight' | 'missing' | 'unwritten' | 'letters';
 /**
  * `set`: the set it's in (for a move, the set the move goes into). `t`: the count to go to. `ids`: the performers to select.
  * `m`: how bad it is, where smaller is worse (the biggest step as N-to-5, the closest distance in steps), so a dismissed
@@ -20,6 +20,13 @@ export function reviewShow(show: Show): Issue[] {
     return l.length > MAX_NAMES ? `${l.slice(0, MAX_NAMES).join(', ')}, and ${l.length - MAX_NAMES} more` : l.join(', ');
   };
   const people = (n: number) => `${n} ${n === 1 ? 'performer' : 'performers'}`;
+  // Two sections with one letter (from an older file; FreeFORM no longer lets you make them): their labels clash.
+  for (const k of duplicateLetters(show)) {
+    const secs = show.sections.filter((x) => x.letter.trim().toUpperCase() === k), ids = new Set(secs.map((x) => x.id));
+    const list = secs.map((x) => x.name).join(secs.length === 2 ? ' and ' : ', ');
+    out.push({ kind: 'letters', set: 0, t: 0, ids: show.performers.filter((p) => ids.has(p.section)).map((p) => p.id),
+      text: `${list} share the letter ${k}, so their labels clash. Give one its own letter under Sections.` });
+  }
   show.sets.forEach((set, i) => {
     const missing = show.performers.filter((p) => !set.pos[p.id]).map((p) => p.id);
     if (missing.length) out.push({ kind: 'missing', set: i, t: starts[i], ids: missing, text: `${people(missing.length)} with no spot: ${names(missing)}` });

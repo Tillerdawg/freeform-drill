@@ -7,7 +7,7 @@ import { addInk, hitMark, moveMark, type Mark } from './engine/marks';
 import { dealShape, fitShape, fitText, handleName, isControl, moveHandle, samplePath, slots, type Shape, type ShapeKind } from './engine/shapes';
 import { colorOf,
   addPerformer, closeCalls, setFtlTurns, locate, label, mark, newId, setMarks, moveSegments, fieldOf,  hitProp, placeProp, propsAt, removeProp, normalizeFtl, overLimit, snapPoint, playRange, newShow, parseShow, placeInSet, positionsAt, removePerformers,
-  rotateScale, setAt, setStarts, withShowId, type Show, newShowId, parseShowFile, type Attached, isBlankShow, planBackup,
+  rotateScale, setAt, setStarts, withShowId, type Show, type SectionList, newShowId, parseShowFile, type Attached, isBlankShow, planBackup,
   showLength,
   revisionLabel,
 } from './engine/show';
@@ -17,7 +17,7 @@ import { HANDLE_PX, drawField, drawHandleFocus, drawMarks, drawPerformers, drawP
 import { frameDrag, selectionFrame } from './field/frame';
 import { Sidebar, type Snap, type Tool } from './ui/Sidebar';
 import { Timeline } from './ui/Timeline';
-import { startingSections } from './ui/startingSections';
+import { hasOwnStartingSections, saveStartingList, startingSections } from './ui/startingSections';
 import { saveStartingField, startingField } from './ui/startingField';
 import { NewShowDialog } from './ui/NewShow';
 import { MusicMenu } from './ui/Music';
@@ -1053,7 +1053,7 @@ export function App() {
     try {
       const notes: string[] = []; // a Pyware file's approximations, for the summary (OpenMarch's come back with the show)
       const from = /\.3d[jz]$/i.test(f.name) ? 'Pyware' as const : /\.dots$/i.test(f.name) ? 'OpenMarch' as const : null;
-      const r = /\.3d[jz]$/i.test(f.name) ? await importPyware(await f.arrayBuffer(), f.name.replace(/\.3d[jz]$/i, ''), notes) // a .3dz brings its recording
+      const r = /\.3d[jz]$/i.test(f.name) ? await importPyware(await f.arrayBuffer(), f.name.replace(/\.3d[jz]$/i, ''), notes, hasOwnStartingSections() ? startingSections() : undefined) // a .3dz brings its recording
         : /\.dots$/i.test(f.name) ? parseDots(await f.arrayBuffer(), f.name.replace(/\.dots$/i, '')) // OpenMarch (its recording comes along as a Blob)
         : parseShowFile(await f.text());
       await leave(async () => {
@@ -1078,11 +1078,12 @@ export function App() {
   const [imported, setImported] = useState<{ from: 'Pyware' | 'OpenMarch'; summary: ImportSummary } | null>(null); // the summary after an import
   const [showKeys, setShowKeys] = useState(false); // the keyboard cheat sheet (?)
   const [newing, setNewing] = useState(false); // the New show dialog: title and field first
-  const fresh = async (title: string, field: FieldSpec) => {
+  const fresh = async (title: string, field: FieldSpec, sections: SectionList) => {
     setNewing(false);
     saveStartingField(field); // the next new show starts on the same surface
+    saveStartingList(sections); // and with the same sections and letters (Jason, 2026-11-22)
     await leave(async () => {
-      openShow({ ...newShow(startingSections(), field), title }); // nothing to back up yet
+      openShow({ ...newShow(sections, field), title }); // nothing to back up yet
       setTool('select'); // the blank field's note leads: Enter section counts, Import a roster, or the sample (Jason, 2026-11-21)
     });
   };

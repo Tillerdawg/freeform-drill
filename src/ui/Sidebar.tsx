@@ -13,7 +13,7 @@ import { fmtStep, halfTime } from './format';
 import { STEP_LIMIT, STEP_IN, HASHES, distance, fieldDepth, readout, type HashPreset } from '../engine/coords';
 import type { Shape, ShapeKind } from '../engine/shapes';
 import {
-  fieldOf, addProp, removeSet, setStarts, newPropSpot, MAX_PROPS, placeProp, removeProp, updateProp, propShape, shapePatch, triangleSides, triangleFromSides, MAX_PROP_SIZE, type PropShape, MAX_NAME, tooBigForBackup, scoreOrder, setCue, setMarks, setNames, setNote, label, locate, newId, moveToSection, removeSection, duplicateLetters, renumberSection, placeInSet, positionsAt, xFrom, yFrom, moveSteps, timingOf,
+  fieldOf, addProp, removeSet, setStarts, newPropSpot, MAX_PROPS, placeProp, removeProp, updateProp, propShape, shapePatch, triangleSides, triangleFromSides, MAX_PROP_SIZE, type PropShape, MAX_NAME, tooBigForBackup, scoreOrder, setCue, setMarks, setNames, setNote, label, locate, newId, moveToSection, removeSection, duplicateLetters, letterProblem, MAX_LETTER, renumberSection, placeInSet, positionsAt, xFrom, yFrom, moveSteps, timingOf,
   type FrontDir, type FrontRef, type Section, type Show, type SideDir,
 } from '../engine/show';
 import { NumberField } from './NumberField';
@@ -293,7 +293,26 @@ const SORTS: [string, (l: Section[]) => Section[], string][] = [
   ['By name (A–Z)', (l) => [...l].sort((a, b) => abc(a.name, b.name)), 'Alphabetically by instrument: Alto Saxophone, Baritone, Bass Drum…'],
 ];
 
-/** Rename, re-letter, add and delete sections. Letters two sections share are flagged (their labels would clash). */
+/**
+ * A section's letter box. A letter belongs to one section (Jason, 2026-11-22): typing one that's taken (or nothing)
+ * changes nothing, says why under the row, and the box goes back to the section's letter when you leave it.
+ */
+function LetterField({ show, i, setShow, onProblem, dup }: { show: Show; i: number; setShow: (f: (s: Show) => Show) => void; onProblem: (p: string | null) => void; dup: boolean }) {
+  const s = show.sections[i];
+  const [draft, setDraft] = useState<string | null>(null);
+  const bad = draft !== null || dup;
+  return <input aria-label={`Letter for ${s.name}`} value={draft ?? s.letter} maxLength={MAX_LETTER} aria-invalid={bad}
+    style={{ width: 36, padding: '4px 2px', textAlign: 'center', borderColor: bad ? 'var(--danger)' : undefined }}
+    onChange={(e) => {
+      const v = e.target.value, problem = letterProblem(show.sections, v, i);
+      if (problem) { setDraft(v); onProblem(`${problem}${v.trim() ? ' To swap two letters, give one a spare letter first.' : ''} ${s.name} keeps ${s.letter} until then.`); return; }
+      setDraft(null); onProblem(null);
+      setShow((sh) => ({ ...sh, sections: sh.sections.map((x, j) => (j === i ? { ...x, letter: v.trim() } : x)) }));
+    }}
+    onBlur={() => { setDraft(null); onProblem(null); }} />;
+}
+
+/** Rename, re-letter, add and delete sections. A letter belongs to one section; ones shared in older files are flagged. */
 function SectionsEditor({ show, setShow, cur, look, setLook }: { show: Show; setShow: (f: (s: Show) => Show) => void; cur: number; look: Props['look']; setLook: Props['setLook'] }) {
   // Shown → Dim → Hide → Shown: how a section is drawn in the editor while you write someone else's drill.
   const cycle = (id: string) => { const { [id]: was, ...rest } = look; setLook(was === 'hide' ? rest : { ...rest, [id]: was === 'dim' ? 'hide' : 'dim' }); };
@@ -303,6 +322,7 @@ function SectionsEditor({ show, setShow, cur, look, setLook }: { show: Show; set
   const [own, setOwn] = useState(hasOwnStartingSections);
   const [startNote, setStartNote] = useState('');
   const [moveTo, setMoveTo] = useState('');
+  const [letterNote, setLetterNote] = useState<{ id: string; text: string } | null>(null); // why a typed letter didn't take
   const dupes = duplicateLetters(show);
   const panel = useRef<HTMLDetailsElement>(null);
   useEffect(() => { if (dupes.size && panel.current) panel.current.open = true; }, [dupes.size]); // show a clash; never close on the user
@@ -358,8 +378,7 @@ function SectionsEditor({ show, setShow, cur, look, setLook }: { show: Show; set
               <button aria-label={`${s.name}: ${look[s.id] === 'hide' ? 'hidden' : look[s.id] === 'dim' ? 'dimmed' : 'shown'} in the editor`} aria-pressed={!!look[s.id]} onClick={() => cycle(s.id)}
                 title="How this section is drawn in the editor: On, Dim, or Off (hidden). Click to change." style={{ width: 40, padding: '4px 0', fontSize: 12 }}>
                 {look[s.id] === 'hide' ? 'Off' : look[s.id] === 'dim' ? 'Dim' : 'On'}</button>
-              <input aria-label={`Letter for ${s.name}`} value={s.letter} maxLength={3} style={{ width: 36, padding: '4px 2px', textAlign: 'center', borderColor: dup ? 'var(--danger)' : undefined }}
-                onChange={(e) => edit(i, { letter: e.target.value })} />
+              <LetterField show={show} i={i} setShow={setShow} dup={dup} onProblem={(text) => setLetterNote(text ? { id: s.id, text } : null)} />
               <input aria-label={`Name of section ${s.letter}`} value={s.name} style={{ flex: 1, minWidth: coarse() ? 120 : 0 }} onChange={(e) => edit(i, { name: e.target.value })} />
               <span style={{ fontSize: 12, opacity: 0.7, minWidth: 18, textAlign: 'right' }} title={`${n} performer${n === 1 ? '' : 's'}`}>{n}</span>
               <button aria-label={`Renumber section ${s.name}`} title="Renumber this section 1, 2, 3…" className="icon" disabled={n < 1}
@@ -367,7 +386,9 @@ function SectionsEditor({ show, setShow, cur, look, setLook }: { show: Show; set
               <button aria-label={`Delete section ${s.name}`} title="Delete this section" className="icon danger" disabled={show.sections.length < 2}
                 onClick={() => { setRenumbering(null); if (n) { setDeleting(s.id); setMoveTo(show.sections.find((x) => x.id !== s.id)!.id); } else setShow((sh) => removeSection(sh, s.id)); }}>×</button>
             </div>
-            {dup && <div role="alert" style={{ color: 'var(--danger)', fontSize: 12, marginTop: 2 }}>Another section also uses "{s.letter}": their labels would clash.</div>}
+            {letterNote?.id === s.id
+              ? <div role="alert" style={{ color: 'var(--danger)', fontSize: 12, marginTop: 2 }}>{letterNote.text}</div>
+              : dup && <div role="alert" style={{ color: 'var(--danger)', fontSize: 12, marginTop: 2 }}>Another section also uses "{s.letter}", so their labels clash. Give one its own letter.</div>}
             {renumbering === s.id && (
               <div style={{ ...row, fontSize: 12, background: 'var(--surface)', padding: 6, borderRadius: 6 }}>
                 Renumber {s.letter}1–{s.letter}{n}:

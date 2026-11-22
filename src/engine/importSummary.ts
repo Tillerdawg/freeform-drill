@@ -19,6 +19,7 @@ const KIND_WORDS: Record<IssueKind, [string, string]> = {
   straight: ['set where imported paths went straight', 'sets where imported paths went straight'],
   missing: ['set with performers missing a spot', 'sets with performers missing a spot'],
   unwritten: ['stretch of counts with no sets yet', 'stretches of counts with no sets yet'],
+  letters: ['letter two sections share', 'letters two sections share'],
 };
 
 /** The summary for a just-imported show. `audio`: the recording itself came in (not just its timings). */

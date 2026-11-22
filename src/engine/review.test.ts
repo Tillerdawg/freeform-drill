@@ -141,3 +141,15 @@ describe('dismissing and bringing back several at once', () => {
     expect(restoreIssues(d, keys).dismissed).toBeUndefined();
   });
 });
+
+describe('sections sharing a letter (older files)', () => {
+  it('lists them once, by name, with their performers to select', () => {
+    let show = newShow([{ name: 'Trumpet', letter: 'T' }, { name: 'Tuba', letter: 't' }, { name: 'Flute', letter: 'F' }]);
+    const a = addPerformer(show, show.sections[1].id, { x: 0, y: 28 }); show = a.show;
+    const x = reviewShow(show).filter((i) => i.kind === 'letters');
+    expect(x).toHaveLength(1);
+    expect(x[0].text).toBe('Trumpet and Tuba share the letter T, so their labels clash. Give one its own letter under Sections.');
+    expect(x[0].ids).toEqual([a.id]);
+    expect(reviewShow(newShow()).some((i) => i.kind === 'letters')).toBe(false);
+  });
+});

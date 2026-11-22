@@ -6,7 +6,7 @@ import { NumberField } from './NumberField';
 
 const KIND: Record<IssueKind, [string, string]> = {
   steps: ['Steps', 'var(--danger)'], close: ['Too close', 'var(--danger)'], straight: ['Straight now', 'var(--warn)'],
-  missing: ['No spot', 'var(--warn)'], unwritten: ['Not written', 'var(--text)'],
+  missing: ['No spot', 'var(--warn)'], unwritten: ['Not written', 'var(--text)'], letters: ['Same letter', 'var(--warn)'],
 };
 
 /**
@@ -31,7 +31,7 @@ export function ReviewPanel({ show, setShow, issues, all, dismissed, onGo, onClo
     setPicked(new Set());
     if (showingDismissed && chosen.length === dismissed.length) setViewDismissed(false);
   };
-  const where = (x: Issue) => x.kind === 'unwritten' ? `After set ${show.sets[x.set].name}`
+  const where = (x: Issue) => x.kind === 'letters' ? 'Sections' : x.kind === 'unwritten' ? `After set ${show.sets[x.set].name}`
     : x.set && x.kind !== 'missing' ? `${show.sets[x.set - 1].name} → ${show.sets[x.set].name}` : `Set ${show.sets[x.set].name}`;
   const tab = (on: boolean) => ({ flex: 1, border: 'none', borderBottom: `2px solid ${on ? 'var(--gold)' : 'transparent'}`, background: 'none', color: 'var(--text)', borderRadius: 0, fontWeight: on ? 700 : 400, padding: '6px 4px' }); // a tab, not a toggle: not the gold pressed style, which made it dark on dark
   return (

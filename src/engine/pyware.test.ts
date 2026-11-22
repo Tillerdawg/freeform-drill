@@ -252,7 +252,13 @@ describe('Pyware 10 files', () => {
     expect(show.sets[1].pos[show.performers[0].id].x).toBe(0); // count 4: moved from -4 to 0
   });
   it("says which section names are only guesses from the letters", () => {
-    expect(notes.join(' ')).toMatch(/T = Tuba.*Rename any that are wrong/);
+    expect(notes.join(' ')).toMatch(/from FreeFORM's letters: .*T = Tuba.*Rename any that are wrong/);
+  });
+  it("names sections from the drill writer's own letters when they have a list", () => {
+    const mine: string[] = [];
+    const s = parse3dj(file10(rows, 8), 'x', mine, [{ name: 'Trumpet', letter: 't' }, { name: 'Drum Major', letter: 'D' }]);
+    expect(s.sections.map((x) => `${x.letter}=${x.name}`).sort()).toEqual(['A=Alto Saxophone', 'T=Trumpet', 'X=Tenor Saxophone']);
+    expect(mine.join(' ')).toMatch(/from your section letters: .*T = Trumpet/);
   });
   it('reads the count times from SYNC even though its stored length is too short', () => {
     const s = readSync(file10(rows, 8));
