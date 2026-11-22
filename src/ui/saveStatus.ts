@@ -23,6 +23,10 @@ export interface SaveStatus {
   attention: boolean;
   /** A word or two for the top bar, next to the show's name: the most urgent thing, or "Saved". The menu has the rest. */
   short: string;
+  /** What clicking `short` does, when there's something to fix: 'save' (Save, the same as ⌘S) or 'publish' (Publish update…). None when all is saved. */
+  fix?: 'save' | 'publish';
+  /** The tooltip for that click. */
+  fixTitle?: string;
   browser: string;
   file: string;
   phones: string;
@@ -35,6 +39,9 @@ export function saveStatus(s: SaveState): SaveStatus {
     label: `${s.browserOk ? 'Browser ✓' : 'Browser: not saved'} · File: ${file} · Phones: ${phones}`,
     attention: !s.browserOk || !!s.unexported || s.changedSincePublish,
     short: !s.browserOk ? '⚠ Not saved' : s.unexported ? 'Unsaved changes' : s.changedSincePublish ? 'Phones behind' : '✓ Saved',
+    ...(!s.browserOk || s.unexported
+      ? { fix: 'save' as const, fixTitle: 'Save this show as a .freeform file (⌘S): the first time you choose where, then it saves to that same file' }
+      : s.changedSincePublish ? { fix: 'publish' as const, fixTitle: 'Publish the changes to performers\' phones' } : {}),
     browser: s.browserOk
       ? 'Saved in this browser as you work. It stays here until this browser\'s data is cleared, and only this computer has it.'
       : "This browser couldn't save your last changes (its storage may be full or turned off). Save a file now so you don't lose them.",

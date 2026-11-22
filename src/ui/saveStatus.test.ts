@@ -35,4 +35,11 @@ describe('the save status chip', () => {
     expect(saveStatus({ ...base, unexported: 5, revision: 3, changedSincePublish: true }).short).toBe('Unsaved changes');
     expect(saveStatus({ ...base, browserOk: false, unexported: 5 }).short).toBe('⚠ Not saved');
   });
+  it('says what clicking the top bar\'s words fixes', () => {
+    expect(saveStatus(base).fix).toBeUndefined();
+    expect(saveStatus({ ...base, unexported: 5, revision: 3, changedSincePublish: true }).fix).toBe('save');
+    expect(saveStatus({ ...base, browserOk: false }).fix).toBe('save');
+    expect(saveStatus({ ...base, revision: 3, changedSincePublish: true }).fix).toBe('publish');
+    expect(saveStatus({ ...base, unexported: 5 }).fixTitle).toMatch(/⌘S/);
+  });
 });

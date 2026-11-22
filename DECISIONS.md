@@ -721,3 +721,9 @@ Recent decisions are here. Older ones are in [docs/decisions/](docs/decisions/),
   - **Older files:** they open as they are. Shared letters stay flagged in red in **Sections**, and **Review** lists them ("Same letter"), with the sections' performers selected, until one gets its own letter. Show files aren't refused for it.
   - **Pyware (Claude):** when a Pyware file doesn't say which instrument a symbol is, the section is named from the writer's own starting list (their C is their Clarinet) before FreeFORM's letters. The import summary says which list it used.
 - **Docs:** the guide (Set up a new show, Sections, Add performers, Review, and Pyware import), the README feature list and code map, and a new screenshot, `section-counts.png`; `new-show.png` retaken.
+
+## 2026-11-22 18:05 EST: The top bar's save words are a button when something needs saving
+- **Who:** Jason asked for it: "Unsaved changes" looks like a link, so clicking it should save. What "Phones behind" and "⚠ Not saved" do is Claude's (*Jason can veto*).
+- **Context:** The words beside the show's name had a yellow dotted underline when something wasn't saved, which reads as a link, but clicking did nothing. Saving was two clicks away in the show menu (or ⌘S).
+- **Other options:** open the show menu instead of saving; make only "Unsaved changes" clickable.
+- **Decision:** When there's something to fix, the words are a button styled to look exactly as before (no box, same size, so the top bar's height doesn't change). **Unsaved changes** and **⚠ Not saved** do the same as **Save** (⌘S): the first time it asks where, then it saves to that same file. **Phones behind** opens **Publish update…** (Claude: it has the same underline, so it should do something too). **✓ Saved** stays plain text. The tooltip says what the click does. `saveStatus` returns the action (`fix`), with a test.

@@ -225,6 +225,8 @@
       input[type=range]:disabled { opacity: 0.5; cursor: default; }
       button.link { background: none; border: 0; padding: 4px 0; color: var(--blue); text-decoration: underline; text-underline-offset: 3px; } /* a quieter choice, worded as a link */
       .save-short { font-size: 13px; white-space: nowrap; opacity: 0.85; } /* the top bar's save status, beside the show's name */
+      button.save-short, button.save-short:hover:not(:disabled), button.save-short:active:not(:disabled) { background: none; border-color: transparent; padding: 0 2px; font-size: 13px; cursor: pointer; } /* it reads as a link, not a button; the bar's height doesn't change */
+      button.save-short:hover:not(:disabled) { text-decoration-style: solid; }
       .save-short.attention { opacity: 1; color: var(--warn); text-decoration: underline dotted; text-underline-offset: 3px; } /* not saved somewhere: the words say what, the underline isn't color alone */
       /* My dots, one set at a time: the card, its Set N ▾ picker (the phone's own picker, laid over a picture of a button, so
          its list is just the set names), and Previous and Next pinned to the bottom (they don't move with the card's length). */

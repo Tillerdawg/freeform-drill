@@ -1200,7 +1200,11 @@ export function App() {
               <button onClick={() => { close(); setRecovering(true); }} title="Undo, earlier versions, a missing show, a new computer, or a show you published: what happened, and the button that fixes it">Get a show back…</button>
             </div>
           )}</Menu>
-          <span className={saved.attention ? 'save-short attention' : 'save-short'} title={saved.label}>{saved.short}</span>
+          {/* When something needs saving, the words are a button that fixes it: Save (as ⌘S) or Publish update…. */}
+          {saved.fix
+            ? <button className={saved.attention ? 'save-short attention' : 'save-short'} title={`${saved.label}. ${saved.fixTitle}`}
+                onClick={() => (saved.fix === 'publish' ? setSharing(true) : void save())}>{saved.short}</button>
+            : <span className={saved.attention ? 'save-short attention' : 'save-short'} title={saved.label}>{saved.short}</span>}
         </span>
         <span style={{ flex: '1 1 0', fontSize: 12, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'right', paddingLeft: 8, whiteSpace: 'nowrap' }}>
           {fileError ? <span role="alert" style={{ color: 'var(--danger)' }}>{fileError}</span>

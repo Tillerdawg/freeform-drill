@@ -622,7 +622,7 @@ With a keyboard attached, the [keyboard shortcuts](#keyboard-shortcuts) work too
 - **File**: when you last saved a .freeform file, or **unsaved changes** if you've changed the show since.
 - **Phones**: the revision your performers have, **rev 6 + changes** if you've changed the drill since you published, or **not published**.
 
-When something isn't saved somewhere it could be, the words turn yellow with a dotted underline. The show menu has **Save**, **Save As…**, and **Full backup…** (when the show has music, a tracing picture, or a phone link) right under them, and **Share…** or **Publish update…** is in the top bar.
+When something isn't saved somewhere it could be, the words turn yellow with a dotted underline, and you can click them to fix it: **Unsaved changes** and **⚠ Not saved** do the same as **Save** (⌘S), and **Phones behind** opens **Publish update…**. The show menu has **Save**, **Save As…**, and **Full backup…** (when the show has music, a tracing picture, or a phone link) right under them, and **Share…** or **Publish update…** is in the top bar.
 
 ![The show menu, with the save status](img/save-status.png)
 
