@@ -23,6 +23,16 @@
 - [ ] Try it with a director on an iPad: place 8 performers, add a 16-count set, make an arc, play it. Watch where they pause.
 - [ ] Phone: a More menu for Click, White field, and Follow my dot if the controls get crowded; Loop beside the controls instead of over the top.
 
+## From Shubreet Kaur's feedback (2026-11-21, through the feedback form)
+- [x] Set names, counts, measures, and notes no longer hidden by the audio track: they show in the sidebar now (done in the simpler screen).
+- [ ] Clicking a performer shows their exact step size for the move, even a normal step.
+- [ ] Half-time shown with its step size (for example, "8-to-5, half time").
+- [ ] Color-coded sets.
+- [ ] Bug: rotate (and scale) around a chosen performer turns around the selection's center instead.
+- [ ] A circle option that sends each performer to the closest dot on the circle.
+- [ ] Set notes on the phone's Field screen, not only on My dots.
+- [ ] Ask: which Pyware version Shubreet uses, and a show file to test import (asked 2026-11-21).
+
 ## Later milestones (rough order)
 - ✅ Shape tools: line, arc, curve, Bézier, circle, polygon, star, spiral, block (select, then shape; even or interval spacing; least-travel assignment).
 - ✅ Keyboard shortcuts for drill writing: one letter per shape, arrow-key nudges (1 step, Shift 4, Option/Alt half), ⌘/Ctrl +/− zoom the field, F or ⌘0 fit. ✅ A **?** cheat sheet (also **Help → Keyboard shortcuts**, 2026-11-16), kept in step with the guide by a test. Later: a customizable keymap.
