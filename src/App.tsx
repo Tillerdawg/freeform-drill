@@ -26,7 +26,7 @@ import { addVersion, filesUsed, forgetShow, keepPublished, keepShow, listShows, 
 import { ShowsDialog, type ShowActions } from './ui/Shows';
 import { peaks } from './engine/music';
 import { confirmDelete, Menu, SHAPES, Toolbar } from './ui/Toolbar';
-import { parse3dj } from './engine/pyware';
+import { importPyware } from './engine/pyware';
 import { parseDots } from './engine/openmarch';
 import { importSummary, type ImportSummary } from './engine/importSummary';
 import { ImportSummaryDialog } from './ui/ImportSummary';
@@ -1052,8 +1052,8 @@ export function App() {
   const open = async (f: File) => {
     try {
       const notes: string[] = []; // a Pyware file's approximations, for the summary (OpenMarch's come back with the show)
-      const from = /\.3dj$/i.test(f.name) ? 'Pyware' as const : /\.dots$/i.test(f.name) ? 'OpenMarch' as const : null;
-      const r = /\.3dj$/i.test(f.name) ? { show: parse3dj(await f.arrayBuffer(), f.name.replace(/\.3dj$/i, ''), notes) }
+      const from = /\.3d[jz]$/i.test(f.name) ? 'Pyware' as const : /\.dots$/i.test(f.name) ? 'OpenMarch' as const : null;
+      const r = /\.3d[jz]$/i.test(f.name) ? await importPyware(await f.arrayBuffer(), f.name.replace(/\.3d[jz]$/i, ''), notes) // a .3dz brings its recording
         : /\.dots$/i.test(f.name) ? parseDots(await f.arrayBuffer(), f.name.replace(/\.dots$/i, '')) // OpenMarch (its recording comes along as a Blob)
         : parseShowFile(await f.text());
       await leave(async () => {
@@ -1068,7 +1068,7 @@ export function App() {
         if (pub && s.id && !getPublishing(s.id)) setPublishing(s.id, pub); // a Full backup from another computer: keep publishing to the same link
         openShow(s, true); setFileError(''); // what's open is the file itself
         // From another program: what came in, and what to check before teaching it.
-        if (from) setImported({ from, summary: importSummary(s, { audio: !!audio, notes: [...notes, ...('notes' in r ? r.notes : [])] }) });
+        if (from) setImported({ from, summary: importSummary(s, { audio: !!audio, notes: [...notes, ...('notes' in r && Array.isArray(r.notes) ? r.notes as string[] : [])] }) });
       });
     } catch (err) {
       setFileError(err instanceof Error ? err.message : String(err));
@@ -1184,7 +1184,7 @@ export function App() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch', width: 300 }}>
               <button onClick={() => { close(); setLibrary(true); }} title="The shows kept in this browser: open, rename, duplicate, or delete one, and earlier versions of this one">My shows…</button>
               <button onClick={() => { close(); setNewing(true); }} title="Start a new show (this one stays under My shows)">New show…</button>
-              <button onClick={() => { close(); fileRef.current?.click(); }} title="Open a .freeform show file (or an older .freeform.json), a Pyware 3D .3dj drill, or an OpenMarch .dots show as a new show (this one stays under My shows)">Import…</button>
+              <button onClick={() => { close(); fileRef.current?.click(); }} title="Open a .freeform show file (or an older .freeform.json), a Pyware 3D drill (.3dj or .3dz), or an OpenMarch .dots show as a new show (this one stays under My shows)">Import…</button>
               <button onClick={() => { close(); setSettingsOpen(true); }} title="The show's name, the field it's written on, its hash marks, and letters or dots">Show settings…</button>
               <span className="menu-head">Save</span>
               <span style={{ fontSize: 13, whiteSpace: 'normal' }}><strong>This browser:</strong> {saved.browser}</span>
@@ -1389,7 +1389,7 @@ export function App() {
       {settingsOpen && <ShowSettingsDialog show={show} setShow={setShow} onClose={() => setSettingsOpen(false)} />}
       {video && <VideoDialog show={show} bpm={bpm} onClose={() => setVideo(false)} />}
       {printing && <PrintDialog show={show} selected={selected} onClose={() => setPrinting(false)} />}
-      <input ref={fileRef} type="file" accept=".freeform,.json,application/json,.3dj,.dots" hidden
+      <input ref={fileRef} type="file" accept=".freeform,.json,application/json,.3dj,.3dz,.dots" hidden
         onChange={(e) => { const f = e.target.files?.[0]; if (f) open(f); e.target.value = ''; }} />
     </div>
   );

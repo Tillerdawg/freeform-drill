@@ -6,6 +6,7 @@ import { parseMidi, type Midi } from './midi';
 import { endingNumbers, playbackOrder, type BarMarks } from './repeats';
 import type { RehearsalNote, RehearsalPart, RehearsalSource } from './scoreMidi';
 import { marchingProgram, MARCHING_PROGRAMS, MARCHING_DEFAULT_KEYS } from './marching';
+import { readZip } from './zip';
 
 const PPQ = 480, MAX_BYTES = 60_000_000, MAX_MEASURES = 5000;
 const SEMITONES: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
@@ -252,35 +253,16 @@ export function repeatNote(order: number[], written: number, capped: boolean): s
   return [`Repeats played out: the score's ${written} bars play as ${order.length}, numbered in the order they're heard. For example, ${span(p + 1, q + 1)} here is written ${span(order[p] + 1, order[q] + 1)}. Type each set's measures the same way.`];
 }
 
-/** The files in a zip (as text, read on demand): .mxl and MuseScore's .mscz are both zips. */
-async function readZip(buf: ArrayBuffer, what: string): Promise<Record<string, () => Promise<string>>> {
-  const v = new DataView(buf), b = new Uint8Array(buf);
-  let e = -1;
-  for (let o = b.length - 22; o >= Math.max(0, b.length - 65557); o--) if (v.getUint32(o, true) === 0x06054b50) { e = o; break; }
-  if (e < 0) throw new Error(`That ${what} file is damaged (it isn't a readable zip).`);
-  const n = v.getUint16(e + 10, true);
-  let o = v.getUint32(e + 16, true);
-  const files: Record<string, () => Promise<string>> = {};
-  for (let k = 0; k < n && o + 46 <= b.length; k++) {
-    if (v.getUint32(o, true) !== 0x02014b50) break;
-    const method = v.getUint16(o + 10, true), size = v.getUint32(o + 20, true), nameLen = v.getUint16(o + 28, true);
-    const extra = v.getUint16(o + 30, true), comment = v.getUint16(o + 32, true), local = v.getUint32(o + 42, true);
-    const name = new TextDecoder().decode(b.subarray(o + 46, o + 46 + nameLen));
-    files[name] = async () => {
-      const start = local + 30 + v.getUint16(local + 26, true) + v.getUint16(local + 28, true);
-      const data = b.slice(start, start + size);
-      if (method === 0) return new TextDecoder().decode(data);
-      if (method !== 8) throw new Error(`That ${what} file uses a compression FreeFORM can't read.`);
-      return new TextDecoder().decode(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
-    };
-    o += 46 + nameLen + extra + comment;
-  }
-  return files;
+/** The files in a zip as text, read on demand: .mxl and MuseScore's .mscz are both zips. */
+function readZipText(buf: ArrayBuffer, what: string): Record<string, () => Promise<string>> {
+  const files = readZip(buf, what), text: Record<string, () => Promise<string>> = {};
+  for (const [name, read] of Object.entries(files)) text[name] = async () => new TextDecoder().decode(await read());
+  return text;
 }
 
 /** The main score file inside a compressed MusicXML (.mxl) zip. */
 export async function unzipMxl(buf: ArrayBuffer): Promise<string> {
-  const files = await readZip(buf, '.mxl');
+  const files = readZipText(buf, '.mxl');
   return readMxl(files, await scorePaths(files));
 }
 
@@ -304,7 +286,7 @@ export async function parseScore(buf: ArrayBuffer): Promise<Midi & { rehearsal?:
   const sig = String.fromCharCode(...head);
   if (sig === 'MThd') return { ...parseMidi(buf), rehearsal: buf };
   if (sig.startsWith('PK')) {
-    const files = await readZip(buf, 'score');
+    const files = readZipText(buf, 'score');
     const paths = await scorePaths(files);
     const mscx = paths.find((f) => /\.mscx$/i.test(f) && files[f])
       ?? Object.keys(files).find((f) => !f.includes('/') && /\.mscx$/i.test(f)); // older archives may lack a manifest

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LOCKED_MESSAGE, looksScrambled, parse3dj } from './pyware';
+import { LOCKED_MESSAGE, importPyware, looksScrambled, parse3dj, readSync, setColorOf } from './pyware';
 import { addSetAfter, moveSteps, positionsAt, setStarts } from './show';
 
 // A tiny synthetic .3dj built from the layout parse3dj documents (no real show files in the repo).
@@ -130,7 +130,7 @@ describe('Locked or encrypted Pyware files', () => {
   it('says so in plain words: no unlocking, and what to do instead', () => {
     expect(LOCKED_MESSAGE).toMatch(/doesn't unlock or decrypt/);
     expect(LOCKED_MESSAGE).toMatch(/unlocked copy/);
-    expect(LOCKED_MESSAGE).toMatch(/Pyware 9 and newer/); // a director with a current file learns it's the version, not them
+    expect(LOCKED_MESSAGE).toMatch(/which version of Pyware/); // a director whose own file won't open says which version saved it
     expect(LOCKED_MESSAGE).not.toMatch(/\u2014/); // no em dashes (house style)
   });
 });
@@ -178,5 +178,128 @@ describe('Pyware follow-the-leader saved as straight lines', () => {
     const to = [{ ...from[0], x: 4 }, { ...from[1], x: 0 }, from[2], from[3]];
     const s = parse3dj(file([page(from), prop('Set 1'), ...move(from, to, 4), prop('Set 2')]));
     expect(s.sets[1].ftl).toBeUndefined();
+  });
+});
+
+// ---- Pyware 10: CST6 performers, a PTB6 table of sets, PTBC colors, a SYNC of count times, and .3dz packages.
+const u16s = (t: string) => [...u16(enc.encode(t).length), ...enc.encode(t)];
+const f64 = (n: number) => { const d = new DataView(new ArrayBuffer(8)); d.setFloat64(0, n); return [...new Uint8Array(d.buffer)]; };
+const textBlock = (tag: string, t: string) => block(tag, u16s(t));
+type Row = { start: number; title?: string; note?: string; subset?: boolean };
+const table = (rows: Row[]) => block('PTB6', [0, 1, ...u16(rows.length), ...rows.flatMap((r) =>
+  [...u16(r.start), ...u16s(r.title ?? ''), ...u16s(r.note ?? ''), ...u16s(''), 0, 0, 0, 0, 0, 0, 1, 0, 0, r.subset ? 1 : 0])]);
+const sync = (name: string, times: number[]) => {
+  const path = `file:/Users/someone/Pyware 3D v10/temp/x.pkg/${name}`;
+  const data = [...u16(path.length), ...[...path].flatMap((c) => u16(c.charCodeAt(0))), ...u16(times.length), ...times.flatMap(f64)];
+  return block('SYNC', data, 40); // stored too short, as Pyware 10 does
+};
+function file10(rows: Row[], counts: number, { colors = '', tempos = '', timed = true } = {}) {
+  const dots = [[1, '1'], [2, '2'], [3, '1'], [4, '1']] as const;
+  const pages: number[][] = [];
+  for (let c = 0; c <= counts + 3; c++) pages.push(page(at(-4 + Math.min(c, 4), 30)));
+  return new Uint8Array([
+    ...block('3DJV', [0, 0, 0, 10, 0, 10, 0, 0, 0, 0]),
+    ...enc.encode('PRPT'), ...u32(9), ...Array(9).fill(0),
+    ...block('PREF', [7, ...enc.encode('PYJAVA2')]),
+    ...block('PTL1', [0, 0, 0]),
+    ...grid(8.75),
+    ...block('CST6', [...u16(dots.length), ...dots.flatMap(([id, n]) => [...u16(id), ...str(n), 0, 0, 0, 0, 0])]),
+    ...table(rows), ...textBlock('PTBC', colors), ...textBlock('PTBT', tempos),
+    ...pages.flatMap((pg, i) => (i === 2 ? [...pg, ...block('SEL1', [1, 2, 3])] : pg)),
+    ...(timed ? sync('Show Music.ogg', Array.from({ length: counts + 1 }, (_, k) => 1.5 + k * 0.5)) : []),
+    ...block('END.', []),
+  ]).buffer;
+}
+/** A zip with stored (uncompressed) files, sizes in the central directory only, as Pyware writes them. */
+function zip(files: Record<string, ArrayBuffer | string>) {
+  const out: number[] = [], dir: number[] = [];
+  const le16 = (n: number) => [n & 255, n >> 8], le32 = (n: number) => [n & 255, (n >> 8) & 255, (n >> 16) & 255, n >>> 24];
+  let count = 0;
+  for (const [name, body] of Object.entries(files)) {
+    const data = typeof body === 'string' ? enc.encode(body) : new Uint8Array(body), nm = enc.encode(name), at = out.length;
+    out.push(...le32(0x04034b50), ...le16(20), ...le16(8), ...le16(0), ...le32(0), ...le32(0), ...le32(0), ...le32(0), ...le16(nm.length), ...le16(0), ...nm, ...data);
+    dir.push(...le32(0x02014b50), ...le16(20), ...le16(20), ...le16(8), ...le16(0), ...le32(0), ...le32(0), ...le32(data.length), ...le32(data.length),
+      ...le16(nm.length), ...le16(0), ...le16(0), ...le16(0), ...le16(0), ...le32(0), ...le32(at), ...nm);
+    count++;
+  }
+  const start = out.length;
+  out.push(...dir, ...le32(0x06054b50), ...le16(0), ...le16(0), ...le16(count), ...le16(count), ...le32(dir.length), ...le32(start), ...le16(0));
+  return new Uint8Array(out).buffer;
+}
+
+describe('Pyware 10 files', () => {
+  const rows: Row[] = [
+    { start: 0, note: 'Opener' }, { start: 4, title: '1 - 2' }, { start: 6, title: 'A, 3 - 6', note: 'Hold', subset: true }, { start: 8, title: 'Big hit' },
+  ];
+  const notes: string[] = [];
+  const show = parse3dj(file10(rows, 8, { colors: '.;255,0,0;.;0,0,255;', tempos: '120;;;96;' }), 'Rain', notes);
+
+  it("reads the sets from the table: counts, and Pyware's names (2A for a sub-set), not its tempos", () => {
+    expect(show.sets.map((s) => s.counts)).toEqual([0, 4, 2, 2]);
+    expect(show.sets.map((s) => s.name)).toEqual(['1', '2', '2A', '3']);
+  });
+  it('takes measures from the title, and keeps a title with more than measures atop the note', () => {
+    expect(show.sets.map((s) => s.measures)).toEqual([undefined, '1–2', '3–6', undefined]);
+    expect(show.sets.map((s) => s.note)).toEqual(['Opener', undefined, 'A, 3 - 6\nHold', 'Big hit']);
+  });
+  it("gives sets the nearest FreeFORM color, and says what it did", () => {
+    expect(show.sets.map((s) => s.color)).toEqual([undefined, 'pink', undefined, 'blue']);
+    expect(notes.join(' ')).toMatch(/red sets are Pink/);
+  });
+  it('reads performers from CST6 and spots from the per-count pages', () => {
+    expect(show.performers.length).toBe(4);
+    expect(show.performers.map((p) => p.number).sort()).toEqual([1, 1, 1, 2]);
+    expect(show.sets[1].pos[show.performers[0].id].x).toBe(0); // count 4: moved from -4 to 0
+  });
+  it("says which section names are only guesses from the letters", () => {
+    expect(notes.join(' ')).toMatch(/T = Tuba.*Rename any that are wrong/);
+  });
+  it('reads the count times from SYNC even though its stored length is too short', () => {
+    const s = readSync(file10(rows, 8));
+    expect(s?.name).toBe('Show Music.ogg');
+    expect(s?.times.slice(0, 3)).toEqual([1.5, 2, 2.5]);
+    expect(s?.times.length).toBe(9);
+    expect(readSync(file10(rows, 8, { timed: false }))).toBeNull();
+  });
+  it('turns away a damaged set table', () => {
+    expect(() => parse3dj(file10([{ start: 4 }, { start: 2 }], 8))).toThrow(/list of sets/);
+    expect(() => parse3dj(file10([{ start: 0 }, { start: 400 }], 8))).toThrow(/counts are missing/);
+  });
+});
+
+describe('Pyware .3dz packages', () => {
+  const rows: Row[] = [{ start: 0 }, { start: 4 }, { start: 8 }];
+  it('opens the drill inside and brings the recording, timed to the counts', async () => {
+    const notes: string[] = [];
+    const r = await importPyware(zip({ 'package.ini': '[Files]\naudio=Show Music.ogg\n', 'Show Music.ogg': 'OggS fake audio', 'my show.3dj': file10(rows, 8) }), 'My show', notes);
+    expect(r.show.sets.map((s) => s.counts)).toEqual([0, 4, 4]);
+    expect(r.show.music).toEqual({ name: 'Show Music.ogg', audioId: 'import', taps: [1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5] });
+    expect(r.audio?.type).toBe('audio/ogg');
+    expect(await r.audio!.text()).toBe('OggS fake audio');
+    expect(notes.join(' ')).toMatch(/Ogg file/);
+  });
+  it('opens a package without its recording, and says so', async () => {
+    const notes: string[] = [];
+    const r = await importPyware(zip({ 'my show.3dj': file10(rows, 8) }), 'x', notes);
+    expect(r.audio).toBeUndefined();
+    expect(r.show.music).toBeUndefined();
+    expect(notes.join(' ')).toMatch(/isn't in the package/);
+  });
+  it('points a bare .3dj that was synced to its .3dz', async () => {
+    const notes: string[] = [];
+    const r = await importPyware(file10(rows, 8), 'x', notes);
+    expect(r.audio).toBeUndefined();
+    expect(notes.join(' ')).toMatch(/Open the \.3dz package/);
+  });
+  it('explains a package with no drill, and a file that is neither', async () => {
+    await expect(importPyware(zip({ 'a.txt': 'hi' }))).rejects.toThrow(/no Pyware drill/);
+    await expect(importPyware(new Uint8Array([0x50, 0x4b, 3, 4, 0, 0]).buffer)).rejects.toThrow(/isn't a Pyware drill file/);
+  });
+});
+
+describe('Pyware set colors', () => {
+  it('maps by hue, keeping clear of red, yellow, and green', () => {
+    expect(['255,0,0', '255,255,0', '0,200,0', '0,0,255', '128,0,255', '255,0,200', '0,200,200', '128,128,128', '.', ''].map(setColorOf))
+      .toEqual(['pink', 'orange', 'teal', 'blue', 'purple', 'pink', 'teal', 'gray', undefined, undefined]);
   });
 });

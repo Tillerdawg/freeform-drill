@@ -1,5 +1,7 @@
-// Import Pyware 3D ".3dj" drill files from Pyware 8 and older (Pyware 9 and newer encrypt their files; see LOCKED_MESSAGE). Clean-room: written from the behavior of Jason's own files (see DECISIONS.md),
-// no Pyware code. A .3dj is a chain of blocks: a 4-letter tag, a 4-byte big-endian length, then the data.
+// Import Pyware 3D drill: ".3dj" files (Pyware 8 and older, and Pyware 10) and Pyware 10's ".3dz" packages (a zip
+// holding the .3dj, its recording, and pictures). Clean-room: written from the behavior of Jason's own files and two
+// Pyware 10 shows Shubreet Kaur sent for testing (see DECISIONS.md), no Pyware code.
+// A .3dj is a chain of blocks: a 4-letter tag, a 4-byte big-endian length, then the data.
 //   GRID  plain-text field description (yards from the field's center); HZHS lines are the hashes.
 //   CAST  performers: u16 count, then per performer u16 id, a short string (label number), a short string (the
 //         person's name, which becomes the roster).
@@ -13,11 +15,23 @@
 //         each other; hiddenFtl (below) rebuilds those.
 //         Byte 25 starts a u16 length and the set's note text.
 // Files keep 300+ PAGEs; the ones after the last PROP are unused.
+// Pyware 10 (Shubreet's files, 2026-11-22) has the same PAGEs, one per count from count 0, but no CAST or PROP:
+//   CST6  performers: u16 count, then per performer u16 id and six short strings (the first is the label number; the
+//         rest were empty in every file seen, so they aren't read).
+//   PTB6  the sets: u16 (unknown), u16 count, then per set u16 count where the set falls, three u16-length strings
+//         (title as the writer typed it, e.g. "A, 3 - 6" for rehearsal A, measures 3 to 6; the set's note; one more),
+//         then 10 bytes, the last 1 for a sub-set (2A after 2). Strings are UTF-8.
+//   PTBC, PTBT  u16 length, then text, one ";"-separated entry per set: its color ("255,0,0", or "." for none) and
+//         its tempo, when the writer typed one (not read: SYNC has the timing).
+//   PRP7, PRPM  props, one pair per count when the show has props (not read yet).
+//   SYNC  the recording's name (u16 length, UTF-16), then u16 n and n doubles: the seconds where each count falls,
+//         count 0 first. Its stored length is too short, so it's read by what it holds.
 // Locked or encrypted files: FreeFORM never unlocks or decrypts drill (DECISIONS.md, 2026-11-16). A file whose bytes look
 // like noise (encrypted or compressed) gets LOCKED_MESSAGE instead of "damaged" or "not a Pyware file".
 import { FIELD_WIDTH, ftlPositions } from './coords';
 import type { HashPreset } from './coords';
-import { MAX_NAME, evenPath, newId, parseShow, scoreOrder, type DrillSet, type LabelSide, type Performer, type Section, type Show } from './show';
+import { MAX_NAME, evenPath, newId, parseShow, scoreOrder, type DrillSet, type LabelSide, type Performer, type Section, type SetColor, type Show } from './show';
+import { isZip, readZip } from './zip';
 
 const UNIT = 120; // file units per step
 /**
@@ -38,7 +52,7 @@ const PY_SIDES: LabelSide[] = ['below', 'below-right', 'right', 'above-right', '
 const fail = (msg: string): never => { throw new Error(msg); };
 
 /** What a director sees when a .3dj is locked, encrypted, or saved in a scrambled newer format. */
-export const LOCKED_MESSAGE = "FreeFORM can't open this Pyware file because it looks locked or encrypted. Pyware 9 and newer encrypt the files they save, and drill writers can lock a show they sell. FreeFORM opens files from Pyware 8 and older, and it doesn't unlock or decrypt drill. If you bought this show, ask the drill writer for an unlocked copy. If it came from Pyware 8 or older and still won't open, please tell me (Help → Send feedback).";
+export const LOCKED_MESSAGE = "FreeFORM can't open this Pyware file because it looks locked or encrypted. Drill writers can lock a show they sell, and FreeFORM doesn't unlock or decrypt drill. If you bought this show, ask the drill writer for an unlocked copy. If it's your own show and it still won't open, please tell me which version of Pyware saved it (Help → Send feedback).";
 
 /**
  * True when a file's bytes look like noise: encrypted or compressed data, not Pyware's plain blocks. Real .3dj files
@@ -69,7 +83,7 @@ export function parse3dj(data: ArrayBuffer, title = 'Imported show', notes?: str
 
   // Walk the blocks. A few blocks store a wrong length, so when the chain breaks, look ahead for the next real block.
   const blocks: { tag: string; at: number; len: number }[] = [];
-  const known = /^(PREF|PRF2|GRID|CAST|CST2|CST3|COLR|PLST|PTAB|PTB2|PTB5|FACE|PAGE|PROP|SYNC|END\.)$/;
+  const known = /^(PREF|PRF2|GRID|CAST|CST2|CST3|CST6|COLR|PLST|PLS1|PTAB|PTB2|PTB5|PTB6|PTBC|PTBT|PTBI|PTL1|FACE|PAGE|PROP|PRP7|PRPM|SEL1|VIS1|VsD1|TxD1|FAB1|SYNC|END\.)$/;
   const validAt = (o: number) => known.test(tagAt(o)) && o + 8 + v.getUint32(o + 4) <= b.length;
   let o = indexOf(b, 'PREF', 0);
   if (o < 0) cant("That Pyware file looks damaged (no settings block found).");
@@ -83,11 +97,14 @@ export function parse3dj(data: ArrayBuffer, title = 'Imported show', notes?: str
   }
 
   const first = (tag: string) => blocks.find((x) => x.tag === tag);
-  const cast = first('CAST') ?? cant('That Pyware file has no performers.');
+  const cast = first('CAST');
+  const cast6 = cast ? undefined : first('CST6'); // Pyware 10
+  if (!cast && !cast6) cant('That Pyware file has no performers.');
 
-  // Performers: label numbers from CAST, figure names from CST2 (when present).
+  // Performers: label numbers from CAST (or CST6), the person's name from CAST, figure names from CST2 (when present).
   const labels = new Map<number, string>(), people = new Map<number, string>();
-  readList(b, v, cast, (id, strs) => { labels.set(id, strs[0] ?? ''); people.set(id, (strs[1] ?? '').trim()); }, 2);
+  if (cast) readList(b, v, cast, (id, strs) => { labels.set(id, strs[0] ?? ''); people.set(id, (strs[1] ?? '').trim()); }, 2);
+  else readList(b, v, cast6!, (id, strs) => labels.set(id, strs[0] ?? ''), 6);
   const figures = new Map<number, string>();
   const c2 = first('CST2');
   if (c2) readList(b, v, c2, (id, strs) => figures.set(id, strs[0] ?? ''), 1);
@@ -104,9 +121,30 @@ export function parse3dj(data: ArrayBuffer, title = 'Imported show', notes?: str
     }
     return recs;
   };
-  const runs: { last: Map<number, Rec>; pages: Map<number, Rec>[]; counts: number; note: string }[] = [];
+  type Run = { last: Map<number, Rec>; pages: Map<number, Rec>[]; counts: number; note: string; name?: string; measures?: string; color?: SetColor };
+  const runs: Run[] = [];
   let pages: Map<number, Rec>[] = [];
-  for (const blk of blocks) {
+  const table = first('PTB6'); // Pyware 10: the sets are listed in one table, by the count each falls on
+  if (table) {
+    const list = readSetTable(b, v, table) ?? cant("That Pyware file looks damaged (its list of sets can't be read).");
+    const colors = textList(b, v, first('PTBC'));
+    const all = blocks.filter((x) => x.tag === 'PAGE').map(readPage);
+    let number = 0, letter = 0;
+    list.forEach((t, k) => {
+      const from = k ? list[k - 1].start + 1 : t.start, got = all.slice(from, t.start + 1);
+      if (got.length !== t.start + 1 - from || got.some((p) => !p)) cant("That Pyware file looks damaged (some of a set's counts are missing).");
+      // Names: Pyware's own (1, 2, 2A, 3).
+      if (t.subset && k) letter++; else { number++; letter = 0; }
+      const name = `${number}${letter ? String.fromCharCode(64 + Math.min(letter, 26)) : ''}`;
+      const m = t.title.match(/^(?:(.*?)\s*,\s*)?(\d+[A-Za-z]?(?:\s*[-–]\s*\d+[A-Za-z]?)?)$/); // "A, 3 - 6" or "33"
+      const measures = m ? m[2].replace(/\s+/g, '').replace('-', '–') : undefined;
+      const heading = m ? (m[1] ? t.title : '') : t.title; // a title with more than measures stays, as written, atop the note
+      const color = setColorOf(colors[k] ?? '');
+      runs.push({ last: got[got.length - 1]!, pages: got as Map<number, Rec>[], counts: k ? t.start - list[k - 1].start : 0,
+        note: [heading, t.note].filter(Boolean).join('\n').replace(/\r\n?/g, '\n').trim(), name, measures, ...(color ? { color } : {}) });
+    });
+  }
+  for (const blk of table ? [] : blocks) {
     if (blk.tag === 'PAGE') { const p = readPage(blk); if (p) pages.push(p); }
     if (blk.tag === 'PROP') {
       const textLen = blk.len >= 27 ? v.getUint16(blk.at + 25) : 0;
@@ -162,13 +200,15 @@ export function parse3dj(data: ArrayBuffer, title = 'Imported show', notes?: str
     for (const [id, rec] of r.last) pos[pid.get(id)!] = spot(rec);
     for (const p of performers) pos[p.id] ??= { x: 0, y: FIELD_WIDTH / 2 };
     // The set's name as the drill writer wrote it in the note ("Mario, Set 2A", "Set:  3A", "Page: 2"), else its number.
-    const named = r.note.split('\n').slice(0, 3).join(' ').match(/\b(?:set|page)\s*:?\s*(\d+[A-Za-z]?)\b/i)?.[1].toUpperCase();
+    const named = r.name ?? r.note.split('\n').slice(0, 3).join(' ').match(/\b(?:set|page)\s*:?\s*(\d+[A-Za-z]?)\b/i)?.[1].toUpperCase();
     const name = named && !taken.has(named) ? named : !taken.has(String(i + 1)) ? String(i + 1) : `${i + 1}′`;
     taken.add(name);
     const set: DrillSet = { id: newId('set'), name, counts: r.counts, pos };
     const mm = r.note.match(/\bmm?\.?\s*(\d+(?:\s*[-–]\s*\d+)?)/i);
-    if (mm) set.measures = mm[1].replace(/\s+/g, '').replace('-', '–');
+    if (r.measures) set.measures = r.measures;
+    else if (mm) set.measures = mm[1].replace(/\s+/g, '').replace('-', '–');
     if (r.note) set.note = r.note;
+    if (r.color) set.color = r.color;
     // Label sides the drill writer chose in Pyware. Code 1 (below-right) is where Pyware leaves a label nobody moved,
     // so those stay automatic (readable) in FreeFORM.
     const sides: Record<string, LabelSide> = {};
@@ -199,6 +239,12 @@ export function parse3dj(data: ArrayBuffer, title = 'Imported show', notes?: str
     sets.push(set); prev = pos;
   });
 
+  if (!figures.size && notes) {
+    const guessed = sections.filter((x) => LETTERS[x.letter]).map((x) => `${x.letter} = ${x.name}`);
+    if (guessed.length) notes.push(`This file doesn't say which instrument each dot symbol is, so FreeFORM named the sections from the letters: ${guessed.join(', ')}. Rename any that are wrong under Sections in the sidebar.`);
+  }
+  if (runs.some((r) => r.color)) notes?.push("The sets' colors came in as the nearest FreeFORM set color. FreeFORM saves red, yellow, and green for warnings, so red sets are Pink.");
+  if (blocks.some((x) => x.tag === 'PRP7' && x.len > 2)) notes?.push("The file has props, which FreeFORM doesn't bring in from Pyware yet. Add them under Props in the sidebar.");
   if (rebuilt.length) notes?.push(`Follow-the-leader moves were saved in the file as straight lines that run through each other, so FreeFORM worked them out: ${rebuilt.length === 1 ? 'set' : 'sets'} ${rebuilt.join(', ')}. Watch ${rebuilt.length === 1 ? 'it' : 'them'} to be sure ${rebuilt.length === 1 ? "it's" : "they're"} what the writer meant.`);
   // setNaming 'manual': the writer's set names stay as they are when sets are added or deleted (Jason, 2026-11-17)
   const show: Show = { format: 'freeform-show', version: 1, title, hash: hashFrom(b, first('GRID')), sections: scoreOrder(sections), performers, sets, setNaming: 'manual' };
@@ -270,6 +316,106 @@ export function hiddenFtl(from: Record<string, Pt>, to: Record<string, Pt>, ids:
   return groups;
 }
 
+/** PTB6 (Pyware 10's sets): see the top of the file. Null unless it reads exactly to the block's end, counts in order. */
+function readSetTable(b: Uint8Array, v: DataView, blk: { at: number; len: number }) {
+  const end = blk.at + blk.len, out: { start: number; title: string; note: string; subset: boolean }[] = [];
+  if (blk.len < 4) return null;
+  let o = blk.at + 4;
+  for (let k = v.getUint16(blk.at + 2); k > 0; k--) {
+    if (o + 2 > end) return null;
+    const start = v.getUint16(o); o += 2;
+    const strs: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      if (o + 2 > end) return null;
+      const n = v.getUint16(o); if (o + 2 + n > end) return null;
+      strs.push(utf8(b.subarray(o + 2, o + 2 + n))); o += 2 + n;
+    }
+    if (o + 10 > end || (out.length && start < out[out.length - 1].start)) return null;
+    out.push({ start, title: strs[0].trim(), note: strs[1], subset: b[o + 9] === 1 }); o += 10;
+  }
+  return o === end && out.length ? out : null;
+}
+
+/** PTBC (and PTBT): a u16 length, then one ";"-separated entry per set. */
+function textList(b: Uint8Array, v: DataView, blk?: { at: number; len: number }): string[] {
+  if (!blk || blk.len < 2) return [];
+  const n = Math.min(v.getUint16(blk.at), blk.len - 2);
+  return utf8(b.subarray(blk.at + 2, blk.at + 2 + n)).split(';');
+}
+
+/**
+ * A Pyware set color ("r,g,b", or "." for none) as the nearest FreeFORM set color by hue. FreeFORM keeps red, yellow,
+ * and green for warnings, selection, and done, so red goes to Pink, yellow to Orange, and green to Teal (Claude, 2026-11-22).
+ */
+export function setColorOf(text: string): SetColor | undefined {
+  const m = text.trim().match(/^(\d{1,3}),(\d{1,3}),(\d{1,3})$/);
+  if (!m) return undefined;
+  const [r, g, bl] = [m[1], m[2], m[3]].map((x) => Math.min(255, +x) / 255);
+  const max = Math.max(r, g, bl), min = Math.min(r, g, bl), c = max - min;
+  if (max === 0 || c / max < 0.2) return 'gray';
+  const h = (max === r ? ((g - bl) / c + 6) % 6 : max === g ? (bl - r) / c + 2 : (r - g) / c + 4) * 60;
+  return h < 15 || h >= 290 ? 'pink' : h < 75 ? 'orange' : h < 200 ? 'teal' : h < 255 ? 'blue' : 'purple';
+}
+
+/** A .3dj's SYNC: the recording's file name and the seconds where each count falls (count 0 first). */
+export function readSync(data: ArrayBuffer): { name: string; times: number[] } | null {
+  const b = new Uint8Array(data), v = new DataView(data);
+  for (let o = indexOf(b, 'SYNC', 0); o >= 0; o = indexOf(b, 'SYNC', o + 4)) {
+    let p = o + 8;
+    if (p + 2 > b.length) return null;
+    const chars = v.getUint16(p); p += 2;
+    if (p + chars * 2 + 2 > b.length) continue;
+    let path = '';
+    for (let i = 0; i < chars; i++) path += String.fromCharCode(v.getUint16(p + i * 2));
+    p += chars * 2;
+    const n = v.getUint16(p); p += 2;
+    if (n < 2 || p + n * 8 > b.length) continue;
+    const times: number[] = [];
+    for (let i = 0; i < n; i++) times.push(v.getFloat64(p + i * 8));
+    if (!times.every((t, i) => Number.isFinite(t) && t >= 0 && t < 36_000 && (i === 0 || t > times[i - 1]))) continue;
+    const name = decodeURIComponent(path.split(/[\\/]/).pop() ?? '').trim();
+    return { name, times };
+  }
+  return null;
+}
+
+/** Audio types by file extension, for a recording that comes out of a .3dz. */
+const AUDIO: Record<string, string> = { mp3: 'audio/mpeg', wav: 'audio/wav', m4a: 'audio/mp4', aac: 'audio/aac', ogg: 'audio/ogg', oga: 'audio/ogg', flac: 'audio/flac' };
+const MAX_TAPS = 20_000;
+
+/**
+ * Open a Pyware file: a .3dj, or a Pyware 10 .3dz package (a zip). From a package the recording comes too, already
+ * timed to the counts the way the writer synced it in Pyware. `notes` gets what to check, for the import summary.
+ */
+export async function importPyware(data: ArrayBuffer, title = 'Imported show', notes: string[] = []): Promise<{ show: Show; audio?: Blob }> {
+  if (data.byteLength > MAX_PACKAGE) fail('That file is too big to be a Pyware show.');
+  if (!isZip(new Uint8Array(data))) {
+    const show = parse3dj(data, title, notes), sync = readSync(data);
+    if (sync?.name) notes.push(`In Pyware this show was synced to a recording (${sync.name}). Open the .3dz package instead of the .3dj to bring the music in with its timing, or add it under Music.`);
+    return { show };
+  }
+  let files: ReturnType<typeof readZip>;
+  try { files = readZip(data, 'Pyware'); } catch { return fail("That isn't a Pyware drill file, or it's damaged."); }
+  const paths = Object.keys(files).filter((f) => !f.startsWith('__MACOSX/'));
+  const drill = paths.find((f) => /\.3dj$/i.test(f)) ?? fail("That package has no Pyware drill (.3dj) inside, so FreeFORM can't open it.");
+  const raw = await files[drill]();
+  const inner = raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength);
+  const show = parse3dj(inner, title, notes), sync = readSync(inner);
+  if (!sync) return { show };
+  const base = (f: string) => f.split('/').pop()!.toLowerCase();
+  const file = paths.find((f) => base(f) === sync.name.toLowerCase()) ?? paths.filter((f) => AUDIO[f.split('.').pop()!.toLowerCase()]).find(() => true);
+  if (!file) {
+    notes.push(`In Pyware this show was synced to a recording (${sync.name}), but it isn't in the package. Add it under Music.`);
+    return { show };
+  }
+  const bytes = await files[file]();
+  const name = file.split('/').pop()!.slice(0, 300);
+  const taps = sync.times.slice(0, MAX_TAPS);
+  if (name.toLowerCase().endsWith('.ogg') || name.toLowerCase().endsWith('.oga')) notes.push(`The recording (${name}) is an Ogg file. It plays in Chrome, Edge, and Firefox. If it won't play in Safari or on an iPad, open the show in one of those.`);
+  return { show: { ...show, music: { name, audioId: 'import', taps } }, audio: new Blob([bytes], { type: AUDIO[name.split('.').pop()!.toLowerCase()] ?? 'audio/mpeg' }) };
+}
+const MAX_PACKAGE = 400_000_000; // a .3dz carries its recording and pictures
+
 /** Hashes from the GRID text ("HZHS -8.75" = yards from center): high school ±8.75, college ±6.25, NFL ±3.75. */
 function hashFrom(b: Uint8Array, grid?: { at: number; len: number }): HashPreset {
   if (!grid) return 'highSchool';
@@ -310,3 +456,4 @@ const indexOf = (b: Uint8Array, s: string, from: number) => {
   return -1;
 };
 const latin1 = (a: Uint8Array) => Array.from(a, (c) => String.fromCharCode(c)).join('');
+const utf8 = (a: Uint8Array) => new TextDecoder().decode(a);
