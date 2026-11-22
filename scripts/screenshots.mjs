@@ -406,9 +406,9 @@ shot('timeline', async () => {
 shot('set-name', async () => { // Set 2 ▾: renaming a set, and Renumber sets
   const page = await editor();
   await goSet(page, 2);
-  await page.getByRole('button', { name: /^Set 2: rename or renumber/ }).click(); await page.waitForTimeout(300);
+  await page.getByRole('button', { name: /^Set 2: rename, color, or renumber/ }).click(); await page.waitForTimeout(300);
   await page.getByRole('textbox', { name: 'Set name' }).fill('12');
-  await save(page, 'set-name', await withPanel(page, page.getByRole('button', { name: /^Set 2: rename or renumber/ })));
+  await save(page, 'set-name', await withPanel(page, page.getByRole('button', { name: /^Set 2: rename, color, or renumber/ })));
 });
 shot('music', async () => {
   const page = await editor();

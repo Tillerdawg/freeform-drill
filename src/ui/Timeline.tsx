@@ -1,8 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { wakeClick } from './click';
 import { peakBetween, timeAt } from '../engine/music';
-import { chrome, useTheme } from './palette';
-import { addSetHere, biggestStep, closeCallsMemo, locate, MAX_MOVEMENT, movementAt, movementOfSet, movementStarts, moveSetTo, newId, numberSetsInOrder, renameSet, MAX_SET_NAME, setAt, setCounts, setMeasures, playPlan, setStarts, showLength, totalCounts, type Show } from '../engine/show';
+import { chrome, SET_COLORS, setColorShade, useTheme } from './palette';
+import { addSetHere, biggestStep, closeCallsMemo, locate, MAX_MOVEMENT, movementAt, movementOfSet, movementStarts, moveSetTo, newId, numberSetsInOrder, renameSet, MAX_SET_NAME, SET_COLOR_NAMES, setAt, setColor, setCounts, setMeasures, playPlan, setStarts, showLength, totalCounts, type SetColor, type Show } from '../engine/show';
 import { Menu } from './Toolbar';
 import { STEP_TEXT } from '../field/drawField';
 import { fmtStep } from './format';
@@ -44,6 +44,10 @@ export function Timeline({ show, checked = show, setShow, t, setT, playing, setP
   const total = showLength(show); // the timeline runs through any part not written yet (count-first)
   const written = totalCounts(show);
   const starts = setStarts(show);
+  const theme = useTheme();
+  // A set's color (the writer's own grouping): a stripe on its button and its move, with the color's name in words too.
+  const stripe = (i: number) => { const c = show.sets[i].color; return c ? setColorShade(c, theme) : null; };
+  const colorWord = (i: number) => { const c = show.sets[i].color; return c ? ` (${SET_COLORS[c].name})` : ''; };
   // Pairs under a step apart, per move, from the settled show (so not on every step of a drag); only moves whose sets changed are checked again.
   const close = useMemo(() => checked.sets.map((_, i) => (i ? closeCallsMemo(checked, i).length : 0)), [checked]);
   const { to, count } = locate(show, t);
@@ -212,7 +216,7 @@ export function Timeline({ show, checked = show, setShow, t, setT, playing, setP
           <div key={s.id} style={{ position: 'absolute', left: `calc(${(starts[i] / total) * 100}% - 1px)`, top: (rows[i] ?? 0) * ROW + ROW - 2, bottom: 0, width: 2, background: 'var(--gold)', pointerEvents: 'none' }} />
         ))}
         {show.sets.map((s, i) => (
-          <button key={s.id} aria-label={`Go to set ${s.name}`} title={i ? (TOUCH ? 'Tap to go here; touch and hold, then drag, to change which count this set lands on' : 'Click to go here; drag to change which count this set lands on') : undefined}
+          <button key={s.id} aria-label={`Go to set ${s.name}${colorWord(i)}`} title={i ? `Set ${s.name}${colorWord(i)}. ${TOUCH ? 'Tap to go here; touch and hold, then drag, to change which count this set lands on' : 'Click to go here; drag to change which count this set lands on'}` : s.color ? `Set ${s.name}${colorWord(i)}` : undefined}
             onPointerDown={(e) => {
               if (e.button !== 0) return;
               e.currentTarget.setPointerCapture(e.pointerId);
@@ -246,7 +250,8 @@ export function Timeline({ show, checked = show, setShow, t, setT, playing, setP
             onPointerCancel={dropSet}
             // The button starts at its set's line (its left edge on the line).
             style={{ position: 'absolute', zIndex: i === onSet ? 2 : 1, top: (rows[i] ?? 0) * ROW, height: ROW - 2, minHeight: 0, left: total ? `calc(${(starts[i] / total) * 100}% - 1px)` : 0,
-              fontWeight: i === onSet ? 700 : 400, boxShadow: i === onSet ? 'inset 0 0 0 2px var(--gold)' : undefined, // inside the edge: the scroll strip clips anything outside it
+              fontWeight: i === onSet ? 700 : 400, // inside the edge: the scroll strip clips anything outside it; a set color is a stripe along the bottom
+              boxShadow: [stripe(i) && `inset 0 -4px 0 ${stripe(i)}`, i === onSet && 'inset 0 0 0 2px var(--gold)'].filter(Boolean).join(', ') || undefined,
               ...(held === i ? { background: 'var(--gold-fill)', color: 'var(--on-gold)', transform: 'scale(1.1)', zIndex: 2 } : {}), padding: '0 6px', minWidth: TOUCH ? 44 : 24, lineHeight: '18px',
               cursor: i ? 'ew-resize' : 'pointer', touchAction: 'none' }}>
             {s.name}
@@ -271,10 +276,11 @@ export function Timeline({ show, checked = show, setShow, t, setT, playing, setP
             const i = k + 1;
             const big = biggestStep(show, i);
             return (
-              <div key={s.id} style={{ ...box(starts[i - 1], s.counts), background: i === to && onSet < 0 && !past ? 'var(--surface-2)' : 'var(--surface)', boxShadow: i === to && onSet < 0 && !past ? 'inset 0 -3px 0 var(--gold)' : undefined }}>
+              <div key={s.id} style={{ ...box(starts[i - 1], s.counts), background: i === to && onSet < 0 && !past ? 'var(--surface-2)' : 'var(--surface)',
+                boxShadow: [stripe(i) && `inset 0 3px 0 ${stripe(i)}`, i === to && onSet < 0 && !past && 'inset 0 -3px 0 var(--gold)'].filter(Boolean).join(', ') || undefined }}>
                 <div style={{ padding: '2px 6px' }}>
                   {/* Counts and measures; then the biggest step, on every move, with ⚠ only when it's too big. No dots between. */}
-                  <div title={`Set ${show.sets[i - 1].name} to set ${s.name}`}>{s.counts} counts{s.measures ? `, m. ${s.measures}` : ''}{s.ftl?.some((g) => g.order.length > 1) ? ', FTL' : s.ftl?.length ? ', custom path' : ''}
+                  <div title={`Set ${show.sets[i - 1].name} to set ${s.name}${colorWord(i)}`}>{s.counts} counts{s.measures ? `, m. ${s.measures}` : ''}{s.ftl?.some((g) => g.order.length > 1) ? ', FTL' : s.ftl?.length ? ', custom path' : ''}
                     {big && short && <>, {maxStep(i, big.per5, big.tier)}</>}
                     {!!close[i] && short && <>, {tooClose(i)}</>}</div>
                   {big && !short && <div>{maxStep(i, big.per5, big.tier)}{!!close[i] && <>, {tooClose(i)}</>}</div>}
@@ -288,7 +294,9 @@ export function Timeline({ show, checked = show, setShow, t, setT, playing, setP
               <div style={{ padding: '2px 6px' }}>Not written yet: counts {written + 1}–{total}</div>
             </div>
           )}
-          {/* Where each movement starts: a dashed line (after the first) and its name, below the moves' own text. */}
+          {wave && <Wave wave={wave} total={total} />}
+          {/* Where each movement starts: a dashed line (after the first) and its name, below the moves' own text. After the
+              waveform, so the recording never covers the names (Shubreet Kaur, 2026-11-21). */}
           {movementStarts(show).map((c, k) => {
             const m = show.movements![k], end = (k + 1 < show.movements!.length ? movementStarts(show)[k + 1] : total);
             return (
@@ -297,7 +305,6 @@ export function Timeline({ show, checked = show, setShow, t, setT, playing, setP
               </div>
             );
           })}
-          {wave && <Wave wave={wave} total={total} />}
           {/* One tick per count; taller every 4 counts within a move. Clicking snaps to the nearest count. */}
           {Array.from({ length: total - 1 }, (_, k) => k + 1).filter((c) => !starts.includes(c)).map((c) => {
             const intoMove = c > written ? c - written : c - starts[locate(show, c).to - 1];
@@ -362,7 +369,7 @@ function SetNameMenu({ show, setShow, i }: { show: Show; setShow: (f: (s: Show) 
   const name = show.sets[i].name;
   const tidy = show.sets.every((s, j) => s.name === String(j + 1));
   return (
-    <Menu label={<strong>Set {name}</strong>} name={`Set ${name}: rename or renumber`} title="Rename this set, or renumber every set 1, 2, 3">
+    <Menu label={<strong>Set {name}</strong>} name={`Set ${name}: rename, color, or renumber`} title="Rename this set, give it a color, or renumber every set 1, 2, 3">
       {(close) => <SetNamePanel show={show} setShow={setShow} i={i} tidy={tidy} close={close} />}
     </Menu>
   );
@@ -389,10 +396,29 @@ function SetNamePanel({ show, setShow, i, tidy, close }: { show: Show; setShow: 
     <p style={{ margin: '6px 0 0', opacity: 0.75, fontSize: 12, whiteSpace: 'normal', maxWidth: 280 }}>{manual
       ? 'You name the sets now: adding or deleting a set leaves the other names alone.'
       : 'Once you name a set yourself, adding or deleting a set leaves the other names alone.'}</p>
+    <SetColorPicker show={show} setShow={setShow} i={i} />
     <hr style={{ width: '100%', border: 0, borderTop: '1px solid var(--line)', margin: '8px 0 2px' }} />
     <button disabled={tidy && !manual} onClick={() => { setShow((s) => numberSetsInOrder(s)); close(); }}
       title={tidy && !manual ? 'The sets are already numbered 1, 2, 3' : 'Number every set in order, sub-sets included (1, 1A, 2 become 1, 2, 3). Undo reverses it.'}>Renumber sets</button>
     <p style={{ margin: '6px 0 0', opacity: 0.75, fontSize: 12, whiteSpace: 'normal', maxWidth: 280 }}>Numbers every set in order (1, 1A, 2 become 1, 2, 3) and lets FreeFORM number new sets again.</p>
+  </>;
+}
+
+/** A set's color: none or one of the named few, each a swatch with its name (color is never the only signal). */
+function SetColorPicker({ show, setShow, i }: { show: Show; setShow: (f: (s: Show) => Show) => void; i: number }) {
+  const theme = useTheme(), cur = show.sets[i].color ?? null;
+  const pick = (c: SetColor | null) => setShow((s) => setColor(s, i, c));
+  const chip: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 6px', fontSize: 12 };
+  return <>
+    <div role="radiogroup" aria-label={`Set ${show.sets[i].name} color`} style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8, maxWidth: 280 }}>
+      <button role="radio" aria-checked={!cur} onClick={() => pick(null)} style={chip}>No color</button>
+      {SET_COLOR_NAMES.map((c) => (
+        <button key={c} role="radio" aria-checked={cur === c} onClick={() => pick(c)} style={chip}>
+          <span aria-hidden style={{ width: 12, height: 12, borderRadius: 3, background: setColorShade(c, theme) }} />{SET_COLORS[c].name}
+        </button>
+      ))}
+    </div>
+    <p style={{ margin: '6px 0 0', opacity: 0.75, fontSize: 12, whiteSpace: 'normal', maxWidth: 280 }}>Group sets your own way (a tune, a phrase, what's finished). The color shows as a stripe on the timeline.</p>
   </>;
 }
 

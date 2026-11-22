@@ -26,6 +26,10 @@ export const setNames = (show: Show, names: Record<string, string>): Show => ({
 export const withoutNames = (show: Show): Show =>
   show.performers.some((p) => p.name) ? { ...show, performers: show.performers.map(({ name: _, ...p }) => p) } : show;
 /** A set ("page"). `counts` = counts of the move INTO this set; ignored for the first set. */
+/** The colors a set can be tagged with (Shubreet Kaur asked for color-coded sets, 2026-11-21). Shades: SET_COLORS in src/ui/palette.ts. */
+export const SET_COLOR_NAMES = ['blue', 'purple', 'pink', 'orange', 'teal', 'gray'] as const;
+export type SetColor = (typeof SET_COLOR_NAMES)[number];
+
 export interface DrillSet {
   id: string;
   name: string;
@@ -42,6 +46,8 @@ export interface DrillSet {
   marks?: Mark[];
   /** A note for the whole set, printed under its chart. */
   note?: string;
+  /** A color the drill writer gives the set, to group sets their own way (the timeline shows it). Only a name; the shade is the palette's. */
+  color?: SetColor;
   /** Per-performer cue for this set ("Slide L, horns 45"), printed on their dot sheet. */
   cues?: Record<string, string>;
   /** Label sides pinned by the drill writer for this set's picture; everyone else's label is placed automatically. */
@@ -1253,6 +1259,10 @@ export function snapSelection(show: Show, i: number, ids: string[], unit: number
     .map((id) => label(show, show.performers.find((p) => p.id === id)!));
   return { show: next, stacked };
 }
+
+/** Tag set i with a color, or none. */
+export const setColor = (show: Show, i: number, color: SetColor | null): Show =>
+  mapSet(show, i, (s) => { const { color: _, ...rest } = s; return color ? { ...rest, color } : rest; });
 
 export const setMeasures = (show: Show, i: number, measures: string): Show =>
   mapSet(show, i, (s) => ({ ...s, measures: measures || undefined }));

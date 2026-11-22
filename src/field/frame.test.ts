@@ -26,3 +26,14 @@ it('turns a drag into a rotation or a scale, pulled to round numbers', () => {
   expect(frameDrag('scale', c, { x: -3, y: -4 }, { x: -3, y: -6 })).toEqual({ deg: 0, kx: 1, ky: 1.5 }); // any corner works
   expect(frameDrag('scale', c, { x: 3, y: 4 }, { x: -1, y: 4 }).kx).toBe(0.1); // across the center: never flips
 });
+
+it('turns and stretches around a chosen performer (a gate turn), not the middle of the box', () => {
+  const pts = [{ x: 0, y: 0 }, { x: 8, y: 0 }], pivot = { x: 0, y: 0 };
+  const f = selectionFrame(pts, 1, 3, 0, 1, 1, pivot);
+  expect(f.c).toEqual(pivot);
+  expect(f.knob).toEqual({ x: 4, y: 4 }); // still over the middle of the box
+  const r = selectionFrame(pts, 1, 3, 180, 1, 1, pivot); // half a turn around the end: the box flips to the other side of it
+  expect(r.corners[1].x).toBeCloseTo(-9); expect(r.corners[1].y).toBeCloseTo(1);
+  const big = selectionFrame(pts, 1, 3, 0, 2, 1, pivot); // twice as wide, measured from the end
+  expect(big.corners[1].x).toBeCloseTo(18); expect(big.corners[0].x).toBeCloseTo(-2);
+});

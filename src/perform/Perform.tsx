@@ -570,6 +570,11 @@ export function Perform() {
         {me ? <span> · {readout(positions[me.id], fieldOf(show), lang)}</span>
           : state!.me === STAFF ? null : <span> · {tr('Pick who you are above to see your spot.')}</span>}
       </p>
+      {/* Field: this set's notes too, mine and the ensemble's, as on the My dots card (Shubreet Kaur asked, 2026-11-21). */}
+      {(s.note || (me && s.cues?.[me.id])) && <p className="perform-setnotes">
+        {me && s.cues?.[me.id] && <span><span className="perform-k">{tr('My notes')}<span className="sr-only">: </span></span>{s.cues[me.id]}<span className="sr-only">. </span></span>}
+        {s.note && <span><span className="perform-k">{tr('Ensemble')}<span className="sr-only">: </span></span>{s.note}</span>}
+      </p>}
       {/* My dots: my spot in every set, like the printed dot sheet. Tap a set to go to it. */}
       <section className="perform-dots" aria-label={tr('My dots')} tabIndex={-1}>
         {meta}

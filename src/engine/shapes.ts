@@ -297,6 +297,19 @@ export function assign(from: Point[], to: Point[]): number[] {
   return out;
 }
 
+/**
+ * Which performer takes each of a shape's spots in set i: least total travel, measured from the set before (the shortest
+ * move, so the move's paths never cross), or with `closest` from where they stand in set i now (each takes the dot nearest
+ * them, so a rough circle tidies up instead of performers crossing to the far side). `show` is the show before the shape.
+ * Returns the ids in spot order.
+ */
+export function dealShape(shape: Shape, ids: string[], show: { sets: { pos: Record<string, Point> }[] }, i: number, closest: boolean): string[] {
+  const from = ids.map((id) => (closest ? show.sets[i].pos[id] : show.sets[Math.max(0, i - 1)].pos[id] ?? show.sets[i].pos[id]));
+  const slotOf = assign(from, slots(shape, ids.length)), order: string[] = [];
+  ids.forEach((id, k) => { order[slotOf[k]] = id; });
+  return order;
+}
+
 /** A starting shape fitted around the selected performers' current spots. */
 export function fitShape(kind: ShapeKind, pts: Point[]): Shape {
   const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);

@@ -58,7 +58,7 @@ From top to bottom:
 - **A white field.** If you'd rather write on paper colors, choose **Layout → White field**. The turf turns white with black lines, letters, and labels. Selected performers keep their gold, with a dark ring, and step warnings keep their colors on a dark edge. **Layout → Green field** switches back. On a basketball court or a custom floor, the same choice says **White floor** and **Colored floor**. It only changes what you see on this computer or iPad: printed charts are always black on white, and videos stay green. Phones have their own **White field** button.
 
   ![The sample show on a white field](img/white-field.png)
-- **The timeline** runs across the bottom. Each set has a numbered button, and each move between sets shows its counts, measures, and biggest step size.
+- **The timeline** runs across the bottom. Each set has a numbered button, and each move between sets shows its counts, measures, and biggest step size. Movement names show on the moves, drawn over the recording's waveform so it never hides them.
 - **The sidebar** on the right (or the left, under **Layout**) is about what you're working on. With performers picked, they come first: their name, section, notes, and spot. Then the set you're on: its name (click it to rename it, or to renumber every set), **Counts**, **Measures**, **Ensemble notes**, and **Delete set**. Then the **Sections**, **Props**, **Picture to trace**, and **Roster** lists. The sidebar button (at the right end of the toolbar) shows and hides it.
 
 ## Set up a new show
@@ -160,6 +160,8 @@ The Selection area also has **Select all** (⌘A, or Ctrl+A on Windows) and **Se
 
 Coordinates read side to side first, then front to back, from the nearest yard line and the nearest sideline or hash, rounded to quarter steps. For example: "2 steps outside the Side 2 45, 2 steps in front of Front Hash," "Splitting 40 and 45 on Side 1," or "On the 50." Open **All sets** to see that performer's spot in every set.
 
+**Step size.** Under the coordinate, the sidebar gives that performer's exact step size for the move into the set, even a normal one, like "Move into set 3: 8.3-to-5, 16 counts." A delayed step-off says how many counts they actually move ("12 of 16 counts"), and a hold says so. The line under it, **Half time**, is the same move marched on every other count, so each step is twice as long: an 8-to-5 move is a 4-to-5 at half time. Use it to see whether a move will look as big as you want before you write it that way. A step past the warnings says so in words (⚠ a big step, ⚠ over the step limit), not only in color.
+
 **Placing someone exactly.** Open **Place exactly (this set)** under the coordinate, fill in the steps, inside or outside, the side and yard line, then the steps in front of or behind a sideline or hash, and click **Place**.
 
 **Moves carry forward through holds.** When you move someone in a set, every later set where they were still standing on their old spot (holding) moves with them, up to the first set where you'd already put them somewhere else. So if you add performers, then place them in set 2, they stay there in sets 3, 4 and on until you move them again, and drill you've already written for later sets is never changed. This works the same for dragging, shapes, flips, rotating and stretching, snapping, and **Place exactly**.
@@ -180,11 +182,13 @@ A set is one picture of the drill, and the move into it takes a number of counts
 - **Click a set's button** on the timeline to go to it, or click any count to see where everyone is on that count.
 - **Drag a set's button** to move it to a different count. The sets around it stay where they are.
 
-**Naming and renumbering sets.** Click the set's name in the sidebar (**Set 2 ▾**) to change it. Type the new name in **Name** and click **Rename** (or press Enter). A name can be up to 8 characters (12, 4A, or Hit), and two sets can't share one. If you'd rather write the last picture first, add it as a set, name it 12, and fill in the sets before it as you go.
+**Naming, coloring, and renumbering sets.** Click the set's name in the sidebar (**Set 2 ▾**) to change it. Type the new name in **Name** and click **Rename** (or press Enter). A name can be up to 8 characters (12, 4A, or Hit), and two sets can't share one. If you'd rather write the last picture first, add it as a set, name it 12, and fill in the sets before it as you go.
 
-![Renaming set 2](img/set-name.png)
+![Renaming set 2, with its colors](img/set-name.png)
 
 Once you name a set yourself, FreeFORM stops renumbering sets for you. Adding or deleting a set leaves every other name alone, so your 12 stays 12. Shows you open from Pyware or OpenMarch start out this way, so their set names stay the way the writer had them (4A stays 4A). A new set gets the next number if it's free (after 6 comes 7) or a sub-set name if it isn't (6A). When you're done, **Renumber sets** in the same menu numbers every set in order, sub-sets included (1, 1A, 2 become 1, 2, 3), and FreeFORM goes back to numbering new sets itself. Undo reverses either one.
+
+**Coloring sets.** The same menu has a row of colors: **Blue**, **Purple**, **Pink**, **Orange**, **Teal**, and **Gray**, or **No color**. Use them to group sets your own way, like one color per tune, per phrase, or for sets that are finished. A colored set gets a stripe along the bottom of its button on the timeline and along the top of the move into it, and the color's name is in the button's tooltip. Colors are only for you in the editor: phones and printouts don't show them.
 
 Each move on the timeline shows its counts, measures, and the biggest step anyone takes, like **Max 8-to-5** (colored, with ⚠ in front, if it's too big; see [Step-size warnings](#step-size-and-too-close-warnings)).
 
@@ -209,7 +213,7 @@ The timeline then runs the full length, with the part you haven't written yet st
 
 **Moving handles with the keyboard.** With a shape open, press Tab (click the field first if a button has focus) to step to its first handle: a gold ring goes around it, and a note at the bottom of the field names it and says where it is, like "Arc, middle: 2 steps inside the Side 1 45, 3 steps in front of Back Hash." Tab goes to the next handle and Shift+Tab to the one before. The arrow keys move the handle 1 step (Shift for 4 steps, Option or Alt for half a step), Enter keeps it where it is, and Esc puts it back where it was when you picked it. Tab past the last handle goes on to the rest of the page as usual.
 
-FreeFORM decides who goes to which spot by keeping total travel from the previous set as short as it can, so the paths don't cross. Curves can take extra points (**+ Curve point**) and Béziers extra segments (**+ Segment**). Blocks also take a number of **Columns**.
+FreeFORM decides who goes to which spot by keeping total travel from the previous set as short as it can, so the paths don't cross. If you've already set the performers roughly where you want them in this set, check **Closest dot** in **Shape** instead: each performer takes the spot closest to where they're standing now, so a rough circle tidies up without anyone crossing to the far side. It keeps doing that as you drag the handles, and it stays on for the next shape until you uncheck it. Curves can take extra points (**+ Curve point**) and Béziers extra segments (**+ Segment**). Blocks also take a number of **Columns**.
 
 **Bézier handles.** In **Shape**, turn on **Independent handles** to drag one handle at a time with a finger, Apple Pencil, or mouse. Turn it off and drag a round handle at a joint to make that joint smooth again. The switch itself leaves the curve in place. If the panel covers a handle, tap **Shape** to tuck it away while you edit, then tap **Shape** again to bring it back. You can also hold Option (Alt on Windows) while dragging to move a single handle.
 
@@ -239,7 +243,7 @@ Select two or more performers and a dashed frame appears around them.
 
 ![A selected arc with its rotate knob and corner handles](img/select-frame.png)
 
-- **Drag the round knob** above the frame to rotate the selection around its center. It lands on whole degrees and pulls toward multiples of 15°, so 45° and 90° are easy to hit.
+- **Drag the round knob** above the frame to rotate the selection around its center (or around a performer you pick in **Rotate & Scale**'s **Around**). It lands on whole degrees and pulls toward multiples of 15°, so 45° and 90° are easy to hit.
 - **Drag a corner** to stretch. Drag sideways to make the group wider or narrower, up or down to make it deeper or shallower, or diagonally for both. Each direction pulls toward 100%, so a slightly crooked sideways drag won't change the depth.
 
 The amount shows in the bottom-left corner of the field while you drag, and each drag is one Undo. Stretching follows the field's lines (side to side and front to back), even after you've rotated a group.
@@ -251,7 +255,7 @@ Two menus do the same jobs with exact numbers.
 - **Flip across the 50** swaps Side 1 and Side 2, and **Flip front ↔ back** swaps front and back.
 - **Copy Side 1 → 2** (or 2 → 1) gives the other side the mirror image. FreeFORM pairs each performer with the one in the mirror-opposite spot. The other side moves the same way, too: a delayed step-off, a turning move, or a follow-the-leader group on the side you copy comes along, so each partner holds, turns, or follows just like its twin.
 
-**Rotate & Scale** turns the selection by a typed number of degrees (**↺** counterclockwise, **↻** clockwise), and **Expand** and **Contract** scale it evenly by a typed percent. **Around** picks what it turns around: the center, or one of the selected performers. Pick the performer on the end of a line for a gate turn. It needs 2 or more performers selected.
+**Rotate & Scale** turns the selection by a typed number of degrees (**↺** counterclockwise, **↻** clockwise), and **Expand** and **Contract** scale it evenly by a typed percent. **Around** picks what it turns around: the center, or one of the selected performers. Pick the performer on the end of a line for a gate turn. The knob and corners on the field use the same choice, with a blue cross on that performer, and the readout says who it turns around ("Rotate 90° counterclockwise around T1"). It needs 2 or more performers selected.
 
 Mirror and Rotate & Scale keep the form you have and move or resize it. To change the form itself, like a block into an arc, use **Shape**.
 
@@ -556,6 +560,7 @@ They can search by name, by dot (P4), or by section, and **Staff (whole band)** 
 
 ![The field and playback on a phone held sideways](img/phone-field.png)
 
+- Under the one line of where they are, the **Field** screen shows the set's notes too: their own (**My notes**) and the **Ensemble** notes.
 - **My dots** and **Field**, next to who they are, switch between the two by hand. **Field** is always laid out sideways: on an upright phone it's drawn turned a quarter turn, so turning the phone reads it, with rotation lock on or off. Turning the phone goes back to its own view.
 - **Follow my dot** keeps their dot in the middle through each move. Tap it off to see the whole field. Pinch-zoom works either way. Zoomed out on the whole band, performers show as dots until a pinch makes room for their letters.
 - The field view button, next to the show's title, reads **Director view** when the field is drawn the way the editor shows it, from the press box. Tap it to switch to **My view**, which turns the field around to match what they see facing the front.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { distance, type Point } from './coords';
-import { addBezierSegment, addCurvePoint, assign, coilGap, fitShape, isControl, moveHandle, placeInner, samplePath, slots, cleanText, GLYPHS, textStrokes, type Shape } from './shapes';
+import { addBezierSegment, addCurvePoint, assign, coilGap, dealShape, fitShape, isControl, moveHandle, placeInner, samplePath, slots, cleanText, GLYPHS, textStrokes, type Shape } from './shapes';
 
 const near = (p: Point, x: number, y: number) => { expect(p.x).toBeCloseTo(x, 4); expect(p.y).toBeCloseTo(y, 4); };
 const S = (kind: Shape['kind'], handles: Point[], extra: Partial<Shape> = {}): Shape => ({ kind, handles, interval: null, cols: 3, ...extra });
@@ -215,5 +215,33 @@ describe('handle names, for the keyboard and screen readers', () => {
     }
     expect(handleName(fitShape('arc', pts), 1)).toBe('middle');
     expect(handleName(fitShape('star', pts), 2)).toBe('inside corner');
+  });
+});
+
+describe('dealShape (Shape: Closest dot)', () => {
+  // Four performers on a rough circle in set 2 (radius 8 around 0,8), each a quarter turn on from where they were in set 1.
+  const at = (k: number, r = 8) => ({ x: Math.round(r * Math.cos((k * Math.PI) / 2)), y: 8 + Math.round(r * Math.sin((k * Math.PI) / 2)) });
+  const ids = ['a', 'b', 'c', 'd'];
+  const show = { sets: [
+    { pos: Object.fromEntries(ids.map((id, k) => [id, at(k + 2, 9)])) }, // set 1: across the circle from their set 2 spots
+    { pos: Object.fromEntries(ids.map((id, k) => [id, { x: at(k, 9).x, y: at(k, 9).y }])) }, // set 2: a slightly big rough circle
+  ] };
+  const circle: Shape = { kind: 'circle', handles: [{ x: 0, y: 8 }, { x: 8, y: 8 }], interval: null, cols: 1 };
+
+  it('gives each performer the dot nearest where they stand', () => {
+    const order = dealShape(circle, ids, show, 1, true), spots = slots(circle, 4);
+    ids.forEach((id, k) => {
+      const mine = spots[order.indexOf(id)], here = show.sets[1].pos[id];
+      expect(Math.hypot(mine.x - here.x, mine.y - here.y)).toBeLessThan(1.5); // a step or so, not across the circle
+      expect(order.indexOf(id)).toBe(k);
+    });
+  });
+
+  it('without it, deals by the shortest move from the set before', () => {
+    const order = dealShape(circle, ids, show, 1, false), spots = slots(circle, 4);
+    for (const id of ids) {
+      const mine = spots[order.indexOf(id)], before = show.sets[0].pos[id];
+      expect(Math.hypot(mine.x - before.x, mine.y - before.y)).toBeLessThan(1.5);
+    }
   });
 });

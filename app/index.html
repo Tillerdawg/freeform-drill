@@ -163,7 +163,7 @@
       }
       .perform-field { position: relative; flex: 1; min-height: 0; order: 1; }
       .perform-side { display: contents; }
-      .perform-bar { order: 0; } .perform-line { order: 2; } .perform-dots { order: 2; } .perform-controls { order: 3; } .perform-meta { order: 4; }
+      .perform-bar { order: 0; } .perform-line { order: 2; } .perform-setnotes { order: 2; } .perform-dots { order: 2; } .perform-controls { order: 3; } .perform-meta { order: 4; }
       .perform-view { flex: none; max-width: 100%; font-size: 14px; padding: 6px 10px; min-height: 44px; } /* Follow my dot, From the press box: beside the title and the who button, not over the field */
       .perform-who { display: flex; flex-wrap: wrap; gap: 6px; }
       .perform-who .who-button { flex: 1 1 140px; min-width: 0; } /* never squeezed so small that the name disappears; the switch wraps under it instead */
@@ -259,6 +259,8 @@
       /* Only one view at a time. The field is hidden, not removed, so its zoom and touch handling survive a switch. */
       .perform[data-pane=dots] .perform-field, .perform[data-pane=dots] .perform-line, .perform[data-pane=dots] .perform-controls, .perform[data-pane=dots] .perform-meta { display: none; }
       .perform[data-pane=field] .perform-dots { display: none; }
+      .perform-setnotes { margin: 0; padding: 0 12px 6px; flex-shrink: 0; font-size: 15px; line-height: 1.35; display: flex; flex-direction: column; gap: 2px; overflow-wrap: anywhere; }
+      .perform[data-pane=dots] .perform-setnotes { display: none; }
       .perform-k { display: block; font-size: 12px; opacity: 0.7; }
       .perform-set { font-size: 16px; }
       .perform-controls { padding: 6px 12px 10px; flex-shrink: 0; border-top: 1px solid var(--line); }

@@ -5,7 +5,7 @@ import { HASHES, type Point } from './coords';
 import { validMusic } from './music';
 import { validMark } from './marks';
 import {
-  COLOR_RE, LABEL_SIDES, MAX_PROP_SIZE, triangleWidth, MAX_MOVEMENT, MAX_NAME, MAX_PROPS, MAX_STEP_LIMIT, MAX_TURNS, MIN_STEP_LIMIT, normalizeFtl, validField,
+  COLOR_RE, LABEL_SIDES, SET_COLOR_NAMES, MAX_PROP_SIZE, triangleWidth, MAX_MOVEMENT, MAX_NAME, MAX_PROPS, MAX_STEP_LIMIT, MAX_TURNS, MIN_STEP_LIMIT, normalizeFtl, validField,
   type DrillSet, type LabelSide, type Movement, type Performer, type Prop, type PropSpot, type Section, type Show,
 } from './show';
 
@@ -141,6 +141,7 @@ function checkShow(s: any): Show { // eslint-disable-line @typescript-eslint/no-
         || (Array.isArray(g.turns) && g.turns.length <= MAX_TURNS && g.turns.every((p: Point) => Number.isFinite(p?.x) && Number.isFinite(p?.y))))))) bad('set follow-the-leader');
     if (set.marks !== undefined && (!Array.isArray(set.marks) || !set.marks.every(validMark))) bad('set markup');
     if (set.note !== undefined && !str(set.note)) bad('set note');
+    if (set.color !== undefined && !(SET_COLOR_NAMES as readonly string[]).includes(set.color)) bad('set color');
     if (set.cues !== undefined && (typeof set.cues !== 'object' || !set.cues ||
       !Object.entries(set.cues).every(([id, c]) => own(set.pos, id) && str(c)))) bad('set cues');
     if (set.labels !== undefined && (typeof set.labels !== 'object' || !set.labels ||

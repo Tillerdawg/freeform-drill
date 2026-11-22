@@ -4,7 +4,7 @@ import { newlyStraight, reviewShow, splitDismissed, type Issue } from './engine/
 import { ReviewPanel } from './ui/Review';
 import { emptyHistory, record, redo, undo } from './engine/history';
 import { addInk, hitMark, moveMark, type Mark } from './engine/marks';
-import { assign, fitShape, fitText, handleName, isControl, moveHandle, samplePath, slots, type Shape, type ShapeKind } from './engine/shapes';
+import { dealShape, fitShape, fitText, handleName, isControl, moveHandle, samplePath, slots, type Shape, type ShapeKind } from './engine/shapes';
 import { colorOf,
   addPerformer, closeCalls, setFtlTurns, locate, label, mark, newId, setMarks, moveSegments, fieldOf,  hitProp, placeProp, propsAt, removeProp, normalizeFtl, overLimit, snapPoint, playRange, newShow, parseShow, placeInSet, positionsAt, removePerformers,
   rotateScale, setAt, setStarts, withShowId, type Show, newShowId, parseShowFile, type Attached, isBlankShow, planBackup,
@@ -114,7 +114,7 @@ type Drag =
   | { kind: 'prop'; id: string; start: Point; orig: { x: number; y: number; angle: number }; at: [number, number]; moved?: boolean }
   | { kind: 'arrow'; id: string }
   | { kind: 'ink'; id: string }
-  | { kind: 'frame'; mode: 'rotate' | 'scale'; c: Point; down: Point; orig: Show; ids: string[]; deg: number; kx: number; ky: number };
+  | { kind: 'frame'; mode: 'rotate' | 'scale'; c: Point; pivot: boolean; down: Point; orig: Show; ids: string[]; deg: number; kx: number; ky: number };
 
 const snapTo = snapPoint;
 
@@ -129,6 +129,9 @@ export function App() {
   const theme = useTheme();
   const [hover, setHover] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Rotate & Scale's Around: '' = the selection's center, or a selected performer the group turns around (a gate turn).
+  // Kept here so the toolbar's buttons and the frame's knob and corners on the field use the same point.
+  const [pivotId, setPivotId] = useState('');
   const [tool, setTool] = useState<Tool>('select');
   const [section, setSection] = useState(() => show.sections[0]?.id);
   // A deleted section can't take new performers: fall back to one that exists.
@@ -140,7 +143,9 @@ export function App() {
   // Shape being edited: performers in slot order (order[k] takes slot k), in the set it was started in.
   const [selectedMark, setSelectedMark] = useState<string | null>(null);
   const [selectedProp, setSelectedProp] = useState<string | null>(null); // a prop picked on the field or in the sidebar
-  const [shapeEdit, setShapeEdit] = useState<{ shape: Shape; order: string[]; set: number; base: Show; handleMode?: 'independent' | 'smooth' } | null>(null); // base: the show before this shape began
+  const [shapeEdit, setShapeEdit] = useState<{ shape: Shape; order: string[]; set: number; base: Show; handleMode?: 'independent' | 'smooth'; closest?: boolean } | null>(null); // base: the show before this shape began
+  // Shape's Closest dot: deal the spots by where performers stand now, not by the shortest move from the set before. Kept for the visit.
+  const [closestDot, setClosestDot] = useState(false);
   // The handle the keyboard is on (Tab steps through the open shape's handles, or the selected follow-the-leader group's
   // turns and a custom path's points), and what it was when it was picked, for Esc.
   const [keyHandle, setKeyHandle] = useState<number | null>(null);
@@ -483,6 +488,7 @@ export function App() {
   useEffect(() => { if (tool === 'turn' && !ftlGroup) setTool('select'); }, [tool, ftlGroup]);
 
   // The rotate/scale frame around a selection of 2+ in Select: drag a corner to scale, the knob above it to rotate.
+  const pivotAt = (pos: Record<string, Point>) => (selected.has(pivotId) ? pos[pivotId] : undefined);
   const framing = tool === 'select' && onSet >= 0 && selected.size >= 2 && !shapeEdit && !playing && !!view;
   const frameNow = () => {
     if (!framing) return null;
@@ -491,7 +497,7 @@ export function App() {
     const pts = [...selected].flatMap((id) => (pos[id] ? [pos[id]] : []));
     if (pts.length < 2) return null;
     const px = (coarse() ? 2 : 1) * dpr / view!.scale; // one CSS pixel (two on touch screens) in steps
-    return selectionFrame(pts, 12 * px, 22 * px, d?.deg, d?.kx, d?.ky);
+    return { ...selectionFrame(pts, 12 * px, 22 * px, d?.deg, d?.kx, d?.ky, pivotAt(pos)), px };
   };
 
   useEffect(() => {
@@ -511,7 +517,11 @@ export function App() {
     if (ftlGroup?.turns) drawShape(ctx, view, [], false, ftlGroup.turns, [], [], fieldLook); // the selected FTL group's turns: drag to move
     if (!shapeEdit && keyHandle !== null && ftlGroup?.turns?.[keyHandle]) drawHandleFocus(ctx, view, ftlGroup.turns[keyHandle]); // the one the keyboard is on
     const fr = frameNow();
-    if (fr) drawShape(ctx, view, fr.corners, true, [...fr.corners, fr.knob], [false, false, false, false, true], [[fr.stem, fr.knob]], fieldLook);
+    if (fr) {
+      // A chosen pivot (Around) gets a cross on its spot, so it's clear what the knob and corners turn around.
+      const k = 18 * fr.px, c = fr.c, cross: [Point, Point][] = pivotAt(show.sets[onSet].pos) ? [[{ x: c.x - k, y: c.y }, { x: c.x + k, y: c.y }], [{ x: c.x, y: c.y - k }, { x: c.x, y: c.y + k }]] : [];
+      drawShape(ctx, view, fr.corners, true, [...fr.corners, fr.knob], [false, false, false, false, true], [[fr.stem, fr.knob], ...cross], fieldLook);
+    }
     if (shapeEdit) {
       const sh = shapeEdit.shape;
       const [a, b] = sh.handles;
@@ -525,7 +535,7 @@ export function App() {
       drawShape(ctx, view, guide.pts, guide.closed, h, h.map((_, k) => isControl(sh, k)), arms, fieldLook);
       if (keyHandle !== null && h[keyHandle]) drawHandleFocus(ctx, view, h[keyHandle]);
     }
-  }, [view, show, positions, selected, paths, box, lasso, warn, shapeEdit, keyHandle, onSet, selectedMark, selectedProp, playing, t, theme, tool, trace, faded, fieldLook]);
+  }, [view, show, positions, selected, paths, box, lasso, warn, shapeEdit, keyHandle, onSet, selectedMark, selectedProp, playing, t, theme, tool, trace, faded, fieldLook, pivotId]);
 
   // Empty text notes are removed as soon as they're not the one being edited (no timing to get wrong).
   useEffect(() => {
@@ -544,6 +554,15 @@ export function App() {
     if (shapeEdit && (onSet !== shapeEdit.set || shapeEdit.order.some((id) => !show.performers.some((p) => p.id === id)))) setShapeEdit(null);
   }, [onSet, show, shapeEdit]);
 
+  /** Turn Closest dot on or off, dealing the open shape's spots again the new way. */
+  const setClosest = (on: boolean) => {
+    setClosestDot(on);
+    if (!shapeEdit) return;
+    const order = dealShape(shapeEdit.shape, shapeEdit.order.filter(Boolean), shapeEdit.base, shapeEdit.set, on);
+    setShapeEdit({ ...shapeEdit, order, closest: on });
+    applyShape(shapeEdit.shape, order, shapeEdit.base);
+  };
+
   /** Lay the shape's performers onto its spots in the current set. */
   const applyShape = (shape: Shape, order: string[], base: Show) => {
     const spots = slots(shape, order.length);
@@ -554,15 +573,11 @@ export function App() {
     if (onSet < 0 || selected.size < 2) return;
     const ids = [...selected];
     const here = ids.map((id) => show.sets[onSet].pos[id]);
-    // Least total travel measured from where the move starts (the previous set), so the move's paths never cross.
-    const origin = ids.map((id) => show.sets[Math.max(0, onSet - 1)].pos[id] ?? show.sets[onSet].pos[id]);
     const prev = shapeEdit && shapeEdit.shape.kind === kind ? shapeEdit.shape : null;
     const shape = prev ?? fitShape(kind, here);
-    const slotOf = assign(origin, slots(shape, ids.length));
-    const order: string[] = [];
-    ids.forEach((id, i) => { order[slotOf[i]] = id; });
     const base = shapeEdit?.set === onSet ? shapeEdit.base : show; // switching shapes keeps the show from before the first one
-    setShapeEdit({ shape, order, set: onSet, base, handleMode: prev ? shapeEdit?.handleMode : undefined });
+    const order = dealShape(shape, ids, base, onSet, closestDot);
+    setShapeEdit({ shape, order, set: onSet, base, handleMode: prev ? shapeEdit?.handleMode : undefined, closest: closestDot });
     applyShape(shape, order, base);
   };
 
@@ -570,11 +585,8 @@ export function App() {
     if (!shapeEdit) return;
     const shape = patch.text !== undefined ? fitText({ ...shapeEdit.shape, ...patch }) : { ...shapeEdit.shape, ...patch };
     let order = shapeEdit.order;
-    if (patch.text !== undefined) { // new letters, new spots: deal them out again by least travel
-      const s0 = shapeEdit.base, i = shapeEdit.set, ids = order.filter(Boolean);
-      const slotOf = assign(ids.map((id) => s0.sets[Math.max(0, i - 1)].pos[id] ?? s0.sets[i].pos[id]), slots(shape, ids.length));
-      order = []; ids.forEach((id, k) => { order[slotOf[k]] = id; });
-    }
+    // New letters (new spots), or Closest dot (every change: each performer keeps the spot nearest where they stood): deal again.
+    if (patch.text !== undefined || shapeEdit.closest) order = dealShape(shape, order.filter(Boolean), shapeEdit.base, shapeEdit.set, !!shapeEdit.closest);
     setShapeEdit({ ...shapeEdit, shape, order });
     applyShape(shape, order, shapeEdit.base);
   };
@@ -807,7 +819,7 @@ export function App() {
     if (fr) {
       const near = (h: Point) => { const q = toScreen(view, h); return Math.abs(q.x - e.nativeEvent.offsetX * dpr) <= grab && Math.abs(q.y - e.nativeEvent.offsetY * dpr) <= grab; };
       const mode = near(fr.knob) ? 'rotate' : fr.corners.some(near) ? 'scale' : null;
-      if (mode) { drag.current = { kind: 'frame', mode, c: fr.c, down: p, orig: show, ids: [...selected], deg: 0, kx: 1, ky: 1 }; return; }
+      if (mode) { drag.current = { kind: 'frame', mode, c: fr.c, pivot: !!pivotAt(show.sets[onSet].pos), down: p, orig: show, ids: [...selected], deg: 0, kx: 1, ky: 1 }; return; }
     }
     if ((tool === 'text' || tool === 'arrow' || tool === 'draw') && onSet >= 0) {
       e.preventDefault(); // keep the click from pulling focus off the note's text box
@@ -921,8 +933,9 @@ export function App() {
     } else if (d.kind === 'frame') {
       const { deg, kx, ky } = frameDrag(d.mode, d.c, d.down, p);
       Object.assign(d, { deg, kx, ky });
-      setShow(() => rotateScale(d.orig, onSet, d.ids, deg, kx, ky));
-      setHover(d.mode === 'rotate' ? `Rotate ${Math.abs(deg)}° ${deg > 0 ? 'counterclockwise' : deg < 0 ? 'clockwise' : ''}` : `Side to side ${Math.round(kx * 100)}% · front to back ${Math.round(ky * 100)}%`);
+      setShow(() => rotateScale(d.orig, onSet, d.ids, deg, kx, ky, d.pivot ? d.c : undefined));
+      const who = d.pivot ? show.performers.find((x) => x.id === pivotId) : undefined, around = who ? ` around ${label(show, who)}` : '';
+      setHover(d.mode === 'rotate' ? `Rotate ${Math.abs(deg)}° ${deg > 0 ? 'counterclockwise' : deg < 0 ? 'clockwise' : ''}${around}` : `Side to side ${Math.round(kx * 100)}% · front to back ${Math.round(ky * 100)}%${around}`);
     } else if (d.kind === 'handle') {
       const h = atDown.current?.shape?.shape.handles[d.i];
       if (h) moveShapeHandle(d.i, snapTo({ x: h.x + p.x - d.start.x, y: h.y + p.y - d.start.y }, snap), e.altKey);
@@ -1245,12 +1258,12 @@ export function App() {
       </div>
       <Toolbar openAdd={openAdd} t={t} setT={(x) => { setPlaying(false); setT(x); }} selectedProp={selectedProp} setSelectedProp={setSelectedProp}
         selectedMark={selectedMark} setSelectedMark={setSelectedMark} showSidebar={() => setSideChoice(true)} openTrace={() => { setSideChoice(true); setTraceAsk((n) => n + 1); }} show={show} setShow={setShow} onSet={onSet} selected={selected} setSelected={setSelected} tool={tool} setTool={setTool}
-        section={section} setSection={setSection} snap={snap} setSnap={setSnap}
+        section={section} setSection={setSection} snap={snap} setSnap={setSnap} pivot={pivotId} setPivot={setPivotId}
         onUndo={() => step('undo')} onRedo={() => step('redo')} canUndo={!!hist.past.length} canRedo={!!hist.future.length}
         sidebar={{ open: sideOpen, toggle: () => setSideChoice(!sideOpen), left: sideLeft }}
         timeline={{ open: timelineOpen, toggle: () => setTimelineOpen(!timelineOpen), top: timelineTop }}
         shape={shapeEdit?.shape ?? null} startShape={startShape} updateShape={updateShape} endShape={() => setShapeEdit(null)}
-        independentHandles={shapeEdit?.handleMode === 'independent'}
+        independentHandles={shapeEdit?.handleMode === 'independent'} closestDot={closestDot} setClosestDot={setClosest}
         setIndependentHandles={(on) => setShapeEdit((edit) => edit?.shape.kind === 'bezier' ? { ...edit, handleMode: on ? 'independent' : 'smooth' } : edit)} />
       </header>
       <div style={{ flex: 1, display: 'flex', flexDirection: sideLeft ? 'row-reverse' : 'row', minHeight: 0, position: 'relative' }}>

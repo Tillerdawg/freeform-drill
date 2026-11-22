@@ -8,10 +8,12 @@ import { putAudio } from './audioStore';
 import { IconGrip } from './icons';
 import { Menu } from './Toolbar';
 import { SetControls } from './Timeline';
-import { STEP_IN, HASHES, distance, fieldDepth, readout, type HashPreset } from '../engine/coords';
+import { STEP_TEXT } from '../field/drawField';
+import { fmtStep, halfTime } from './format';
+import { STEP_LIMIT, STEP_IN, HASHES, distance, fieldDepth, readout, type HashPreset } from '../engine/coords';
 import type { Shape, ShapeKind } from '../engine/shapes';
 import {
-  fieldOf, addProp, removeSet, setStarts, newPropSpot, MAX_PROPS, placeProp, removeProp, updateProp, propShape, shapePatch, triangleSides, triangleFromSides, MAX_PROP_SIZE, type PropShape, MAX_NAME, tooBigForBackup, scoreOrder, setCue, setMarks, setNames, setNote, label, locate, newId, moveToSection, removeSection, duplicateLetters, renumberSection, placeInSet, positionsAt, xFrom, yFrom,
+  fieldOf, addProp, removeSet, setStarts, newPropSpot, MAX_PROPS, placeProp, removeProp, updateProp, propShape, shapePatch, triangleSides, triangleFromSides, MAX_PROP_SIZE, type PropShape, MAX_NAME, tooBigForBackup, scoreOrder, setCue, setMarks, setNames, setNote, label, locate, newId, moveToSection, removeSection, duplicateLetters, renumberSection, placeInSet, positionsAt, xFrom, yFrom, moveSteps, timingOf,
   type FrontDir, type FrontRef, type Section, type Show, type SideDir,
 } from '../engine/show';
 import { NumberField } from './NumberField';
@@ -166,6 +168,7 @@ export function Sidebar(p: Props) {
                 <strong>{label(show, one)}</strong> on set {show.sets[onSet].name}:<br />{readout(show.sets[onSet].pos[one.id], fieldOf(show))}
               </p>
             )}
+            <StepLine show={show} i={cur} id={one.id} />
             <details style={{ margin: '4px 0 0' }}>
               <summary>All sets</summary>
               <ol style={{ margin: '4px 0 0', paddingLeft: 18 }}>
@@ -538,5 +541,27 @@ function TraceEditor({ show, setShow, onTrace, ask }: { show: Show; setShow: Pro
         <p style={{ fontSize: 12, opacity: 0.75, margin: '4px 0 0' }}>{show.surface ? 'Across is steps from the center line (minus toward Side 1). Up is steps from the front edge.' : `Across is steps from the 50 (minus toward Side 1). Up is steps from the front sideline; the front hash is ${HASHES[show.hash]} up.`}</p>
       </>}
     </details>
+  );
+}
+
+/**
+ * The selected performer's exact step size for the move into set i, even a normal step, and the same move marched half
+ * time (Shubreet Kaur asked for both, 2026-11-21): "Move into set 3: 8.3-to-5, 16 counts. Half time: 4.2-to-5". A step
+ * past a tier says so in words, not only in color.
+ */
+function StepLine({ show, i, id }: { show: Show; i: number; id: string }) {
+  if (i <= 0) return null; // set 1 has no move into it
+  const set = show.sets[i], st = moveSteps(show, i)[id];
+  if (!st) return null;
+  const name = set.name, prev = show.sets[i - 1].name;
+  if (st.per5 === Infinity) return <p style={{ margin: '0 0 4px' }}>Move into set {name}: hold (same spot as set {prev})</p>;
+  const tm = timingOf(set, id), counts = tm.move < set.counts ? `${tm.move} of ${set.counts} counts` : `${set.counts} counts`;
+  const warn = (tier: string) => (tier === 'red' ? ' ⚠ over the step limit' : tier === 'yellow' ? ' ⚠ a big step' : '');
+  const half = halfTime(st.per5, show.stepLimit ?? STEP_LIMIT);
+  return (
+    <p style={{ margin: '0 0 4px' }} title="The step size this performer marches into this set (8-to-5 is a normal step; a bigger number is a smaller step). Half time is a step every other count, twice as long.">
+      Move into set {name}: <strong style={{ color: STEP_TEXT[st.tier] }}>{fmtStep(st.per5)}{warn(st.tier)}</strong>, {counts}
+      {half && <><br />Half time: <span style={{ color: STEP_TEXT[half.tier] }}>{fmtStep(half.per5)}{warn(half.tier)}</span></>}
+    </p>
   );
 }

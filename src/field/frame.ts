@@ -1,21 +1,25 @@
 import type { Point } from '../engine/coords';
 
-/** The on-field rotate/scale frame around a selection: a padded box (corners scale), a knob above it (rotates). */
+/**
+ * The on-field rotate/scale frame around a selection: a padded box (corners scale), a knob above it (rotates). `c` is
+ * the point a drag turns and stretches around: the box's center, or the chosen pivot performer's spot.
+ */
 export type Frame = { c: Point; corners: Point[]; knob: Point; stem: Point };
 
 /**
  * The frame around `pts` (world steps). Its center is the bounding-box center, the same one `rotateScale` turns around.
  * `pad` keeps the corners off the dots; `gap` lifts the knob above the top edge. During a drag, `deg`/`kx`/`ky` turn and
- * stretch the frame with the performers.
+ * stretch the frame with the performers. With a `pivot` (Rotate & Scale's **Around**: one performer's spot, a gate
+ * turn), the frame turns and stretches around it instead, the same as `rotateScale` with that pivot.
  */
-export function selectionFrame(pts: Point[], pad: number, gap: number, deg = 0, kx = 1, ky = 1): Frame {
+export function selectionFrame(pts: Point[], pad: number, gap: number, deg = 0, kx = 1, ky = 1, pivot?: Point): Frame {
   const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
   const x0 = Math.min(...xs) - pad, x1 = Math.max(...xs) + pad, y0 = Math.min(...ys) - pad, y1 = Math.max(...ys) + pad;
-  const c = { x: (x0 + x1) / 2, y: (y0 + y1) / 2 };
+  const mid = { x: (x0 + x1) / 2, y: (y0 + y1) / 2 }, c = pivot ?? mid;
   const a = (deg * Math.PI) / 180, cos = Math.cos(a), sin = Math.sin(a);
   const f = (p: Point) => { const dx = p.x - c.x, dy = p.y - c.y; return { x: c.x + kx * (dx * cos - dy * sin), y: c.y + ky * (dx * sin + dy * cos) }; };
-  // World y grows toward the back sideline, which is the top of the screen.
-  return { c, corners: [{ x: x0, y: y0 }, { x: x1, y: y0 }, { x: x1, y: y1 }, { x: x0, y: y1 }].map(f), stem: f({ x: c.x, y: y1 }), knob: f({ x: c.x, y: y1 + gap }) };
+  // World y grows toward the back sideline, which is the top of the screen. The knob stays over the box's middle.
+  return { c, corners: [{ x: x0, y: y0 }, { x: x1, y: y0 }, { x: x1, y: y1 }, { x: x0, y: y1 }].map(f), stem: f({ x: mid.x, y: y1 }), knob: f({ x: mid.x, y: y1 + gap }) };
 }
 
 /**

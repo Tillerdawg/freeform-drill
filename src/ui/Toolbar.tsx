@@ -37,6 +37,8 @@ export interface ToolbarProps {
   endShape: () => void;
   independentHandles: boolean;
   setIndependentHandles: (on: boolean) => void;
+  closestDot: boolean; // Shape: deal spots by where performers stand now, not by the shortest move from the set before
+  setClosestDot: (on: boolean) => void;
   openAdd?: number; // bumped by New: open the Add menu
   t: number;
   setT: (t: number) => void; // jump to a count (and stop playing)
@@ -46,6 +48,8 @@ export interface ToolbarProps {
   setSelectedMark: (id: string | null) => void;
   showSidebar: () => void;
   openTrace: () => void; // open the sidebar at Picture to trace
+  pivot: string; // Rotate & Scale's Around: '' = the center, or a selected performer's id (the frame on the field uses it too)
+  setPivot: (id: string) => void;
 }
 
 /** Shape, its name, and its one-letter shortcut (pressed with 2 or more performers selected). */
@@ -68,7 +72,7 @@ export function Toolbar(p: ToolbarProps) {
   useEffect(() => { setNote(''); setSnapNote(''); }, [selected]);
   const [deg, setDeg] = useState(15);
   const [pct, setPct] = useState(110);
-  const [pivot, setPivot] = useState(''); // '' = the center; or a selected performer the group turns around (a gate turn)
+  const { pivot, setPivot } = p; // '' = the center; or a selected performer the group turns around (a gate turn)
   const turn = (d: number, k: number) => setShow((s) => rotateScale(s, onSet, ids, d, k, k, ids.includes(pivot) ? s.sets[onSet].pos[pivot] : undefined));
   const byName = [...ids].sort((a, b) => label(show, show.performers.find((x) => x.id === a)!).localeCompare(label(show, show.performers.find((x) => x.id === b)!), undefined, { numeric: true }));
   const mirror = (from: 1 | 2) => {
@@ -137,7 +141,7 @@ export function Toolbar(p: ToolbarProps) {
           {() => <>
             <label style={{ fontSize: 12 }}>Around{' '}
               <select aria-label="Rotate around" value={ids.includes(pivot) ? pivot : ''} onChange={(e) => setPivot(e.target.value)}
-                title="The point the group turns around: its center, or one performer's spot (a gate turn on the end of a line)">
+                title="The point the group turns around, here and with the frame's knob and corners on the field: its center, or one performer's spot (a gate turn on the end of a line)">
                 <option value="">The center</option>
                 {byName.map((id) => <option key={id} value={id}>{label(show, show.performers.find((x) => x.id === id)!)}</option>)}
               </select>
@@ -275,7 +279,7 @@ export function Menu({ label, name, panelName, title, disabled, keepOpen, collap
   );
 }
 
-function ShapePanel({ shape, startShape, updateShape, endShape, openTrace, independentHandles, setIndependentHandles }: ToolbarProps) {
+function ShapePanel({ shape, startShape, updateShape, endShape, openTrace, independentHandles, setIndependentHandles, closestDot, setClosestDot, show, onSet }: ToolbarProps) {
   return (
     <>
       <div style={{ ...row, marginTop: 0 }} role="radiogroup" aria-label="Shape">
@@ -328,6 +332,10 @@ function ShapePanel({ shape, startShape, updateShape, endShape, openTrace, indep
             </div>
           )}
           <div style={row}>
+            <label title={onSet > 0 ? `On: each performer takes the spot closest to where they stand now. Off: the spots go to whoever has the shortest move from set ${show.sets[onSet - 1].name}.` : 'On: each performer takes the spot closest to where they stand now. Off: the shortest move.'}>
+              <input type="checkbox" checked={closestDot} onChange={(e) => setClosestDot(e.target.checked)} /> Closest dot</label>
+          </div>
+          <div style={row}>
             {shape.kind === 'curve' && <button onClick={() => updateShape(addCurvePoint(shape))}>+ Curve point</button>}
             {shape.kind === 'bezier' && <>
               <button onClick={() => updateShape(addBezierSegment(shape))}>+ Segment</button>
@@ -337,7 +345,7 @@ function ShapePanel({ shape, startShape, updateShape, endShape, openTrace, indep
             <button className="primary" onClick={endShape}>Done (Esc)</button>
           </div>
           <p style={help}>
-            Drag the blue handles on the field, or press Tab to step through them and move one with the arrow keys. Performers keep their order along the shape.
+            Drag the blue handles on the field, or press Tab to step through them and move one with the arrow keys. {closestDot ? 'With Closest dot on, each performer takes the spot nearest where they stand in this set, even as you move the handles.' : 'Performers keep their order along the shape.'}
             {(shape.kind === 'polygon' || shape.kind === 'star') && ` ${shape.kind === 'star' ? 'The middle handle is the center. Drag the point handle to size and turn the star, and the inside-corner handle to make the points longer or shorter.' : 'The first handle is the center; drag the corner handle to size and turn it.'} Performers go evenly around the outline, starting at the ${shape.kind === 'star' ? 'point' : 'corner'} handle.`}
             {shape.kind === 'spiral' && ' The first handle is the center; the second is the outer end. Intervals are measured performer to performer.'}
             {shape.kind === 'text' && ` The letters fill the box between the two handles. Capitals, numbers, and hyphens. Each letter reads best with about 8 to 12 performers${cleanText(shape.text ?? '').replace(/ /g, '').length ? ` (about ${8 * cleanText(shape.text ?? '').replace(/ /g, '').length} or more for this)` : ''}.`}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { COURT, DEFAULT_FLOOR, HASHES, readout } from './coords';
 import {
-  nextRevision, revisionLabel,
+  nextRevision, revisionLabel, setColor,
   addPerformer, placeSectionCounts, addSetAfter, advance, biggestStep, chainOrder, clearFtl, ftlTrail, moveSteps, normalizeFtl, flip, mirrorSides, moveSetTo, remapHash, rotateScale, setFtl, newShowId, parseShowFile, snapSelection, playRange, playPlan, label, locate, newShow, parseShow, placeInSet, positionsAt,
   removePerformers, renumberSets, scoreOrder, DEFAULT_SECTIONS, removeSet, setAt, setCounts, setStarts, totalCounts, xFrom, yFrom, insertSetAt, showLength, movementAt, movementOfSet, setFtlTurns,
   addSetHere, setCue, newPropSpot, setFtlSmooth, routeTurns, leaderDistance, setTiming, timingOf, fitTurn, setTurning, turnRoute, groupTurn, counterMarch, closeCalls, addProp, placeProp, propsAt, hitProp, removeProp, updateProp, propShape, shapePatch, triangleCorners, triangleSides, triangleFromSides, triangleWidth, fieldOf, moveSegments, withShowId, withField, validField, isBlankShow,
@@ -130,6 +130,14 @@ describe('file parsing', () => {
   it('round-trips a show', () => {
     const { show } = twoSetShow();
     expect(parseShow(JSON.stringify(show))).toEqual(show);
+  });
+  it('keeps a set color, clears it, and turns away one that is not on the list', () => {
+    const { show } = twoSetShow();
+    const blue = setColor(show, 1, 'blue');
+    expect(parseShow(JSON.stringify(blue)).sets[1].color).toBe('blue');
+    expect('color' in setColor(blue, 1, null).sets[1]).toBe(false);
+    const odd = JSON.parse(JSON.stringify(blue)); odd.sets[1].color = 'red; background: url(x)';
+    expect(() => parseShow(JSON.stringify(odd))).toThrow(/set color/);
   });
   it('rejects non-shows and bad positions', () => {
     expect(() => parseShow('{"hello":1}')).toThrow(/format/);
