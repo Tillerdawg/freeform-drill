@@ -3,14 +3,14 @@ import { ThemeButton } from '../ui/ThemeButton';
 // Performer / staff view: read-only playback of a shared show, centered on "my" dot. Built for phones: upright, a performer
 // sees their dots as a list (My dots); sideways, the field and playback. A switch overrides the phone's orientation.
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { fieldDepth, readout, type Point } from '../engine/coords';
+import { STEP_LIMIT, fieldDepth, readout, type Point } from '../engine/coords';
 import { decodeShow, fetchHosted, LOAD_PREFIX, linkHash, parseHosted, SHARE_PREFIX } from '../engine/share';
 const Scanner = lazy(() => import('./Scanner').then((m) => ({ default: m.Scanner }))); // the QR reader is big; only a scan loads it
 import { isPhone } from './device';
 import { colorOf, fieldOf, propsAt, locate, mark, parseShow, positionsAt, setAt, setStarts, showLength, type Show } from '../engine/show';
 import { drawField, drawGlyph, drawLabels, drawMarks, drawPerformers, drawProps, fitView, INK, STEP_TEXT, toScreen, type View } from '../field/drawField';
 import { layoutPref, setLayoutPref } from '../ui/layout';
-import { fmtStep } from '../ui/format';
+import { fmtStep, halfTime } from '../ui/format';
 import { usePlayback } from '../ui/usePlayback';
 import { audioTime, clickAt, clickWanted, setClickWanted, wakeClick } from '../ui/click';
 import { COUNT_IN, countInBeat } from './countIn';
@@ -488,6 +488,8 @@ export function Perform() {
     <span className="dot-coord">{r.front}</span><span className="sr-only">. </span>
     {/* The move in plain words, with the step size in parentheses: "smaller step size than normal (10.4-to-5), moving forward". */}
     {r.steps && <span className="dot-small">{r.steps.tier !== 'ok' && '⚠ '}{tr('Step')}: <span style={{ color: STEP_TEXT[r.steps.tier] }}>{fmtStep(r.steps.per5, lang)}</span>{r.way ? `, ${r.way}` : ''}<span className="sr-only">. </span></span>}
+    {/* The same move marched half time (a step every other count), for students too (Jason, 2026-11-21). */}
+    {r.steps && (() => { const h = halfTime(r.steps.per5, show.stepLimit ?? STEP_LIMIT); return h && <span className="dot-small">{h.tier !== 'ok' && '⚠ '}{tr('Half time')}: <span style={{ color: STEP_TEXT[h.tier] }}>{fmtStep(h.per5, lang)}</span><span className="sr-only">. </span></span>; })()}
     {r.held && <span className="dot-small">{tr('Hold (same spot as set {name})', { name: show.sets[r.index - 1].name })}<span className="sr-only">. </span></span>}
     {r.hold && <span className="dot-small">{tr('hold {w}, move {m}', { w: r.hold.wait, m: r.hold.move })}{r.hold.after ? `, ${tr('hold {w}', { w: r.hold.after })}` : ''}<span className="sr-only">. </span></span>}
     {r.cue && <span className="dot-small"><span className="perform-k">{tr('My notes')}<span className="sr-only">: </span></span>{r.cue}<span className="sr-only">. </span></span>}

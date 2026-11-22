@@ -40,6 +40,9 @@ describe.each([['app/index.html', app], ['index.html (the front page)', front], 
     // Set colors (a stripe on the timeline): 3:1 against every panel color, each in its own mode.
     for (const c of Object.values(SET_COLORS)) for (const [shade, Q] of [[c.dark, PALETTE], [c.light, LIGHT]] as const)
       for (const bg of [Q.bg, Q['bg-deep'], Q.surface, Q['surface-2']]) expect(ratio(shade, bg)).toBeGreaterThanOrEqual(3);
+    // Each color has its own shape, so a colored set stands out, and the colors tell apart, without seeing color.
+    const marks = Object.values(SET_COLORS).map((c) => c.mark);
+    expect(new Set(marks).size).toBe(marks.length);
   });
 });
 

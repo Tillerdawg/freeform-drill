@@ -176,6 +176,7 @@ export const ES: Record<string, string> = {
   // My dots one set at a time, and the field's view names (2026-11-21)
   'Set': 'Set',
   'Step': 'Paso',
+  'Half time': 'Medio tiempo',
   'Watch move': 'Ver el movimiento',
   'Previous set': 'Set anterior',
   'Set {name}, m. {m}': 'Set {name}, c. {m}',

@@ -20,7 +20,7 @@ Sostén el teléfono vertical. **Mis puntos** muestra un set a la vez, en una ta
 
 - el set, sus tiempos y sus compases
 - tu lugar: primero de lado a lado, después de adelante hacia atrás
-- cómo llegar: tu tamaño de paso y hacia dónde vas, como si miraras al frente (un ⚠ quiere decir que el paso es grande)
+- cómo llegar: tu tamaño de paso y hacia dónde vas, como si miraras al frente (un ⚠ quiere decir que el paso es grande), y **Medio tiempo**: el tamaño de paso si marchas el movimiento en tiempos alternos, por si tu director pide medio tiempo
 - tus notas y las notas del conjunto
 
 Los números de set de arriba van directo a un set. También **Set 2 ▾** en la tarjeta: tócalo para ver la lista de sets de tu teléfono. **‹ Set anterior** y **Set siguiente ›** se quedan abajo en la pantalla. **Todos los sets** muestra todos los sets a la vez, como toda la hoja de puntos, con **Ir a** arriba; toca un set ahí para ver su tarjeta.

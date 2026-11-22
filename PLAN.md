@@ -26,13 +26,13 @@
 ## From Shubreet Kaur's feedback (2026-11-21, through the feedback form)
 - [x] Set names, counts, measures, and notes no longer hidden by the audio track: they show in the sidebar now (done in the simpler screen). Movement names on the timeline are drawn over the waveform now, not under it.
 - [x] Clicking a performer shows their exact step size for the move, even a normal step.
-- [x] Half time shown with its step size: a **Half time** line under the step size, on every move (editor only).
-- [x] Color-coded sets: six named colors in **Set N ▾**, a stripe on the timeline (editor only).
+- [x] Half time shown with its step size: a **Half time** line under the step size, on every move, in the editor and on students' phones.
+- [x] Color-coded sets: six named colors in **Set N ▾**, each with its own shape, on the timeline (editor only).
 - [x] Bug: rotate (and scale) around a chosen performer turned around the selection's center when you used the knob and corners on the field. They use **Around** now.
 - [x] **Closest dot** in **Shape**: each performer takes the spot nearest where they stand.
 - [x] Set notes on the phone's Field screen, not only on My dots.
 - [ ] Ask: which Pyware version Shubreet uses, and a show file to test import (asked 2026-11-21).
-- [ ] Maybe: a "half time" mark per move that phones and the warnings use, if writers want to tell students in the drill itself.
+- [ ] Maybe: a "half time" mark per move, so the writer says which moves are half time and phones and the warnings use that step.
 - [ ] Maybe: set colors on phones and printed chart headers.
 
 ## Later milestones (rough order)

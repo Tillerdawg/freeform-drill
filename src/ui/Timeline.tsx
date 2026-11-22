@@ -48,6 +48,8 @@ export function Timeline({ show, checked = show, setShow, t, setT, playing, setP
   // A set's color (the writer's own grouping): a stripe on its button and its move, with the color's name in words too.
   const stripe = (i: number) => { const c = show.sets[i].color; return c ? setColorShade(c, theme) : null; };
   const colorWord = (i: number) => { const c = show.sets[i].color; return c ? ` (${SET_COLORS[c].name})` : ''; };
+  // ...and its own shape before the name, so a colored set stands out without seeing color (Jason).
+  const mark = (i: number) => { const c = show.sets[i].color; return c ? <span aria-hidden style={{ color: setColorShade(c, theme), marginRight: 3 }}>{SET_COLORS[c].mark}</span> : null; };
   // Pairs under a step apart, per move, from the settled show (so not on every step of a drag); only moves whose sets changed are checked again.
   const close = useMemo(() => checked.sets.map((_, i) => (i ? closeCallsMemo(checked, i).length : 0)), [checked]);
   const { to, count } = locate(show, t);
@@ -254,7 +256,7 @@ export function Timeline({ show, checked = show, setShow, t, setT, playing, setP
               boxShadow: [stripe(i) && `inset 0 -4px 0 ${stripe(i)}`, i === onSet && 'inset 0 0 0 2px var(--gold)'].filter(Boolean).join(', ') || undefined,
               ...(held === i ? { background: 'var(--gold-fill)', color: 'var(--on-gold)', transform: 'scale(1.1)', zIndex: 2 } : {}), padding: '0 6px', minWidth: TOUCH ? 44 : 24, lineHeight: '18px',
               cursor: i ? 'ew-resize' : 'pointer', touchAction: 'none' }}>
-            {s.name}
+            {mark(i)}{s.name}
           </button>
         ))}
       </div>
@@ -280,7 +282,7 @@ export function Timeline({ show, checked = show, setShow, t, setT, playing, setP
                 boxShadow: [stripe(i) && `inset 0 3px 0 ${stripe(i)}`, i === to && onSet < 0 && !past && 'inset 0 -3px 0 var(--gold)'].filter(Boolean).join(', ') || undefined }}>
                 <div style={{ padding: '2px 6px' }}>
                   {/* Counts and measures; then the biggest step, on every move, with ⚠ only when it's too big. No dots between. */}
-                  <div title={`Set ${show.sets[i - 1].name} to set ${s.name}${colorWord(i)}`}>{s.counts} counts{s.measures ? `, m. ${s.measures}` : ''}{s.ftl?.some((g) => g.order.length > 1) ? ', FTL' : s.ftl?.length ? ', custom path' : ''}
+                  <div title={`Set ${show.sets[i - 1].name} to set ${s.name}${colorWord(i)}`}>{mark(i)}{s.counts} counts{s.measures ? `, m. ${s.measures}` : ''}{s.ftl?.some((g) => g.order.length > 1) ? ', FTL' : s.ftl?.length ? ', custom path' : ''}
                     {big && short && <>, {maxStep(i, big.per5, big.tier)}</>}
                     {!!close[i] && short && <>, {tooClose(i)}</>}</div>
                   {big && !short && <div>{maxStep(i, big.per5, big.tier)}{!!close[i] && <>, {tooClose(i)}</>}</div>}
@@ -414,11 +416,11 @@ function SetColorPicker({ show, setShow, i }: { show: Show; setShow: (f: (s: Sho
       <button role="radio" aria-checked={!cur} onClick={() => pick(null)} style={chip}>No color</button>
       {SET_COLOR_NAMES.map((c) => (
         <button key={c} role="radio" aria-checked={cur === c} onClick={() => pick(c)} style={chip}>
-          <span aria-hidden style={{ width: 12, height: 12, borderRadius: 3, background: setColorShade(c, theme) }} />{SET_COLORS[c].name}
+          <span aria-hidden style={{ color: setColorShade(c, theme) }}>{SET_COLORS[c].mark}</span>{SET_COLORS[c].name}
         </button>
       ))}
     </div>
-    <p style={{ margin: '6px 0 0', opacity: 0.75, fontSize: 12, whiteSpace: 'normal', maxWidth: 280 }}>Group sets your own way (a tune, a phrase, what's finished). The color shows as a stripe on the timeline.</p>
+    <p style={{ margin: '6px 0 0', opacity: 0.75, fontSize: 12, whiteSpace: 'normal', maxWidth: 280 }}>Group sets your own way (a tune, a phrase, what's finished). The timeline shows the color's shape before the set's name, and a stripe in its color.</p>
   </>;
 }
 

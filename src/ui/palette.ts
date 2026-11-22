@@ -139,17 +139,18 @@ export const useTheme = () => useSyncExternalStore((f) => { listeners.add(f); re
 
 /**
  * The colors a drill writer can tag a set with (a stripe on its timeline button and move). They carry only the writer's own
- * meaning, and always come with their name (tooltips, the set's menu, the sidebar), so color is never the only signal.
+ * meaning. Color is never the only signal: each has its own shape (`mark`, shown before the set's name, so a colored set
+ * stands out and the colors tell apart without seeing color, Jason), and its name in tooltips and spoken labels.
  * None is red, yellow, gold, or green, which already mean too big, bigger, selected, and done. Each has a shade per mode,
  * at least 3:1 against every panel color (palette.test.ts).
  */
-export const SET_COLORS: Record<SetColor, { name: string; dark: string; light: string }> = {
-  blue: { name: 'Blue', dark: '#6aa9ff', light: '#1f5fbf' },
-  purple: { name: 'Purple', dark: '#c39bff', light: '#7a3fc4' },
-  pink: { name: 'Pink', dark: '#ff8cc6', light: '#b8327a' },
-  orange: { name: 'Orange', dark: '#ffa45c', light: '#a8530f' },
-  teal: { name: 'Teal', dark: '#4fd1c5', light: '#0f7a70' },
-  gray: { name: 'Gray', dark: '#b8c2bb', light: '#5e6a63' },
+export const SET_COLORS: Record<SetColor, { name: string; mark: string; dark: string; light: string }> = {
+  blue: { name: 'Blue', mark: '●', dark: '#6aa9ff', light: '#1f5fbf' },
+  purple: { name: 'Purple', mark: '▲', dark: '#c39bff', light: '#7a3fc4' },
+  pink: { name: 'Pink', mark: '✚', dark: '#ff8cc6', light: '#b8327a' },
+  orange: { name: 'Orange', mark: '■', dark: '#ffa45c', light: '#a8530f' },
+  teal: { name: 'Teal', mark: '◆', dark: '#4fd1c5', light: '#0f7a70' },
+  gray: { name: 'Gray', mark: '★', dark: '#b8c2bb', light: '#5e6a63' },
 };
 /** A set color's shade in the current mode. */
 export const setColorShade = (c: SetColor, t: ThemeName) => SET_COLORS[c][t];

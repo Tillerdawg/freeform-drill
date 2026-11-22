@@ -20,7 +20,7 @@ Hold the phone upright. **My dots** shows one set at a time, as a card, like one
 
 - the set, its counts, and its measures
 - your spot: side to side first, then front to back
-- how to get there: your step size and which way you go, as if you're facing the front (a ⚠ means the step is a big one)
+- how to get there: your step size and which way you go, as if you're facing the front (a ⚠ means the step is a big one), and **Half time**: the step size if you march the move on every other count, in case your director asks for half time
 - your own notes and the ensemble notes
 
 The set numbers along the top go straight to a set. So does **Set 2 ▾** on the card: tap it for your phone's list of sets. **‹ Previous set** and **Next set ›** stay at the bottom of the screen. **All sets** shows every set at once, like the whole dot sheet, with **Jump to** at the top; tap a set there to see its card.
