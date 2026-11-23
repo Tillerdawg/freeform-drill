@@ -15,7 +15,7 @@ const ROW = TOUCH ? 46 : 26; // set-button rows: 44 px buttons on a touch screen
 // Short touch screens (an open iPhone Duo on its side, 585 px tall): one row of set buttons, a one-line move track and a
 // snug controls row, so the field gets about 70 px more. Buttons stay 44 px; close sets' buttons overlap (zoom spreads them).
 const SHORT = '(pointer: coarse) and (max-height: 650px)';
-const HOLD_MS = 400; // touch: hold a set button this long to pick it up; a swipe before then scrolls the timeline
+const HOLD_MS = 400; // finger or Pencil: hold a set button this long to pick it up; a swipe before then scrolls the timeline
 
 interface Props {
   show: Show;
@@ -224,7 +224,9 @@ export function Timeline({ show, checked = show, setShow, t, setT, playing, setP
               e.currentTarget.setPointerCapture(e.pointerId);
               // Fix the scale at the start: dragging the last set changes the show's length.
               const d: NonNullable<typeof setDrag.current> = { i, x0: e.clientX, from: starts[i], perCount: (strip.current?.clientWidth ?? 1) / Math.max(1, total), moved: false };
-              if (e.pointerType === 'touch') // a finger picks a set up only after a hold, so swiping across the buttons scrolls
+              // A finger or an Apple Pencil picks a set up only after a hold, so a tap can't nudge it and a swipe scrolls.
+              // (A Pencil tip drifts a few pixels on a tap, which was enough to move a set a count.)
+              if (e.pointerType === 'touch' || e.pointerType === 'pen')
                 d.touch = { left: outer.current?.scrollLeft ?? 0, armed: false, scrolled: false,
                   timer: window.setTimeout(() => { if (i && !d.touch!.scrolled) { d.touch!.armed = true; setHeld(i); } }, HOLD_MS) };
               setDrag.current = d;

@@ -727,3 +727,9 @@ Recent decisions are here. Older ones are in [docs/decisions/](docs/decisions/),
 - **Context:** The words beside the show's name had a yellow dotted underline when something wasn't saved, which reads as a link, but clicking did nothing. Saving was two clicks away in the show menu (or ⌘S).
 - **Other options:** open the show menu instead of saving; make only "Unsaved changes" clickable.
 - **Decision:** When there's something to fix, the words are a button styled to look exactly as before (no box, same size, so the top bar's height doesn't change). **Unsaved changes** and **⚠ Not saved** do the same as **Save** (⌘S): the first time it asks where, then it saves to that same file. **Phones behind** opens **Publish update…** (Claude: it has the same underline, so it should do something too). **✓ Saved** stays plain text. The tooltip says what the click does. `saveStatus` returns the action (`fix`), with a test.
+
+## 2026-11-23 17:30 EST: The Apple Pencil holds to pick up a set on the timeline, like a finger
+- **Who:** Jason chose it, from Blake's report on his iPad: moving sets on the timeline with the Pencil was too easy, so taps changed the counts.
+- **Context:** A finger had to hold a set button for 0.4 seconds before the set lifted. The Pencil reports itself as a pen, not a touch, so it got the mouse rule instead: the set moved after 4 pixels. A Pencil tip drifts that much on a tap, and the move rounds to the nearest count, so tapping a set to go to it could shift it a count.
+- **Other options:** keep Pencil drags instant with a bigger dead zone (about 12 pixels) before a set moves; a slow, careful wobble could still move it.
+- **Decision:** The Pencil uses the finger rule on the set buttons: tap to go to a set, swipe to scroll, touch and hold until it lifts, then drag to move it. The mouse is unchanged. The guide's touch section says it works the same with a finger or a Pencil.
